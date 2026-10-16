@@ -3,7 +3,7 @@
 ## Where we are
 - Current step: Build & Test (V1 built)
 - Last session: 2026-10-16 — idea + icon received
-- Next action: Darren tries the test build; then set up phone install (GitHub Pages); look later
+- Next action: Darren installs from https://df-ai-lab.github.io/DinnerSync/ and tests alarms on Android
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -62,6 +62,7 @@
 ## Tickets
 
 ## Build / test progress
+- 2026-10-16: Added stages (hob/oven/rest + labels), hr/min inputs, saved dropdown with ×, step progress list, Reset with confirm. 32 tests pass. Live on GitHub Pages.
 - 2026-10-16: V1 built by Haiku first try. 15/15 unit tests + browser check pass. Test build: https://claude.ai/artifact/VG2ApJkyFmTfVxKC2ut3qg
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
