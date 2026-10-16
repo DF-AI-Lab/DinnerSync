@@ -3,7 +3,7 @@
 ## Where we are
 - Current step: 1. Idea (lite mode)
 - Last session: 2026-10-16 — idea + icon received
-- Next action: Darren answers: iPhone or Android?
+- Next action: Darren decides how to handle clashing oven temps
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -34,6 +34,8 @@
 |---|----------|-----|------|
 | 1 | Destination = working app, not just a plan | Darren wants to use it | 2026-10-16 |
 | 2 | Web app added to home screen, not a native widget | Widgets need native iOS/Android code; much harder | 2026-10-16 |
+| 4 | Android first; install as web app | Darren's phone | 2026-10-16 |
+| 5 | Screen stays on while cooking (wake lock) + sound, vibrate and notification | Web apps can't reliably alarm when phone is locked; no server needed | 2026-10-16 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
