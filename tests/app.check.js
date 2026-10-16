@@ -15,8 +15,50 @@ try {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://localhost:8099/index.html');
-  // Reset is at the top of every screen
+  // Reset is at the top of every screen, small, not touching the title
   assert.equal(await page.locator('#cook-reset').isVisible(), true);
+  const rb = await page.locator('#cook-reset').boundingBox();
+  const bb = await page.locator('.brand').boundingBox();
+  assert.ok(rb.height <= 36, 'reset is small');
+  const overlap = rb.x < bb.x + bb.width && bb.x < rb.x + rb.width && rb.y < bb.y + bb.height && bb.y < rb.y + rb.height;
+  assert.equal(overlap, false, 'reset does not touch the title');
+  // Two tiles at the top: When's dinner + Timer. Tap opens a panel, one at a time, tap again closes.
+  const isOpen = async id => /\bopen\b/.test(await page.getAttribute(id, 'class'));
+  assert.match(await page.textContent('#tile-dinner'), /When's dinner/);
+  assert.match(await page.textContent('#tile-dinner'), /\d{1,2}:\d\d(am|pm)/);
+  assert.match(await page.textContent('#tile-timer'), /Timer/);
+  assert.match(await page.textContent('#tile-timer'), /0:00/);
+  await page.click('#tile-dinner');
+  assert.equal(await isOpen('#panel-dinner'), true);
+  assert.match(await page.textContent('#panel-dinner'), /Ready in/);
+  assert.match(await page.textContent('#panel-dinner'), /or at/);
+  assert.match(await page.textContent('#panel-dinner'), /Dinner at \d{1,2}:\d\d(am|pm)/);
+  await page.click('#tile-timer');
+  assert.equal(await isOpen('#panel-dinner'), false);
+  assert.equal(await isOpen('#panel-timer'), true);
+  // Timer open hides the add-item card and the rest of the plan
+  assert.equal(await page.locator('#add-card').isVisible(), false);
+  assert.equal(await page.locator('#show-plan').isVisible(), false);
+  // Countdown only: +1/+5/+10, Start/Pause, Reset to 0:00
+  assert.match(await page.textContent('#panel-timer'), /Remaining/);
+  assert.equal(await page.textContent('#timer-display'), '0:00');
+  await page.click('#panel-timer [data-add="60"]');
+  await page.click('#panel-timer [data-add="300"]');
+  assert.equal(await page.textContent('#timer-display'), '6:00');
+  await page.click('#panel-timer [data-add="600"]');
+  assert.equal(await page.textContent('#timer-display'), '16:00');
+  await page.click('#timer-start');
+  assert.equal(await page.textContent('#timer-start'), 'Pause');
+  await page.waitForFunction(() => document.getElementById('timer-display').textContent !== '16:00');
+  assert.match(await page.textContent('#tile-timer'), /15:5\d/);
+  await page.click('#timer-start');
+  assert.equal(await page.textContent('#timer-start'), 'Start');
+  await page.click('#timer-reset');
+  assert.equal(await page.textContent('#timer-display'), '0:00');
+  await page.click('#tile-timer');
+  assert.equal(await isOpen('#panel-timer'), false);
+  assert.equal(await page.locator('#add-card').isVisible(), true);
+  await page.click('#tile-dinner');
   await page.fill('#item-name', 'Chicken');
   await page.fill('#item-hours', '1');
   await page.fill('#item-minutes', '30');
@@ -46,16 +88,30 @@ try {
   assert.match(txt, /Roast potatoes into the oven/);
   await page.click('#start-cooking');
   await page.waitForSelector('#cook-screen:not([hidden])');
-  assert.match(await page.textContent('#cook-screen'), /Dinner/i);
-  // Steps list on the cooking screen: Done ticks the current step, highlights the next
+  // Only "Dinner in" at the top: no big countdown, no preheat card, no big Done
+  assert.match(await page.textContent('#cook-screen'), /Dinner in/i);
+  assert.equal(await page.locator('#next-time').count(), 0);
+  assert.equal(await page.locator('#preheat-block').count(), 0);
+  assert.equal(await page.locator('#cook-done').count(), 0);
   const steps = page.locator('#cook-steps li');
   assert.ok(await steps.count() >= 4);
   assert.match(await steps.nth(0).getAttribute('class'), /current/);
-  await page.click('#cook-done');
+  // Current card grows: countdown + small Done next to it + badge
+  const cur = page.locator('#cook-steps li.current');
+  assert.equal(await cur.count(), 1);
+  assert.match(await cur.locator('.card-count').textContent(), /^\d+:\d\d(:\d\d)?$/);
+  assert.equal(await cur.locator('.card-done').count(), 1);
+  assert.equal(await cur.locator('.step-badge').textContent(), 'NEXT'); // preheat not due yet
+  assert.equal(await page.locator('#cook-steps .card-done').count(), 1, 'Done only in the current card');
+  const radius = await cur.locator('.card-done').evaluate(n => getComputedStyle(n).borderTopLeftRadius);
+  assert.equal(radius, '6px');
+  const firstAt = await steps.nth(1).locator('time').textContent();
+  // Done early: step ticked, next card says how much spare, times don't shift
+  await cur.locator('.card-done').click();
   assert.match(await steps.nth(0).getAttribute('class'), /done/);
   assert.match(await steps.nth(1).getAttribute('class'), /current/);
-  // Done and Reset at the top of the cooking screen
-  await page.waitForSelector('#cook-done');
+  assert.match(await page.locator('#cook-steps li.current .card-spare').textContent(), /Done early, \d+ min spare before this/);
+  assert.equal(await steps.nth(1).locator('time').textContent(), firstAt);
   await page.waitForSelector('#cook-reset');
   // Reset asks first; "No" keeps cooking
   await page.click('#cook-reset');

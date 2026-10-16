@@ -1,5 +1,5 @@
 // Cache-first offline service worker. Bump CACHE when shipping changes.
-const CACHE = 'dinnersync-v8';
+const CACHE = 'dinnersync-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   './js/app.js',
   './js/plan.js',
   './js/store.js',
+  './js/timer.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
