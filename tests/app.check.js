@@ -203,6 +203,20 @@ try {
   await page.reload();
   await page.click('#saved-toggle');
   assert.equal(await page.locator('#saved-list li', { hasText: 'Chicken' }).count(), 0);
+  // Narrow phones (Z Fold cover screen): header fits, nothing overlaps Reset, tagline on one line
+  for (const width of [320, 344, 360]) {
+    await page.setViewportSize({ width, height: 800 });
+    const r = await page.locator('#cook-reset').boundingBox();
+    const t = await page.locator('.brand-text').boundingBox();
+    const lg = await page.locator('#home img').boundingBox();
+    const tag = await page.locator('.tagline').boundingBox();
+    const tagLine = await page.locator('.tagline').evaluate(n => parseFloat(getComputedStyle(n).lineHeight) || parseFloat(getComputedStyle(n).fontSize) * 1.3);
+    assert.ok(t.x + t.width <= r.x, `title clear of Reset at ${width}px`);
+    assert.ok(tag.height <= tagLine * 1.5, `tagline on one line at ${width}px`);
+    assert.ok(Math.abs(lg.height - t.height) <= 4, `logo matches text height at ${width}px`);
+    assert.ok(lg.height <= 64, `logo not too big at ${width}px`);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `no side scroll at ${width}px`);
+  }
   assert.deepEqual(errors, []);
   console.log('app.check: OK');
 } finally {

@@ -53,6 +53,16 @@ body {
 .brand { font-family: var(--display); font-weight: 800; font-size: 2rem; margin: 0; color: var(--orange); text-shadow: 0 0 22px var(--glow); }
 .app-version { color: var(--muted); font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tagline { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
+/* Narrow phones (Z Fold cover screen, 320-360px): shrink the header so the title block ends before Reset. Wide screens keep the sizes above. */
+@media (max-width: 420px) {
+  .btn.reset-top { padding: 4px 8px; }
+  .brand-group { gap: 8px; }
+  .home { width: 48px; }
+  .brand-line { gap: 5px; }
+  .brand { font-size: clamp(1.2rem, 6.4vw, 1.5rem); }
+  .app-version { font-size: 0.62rem; }
+  .tagline { font-size: clamp(0.66rem, 3.3vw, 0.85rem); white-space: nowrap; }
+}
 
 h2 {
   font-size: 0.95rem;
