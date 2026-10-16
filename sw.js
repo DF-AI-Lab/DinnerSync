@@ -1,5 +1,6 @@
-// Cache-first offline service worker. Bump CACHE and the #app-version in index.html together.
-const CACHE = 'dinnersync-v1.1.1';
+// Network-first service worker: online it always fetches the newest file and saves a copy;
+// offline it falls back to the saved copy. Bump CACHE and the #app-version in index.html together.
+const CACHE = 'dinnersync-v1.1.2';
 const ASSETS = [
   './',
   './index.html',
@@ -29,15 +30,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request).then(hit => {
-      if (hit) return hit;
-      return fetch(event.request).then(res => {
-        if (res.ok && new URL(event.request.url).origin === self.location.origin) {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(event.request, copy));
-        }
-        return res;
-      });
-    })
+    fetch(event.request).then(res => {
+      if (res.ok && new URL(event.request.url).origin === self.location.origin) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(event.request, copy));
+      }
+      return res;
+    }).catch(() => caches.match(event.request))
   );
 });
