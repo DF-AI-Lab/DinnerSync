@@ -333,6 +333,20 @@ h2 {
 .cook-top { display: flex; gap: 10px; }
 .cook-top .btn { flex: 1; min-height: 52px; }
 
+/* Inline "Are you sure?" panel under the cooking top bar. */
+.reset-confirm {
+  background: var(--panel);
+  border: 1px solid rgba(255, 192, 77, 0.5);
+  border-left: 5px solid var(--warn);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.reset-confirm p { margin: 0 0 8px; color: var(--text); font-weight: 700; font-size: 1rem; }
+.reset-actions { display: flex; gap: 10px; }
+.reset-actions .btn { flex: 1; min-height: 44px; }
+#reset-yes { background: var(--warn); color: var(--ink); border-color: transparent; }
+
 /* ---------- stages: method tags on the timeline, cooking screen and list ---------- */
 .tag {
   display: inline-block;

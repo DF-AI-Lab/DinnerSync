@@ -443,6 +443,7 @@ function renderCook(st) {
 }
 
 function stopCooking() {
+  $('reset-confirm').hidden = true;
   stopAlarm();
   stopTimer();
   cook = null;
@@ -461,7 +462,12 @@ function resetTonight() {
 
 function bindCookScreen() {
   $('cook-done').addEventListener('click', stopCooking);
-  $('cook-reset').addEventListener('click', resetTonight);
+  $('cook-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
+  $('reset-no').addEventListener('click', () => { $('reset-confirm').hidden = true; });
+  $('reset-yes').addEventListener('click', () => {
+    $('reset-confirm').hidden = true;
+    resetTonight();
+  });
   $('alarm-done').addEventListener('click', stopAlarm);
 }
 
