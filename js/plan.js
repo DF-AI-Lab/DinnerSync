@@ -7,6 +7,29 @@
 const MIN = 60_000;
 export const DEFAULT_PREHEAT = 15;
 
+// Hours/minutes from form fields. Blank, invalid or negative counts as 0.
+const count = v => {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+export function toMinutes(h, m) {
+  return count(h) * 60 + count(m);
+}
+
+export function splitMinutes(min) {
+  const total = count(min);
+  return { h: Math.floor(total / 60), m: total % 60 };
+}
+
+// "1 hr 30 min", "45 min", "2 hr". Minutes over 59 are fine.
+export function formatDuration(min) {
+  const { h, m } = splitMinutes(min);
+  if (!h) return `${m} min`;
+  if (!m) return `${h} hr`;
+  return `${h} hr ${m} min`;
+}
+
 const METHOD_TEXT = {
   oven: (name, temp) => `${name} into the oven — ${temp}°C`,
   hob: name => `${name} on the hob`,
@@ -80,10 +103,12 @@ export function buildPlan({ items = [], readyAt, now, preheatMinutes = DEFAULT_P
   for (const item of planItems) {
     let at = readyAt - item.cookMinutes * MIN;
     for (const st of item.stages) {
-      const text = (METHOD_TEXT[st.method] ?? (name => name))(item.name, ovenTemp);
+      // A stage label (e.g. "Boil potatoes") replaces the item name in the step text.
+      const label = (typeof st.label === 'string' && st.label.trim()) || item.name;
+      const text = (METHOD_TEXT[st.method] ?? (name => name))(label, ovenTemp);
       ranked.push({
         rank: item.main ? 1 : 2,
-        step: { type: 'in', name: item.name, method: st.method, at, text, minutes: st.cookMinutes },
+        step: { type: 'in', name: item.name, label, method: st.method, at, text, minutes: st.cookMinutes },
       });
       at += st.cookMinutes * MIN;
     }

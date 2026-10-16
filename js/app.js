@@ -1,4 +1,4 @@
-import { buildPlan, cookingState, normalizeItem } from './plan.js';
+import { buildPlan, cookingState, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
 import { createStore } from './store.js';
 
 const MIN = 60_000;
@@ -75,15 +75,21 @@ function currentPlan() {
   });
 }
 
-// Keep one valid stage: {method, minutes} and {method, minutes, temp} for oven.
-// Returns null when a stage is missing a minute count or an oven temp.
+// Keep one valid stage: {method, minutes} and {method, minutes, temp} for oven,
+// plus an optional label. Returns null when a stage is missing a minute count or an oven temp.
 function cleanStage(st) {
   if (!METHOD_LABEL[st?.method]) return null;
   const minutes = Math.round(Number(st.minutes));
   if (!(minutes > 0)) return null;
-  if (st.method !== 'oven') return { method: st.method, minutes };
-  const temp = Math.round(Number(st.temp));
-  return temp > 0 ? { method: 'oven', minutes, temp } : null;
+  const label = typeof st.label === 'string' ? st.label.trim() : '';
+  const out = { method: st.method, minutes };
+  if (st.method === 'oven') {
+    const temp = Math.round(Number(st.temp));
+    if (!(temp > 0)) return null;
+    out.temp = temp;
+  }
+  if (label) out.label = label;
+  return out;
 }
 
 // Returns a clean item, or null if the name or any stage is not usable.
@@ -96,15 +102,17 @@ function cleanItem(x) {
   return { name: x.name.trim(), stages };
 }
 
-// "Hob 10 min → Oven 45 min 220°C (55 at 180°C) → Rest 15"
+// "Boil potatoes: Hob 10 min → Roast potatoes: Oven 45 min 220°C (55 min at 180°C) → Rest 15 min"
 function describeStages(stages, ovenTemp) {
   return stages.map(st => {
+    const prefix = st.label ? `${st.label}: ` : '';
     if (st.method === 'oven') {
       const scaled = st.cookMinutes !== undefined && st.cookMinutes !== st.minutes;
-      return `Oven ${st.minutes} min ${st.temp}°C` + (scaled ? ` (${st.cookMinutes} at ${ovenTemp}°C)` : '');
+      const scaledText = scaled ? ` (${formatDuration(st.cookMinutes)} at ${ovenTemp}°C)` : '';
+      return `${prefix}Oven ${formatDuration(st.minutes)} ${st.temp}°C${scaledText}`;
     }
-    if (st.method === 'hob') return `Hob ${st.minutes} min`;
-    return `Rest ${st.minutes}`;
+    if (st.method === 'hob') return `${prefix}Hob ${formatDuration(st.minutes)}`;
+    return `${prefix}Rest ${formatDuration(st.minutes)}`;
   }).join(' → ');
 }
 
@@ -122,9 +130,14 @@ function persistTonight() {
 
 // ---------- plan screen ----------
 
+function setReadyDuration(mins) {
+  const { h, m } = splitMinutes(mins);
+  $('ready-hours').value = String(h);
+  $('ready-minutes').value = String(m);
+}
+
 function syncReadyInputs() {
-  const mins = Math.max(0, Math.round((state.readyAt - Date.now()) / MIN));
-  $('ready-in').value = String(mins);
+  setReadyDuration(Math.max(0, Math.round((state.readyAt - Date.now()) / MIN)));
   $('ready-at').value = toTimeValue(state.readyAt);
   $('ready-clock').textContent = `Dinner at ${formatClock(state.readyAt)}`;
 }
@@ -221,13 +234,15 @@ function renderAll() {
 }
 
 function bindPlanScreen() {
-  $('ready-in').addEventListener('input', () => {
-    const mins = Number($('ready-in').value);
-    if (!Number.isFinite(mins) || mins <= 0) return;
+  const onReadyDuration = () => {
+    const mins = toMinutes($('ready-hours').value, $('ready-minutes').value);
+    if (mins <= 0) return;
     state.readyAt = Date.now() + mins * MIN;
     $('ready-at').value = toTimeValue(state.readyAt);
     onReadyChanged();
-  });
+  };
+  $('ready-hours').addEventListener('input', onReadyDuration);
+  $('ready-minutes').addEventListener('input', onReadyDuration);
 
   $('ready-at').addEventListener('input', () => {
     const value = $('ready-at').value;
@@ -237,7 +252,7 @@ function bindPlanScreen() {
     d.setHours(h, m, 0, 0);
     if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
     state.readyAt = d.getTime();
-    $('ready-in').value = String(Math.round((state.readyAt - Date.now()) / MIN));
+    setReadyDuration(Math.max(0, Math.round((state.readyAt - Date.now()) / MIN)));
     onReadyChanged();
   });
 
@@ -292,8 +307,9 @@ function stageRows() {
 function readStageRows() {
   return stageRows().map(row => ({
     method: row.dataset.method,
-    minutes: row.querySelector('.stage-minutes').value,
-    temp: row.querySelector('.stage-temp-input').value,
+    label: row.querySelector('.stage-label').value,
+    minutes: toMinutes(row.querySelector('.stage-hours').value, row.querySelector('.stage-minutes').value),
+    temp: row.querySelector('.stage-temp').value,
   }));
 }
 
@@ -302,7 +318,7 @@ function setMethod(row, method) {
   for (const btn of row.querySelectorAll('.seg-btn')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.method === method));
   }
-  row.querySelector('.stage-temp').hidden = method !== 'oven';
+  row.querySelector('.temp-field').hidden = method !== 'oven';
 }
 
 function numberRows() {
@@ -337,8 +353,10 @@ function resetDraft() {
   for (const row of stageRows().slice(1)) row.remove();
   const first = stageRows()[0];
   setMethod(first, 'oven');
+  first.querySelector('.stage-label').value = '';
+  first.querySelector('.stage-hours').value = '';
   first.querySelector('.stage-minutes').value = '';
-  first.querySelector('.stage-temp-input').value = '';
+  first.querySelector('.stage-temp').value = '';
   numberRows();
 }
 
@@ -411,7 +429,7 @@ function renderCook(st) {
     const n = st.next;
     $('next-label').textContent = n.type === 'preheat'
       ? 'Next: Preheat oven'
-      : n.type === 'in' ? `Next: ${METHOD_LABEL[n.method]} — ${n.name}` : 'Next: Dinner ready';
+      : n.type === 'in' ? `Next: ${METHOD_LABEL[n.method]} — ${n.label ?? n.name}` : 'Next: Dinner ready';
     $('next-time').textContent = formatCountdown(st.msToNext);
   } else {
     $('next-label').textContent = 'Nothing left to do';
@@ -433,8 +451,17 @@ function stopCooking() {
   showScreen('plan');
 }
 
+// Reset: stop cooking and forget tonight's items and last dinner. Saved items stay.
+function resetTonight() {
+  stopCooking();
+  state.items = [];
+  store.clearLastDinner();
+  renderAll();
+}
+
 function bindCookScreen() {
-  $('stop-cooking').addEventListener('click', stopCooking);
+  $('cook-done').addEventListener('click', stopCooking);
+  $('cook-reset').addEventListener('click', resetTonight);
   $('alarm-done').addEventListener('click', stopAlarm);
 }
 

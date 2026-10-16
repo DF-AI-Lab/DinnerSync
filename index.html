@@ -27,10 +27,13 @@
       <div class="card">
         <h2>When's dinner?</h2>
         <div class="ready-row">
-          <label class="field">
-            <span>Ready in (min)</span>
-            <input id="ready-in" type="number" inputmode="numeric" min="1" step="5" value="90">
-          </label>
+          <div class="field">
+            <span>Ready in</span>
+            <div class="dur">
+              <input id="ready-hours" type="number" inputmode="numeric" min="0" aria-label="Ready in hours" value="1"><em>hr</em>
+              <input id="ready-minutes" type="number" inputmode="numeric" min="0" aria-label="Ready in minutes" value="30"><em>min</em>
+            </div>
+          </div>
           <label class="field">
             <span>Or at</span>
             <input id="ready-at" type="time">
@@ -39,7 +42,7 @@
         <p id="ready-clock" class="ready-clock"></p>
       </div>
 
-      <div class="card">
+      <div id="add-card" class="card">
         <h2>Add an item</h2>
         <label class="field wide">
           <span>Name</span>
@@ -51,19 +54,23 @@
               <span class="label stage-num">Stage 1</span>
               <button class="icon-btn stage-remove" type="button" aria-label="Remove stage" hidden>✕</button>
             </div>
+            <input class="stage-label" type="text" autocomplete="off" aria-label="Stage name" placeholder="e.g. Boil potatoes">
             <div class="seg" role="group" aria-label="Method">
               <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
               <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
               <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
             </div>
             <div class="stage-fields">
-              <label class="field">
-                <span>Minutes</span>
-                <input id="item-minutes" class="stage-minutes" type="number" inputmode="numeric" min="1">
-              </label>
-              <label class="field stage-temp">
+              <div class="field">
+                <span>Time</span>
+                <div class="dur">
+                  <input id="item-hours" class="stage-hours" type="number" inputmode="numeric" min="0" aria-label="Hours"><em>hr</em>
+                  <input id="item-minutes" class="stage-minutes" type="number" inputmode="numeric" min="0" aria-label="Minutes"><em>min</em>
+                </div>
+              </div>
+              <label class="field temp-field">
                 <span>Temp (°C)</span>
-                <input id="item-temp" class="stage-temp-input" type="number" inputmode="numeric" min="50" max="300">
+                <input id="item-temp" class="stage-temp" type="number" inputmode="numeric" min="50" max="300">
               </label>
             </div>
           </div>
@@ -79,19 +86,23 @@
             <span class="label stage-num"></span>
             <button class="icon-btn stage-remove" type="button" aria-label="Remove stage">✕</button>
           </div>
+          <input class="stage-label" type="text" autocomplete="off" aria-label="Stage name" placeholder="e.g. Boil potatoes">
           <div class="seg" role="group" aria-label="Method">
             <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
             <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
             <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
           </div>
           <div class="stage-fields">
-            <label class="field">
-              <span>Minutes</span>
-              <input class="stage-minutes" type="number" inputmode="numeric" min="1">
-            </label>
-            <label class="field stage-temp">
+            <div class="field">
+              <span>Time</span>
+              <div class="dur">
+                <input class="stage-hours" type="number" inputmode="numeric" min="0" aria-label="Hours"><em>hr</em>
+                <input class="stage-minutes" type="number" inputmode="numeric" min="0" aria-label="Minutes"><em>min</em>
+              </div>
+            </div>
+            <label class="field temp-field">
               <span>Temp (°C)</span>
-              <input class="stage-temp-input" type="number" inputmode="numeric" min="50" max="300">
+              <input class="stage-temp" type="number" inputmode="numeric" min="50" max="300">
             </label>
           </div>
         </div>
@@ -135,6 +146,11 @@
 
     <!-- Screen 3: cooking -->
     <section id="cook-screen" class="screen cook" hidden>
+      <div class="cook-top">
+        <button id="cook-done" class="btn done" type="button">Done ✓</button>
+        <button id="cook-reset" class="btn ghost" type="button">Reset</button>
+      </div>
+
       <p id="cook-now" class="now"></p>
 
       <div class="next">
@@ -153,8 +169,6 @@
       </div>
 
       <p id="oven-temp" class="oven"></p>
-
-      <button id="stop-cooking" class="btn ghost big block" type="button">Stop cooking</button>
     </section>
   </main>
 

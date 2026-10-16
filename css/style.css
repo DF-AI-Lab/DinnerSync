@@ -85,6 +85,7 @@ h2 {
 .icon-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 
 .ready-row, .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ready-row .dur input { font-size: 1.125rem; }
 .grid2 .wide { grid-column: 1 / -1; }
 .ready-clock { margin: 12px 0 0; font-family: var(--display); font-size: 1.3rem; color: var(--orange-soft); font-variant-numeric: tabular-nums; }
 
@@ -253,43 +254,84 @@ h2 {
 }
 
 /* ---------- stages: add-item form ---------- */
-.stage-list { display: grid; gap: 12px; margin-bottom: 12px; }
+/* The add-item card holds the stage rows, so they are lighter than cards of their own. */
+.stage-list { display: grid; gap: 10px; margin-bottom: 12px; }
 .stage-row {
-  background: var(--panel-2);
+  background: transparent;
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 10px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
-.stage-head { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
+.stage-head { display: flex; justify-content: space-between; align-items: center; min-height: 36px; }
 .stage-head .label { margin: 0; }
-.stage-remove { min-width: 48px; min-height: 48px; }
+.stage-remove { min-width: 36px; min-height: 36px; font-size: 1rem; }
+.stage-label {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  font-size: 1rem;
+  padding: 8px 12px;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.stage-label::placeholder { color: var(--muted); opacity: 0.7; }
+.stage-label:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* Oven / Hob / Rest: compact segmented control. */
 .seg {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  padding: 4px;
+  gap: 4px;
+  padding: 3px;
   background: var(--field);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
 }
 .seg-btn {
-  min-height: 52px;
+  min-height: 36px;
   padding: 0 4px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.seg-btn[aria-pressed="true"] { background: var(--orange); color: var(--ink); box-shadow: 0 6px 20px var(--glow); }
-.stage-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.stage-fields:has(.stage-temp[hidden]) { grid-template-columns: 1fr; }
+.seg-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 1px; }
+.seg-btn[aria-pressed="true"] { background: var(--orange); color: var(--ink); box-shadow: 0 2px 8px rgba(255, 122, 47, 0.25); }
+.stage-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+.stage-fields:has(.temp-field[hidden]) { grid-template-columns: 1fr; }
+
+/* Hours + minutes side by side, each with a small suffix. */
+.dur { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dur input {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 8px 10px;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dur input:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.dur em { font-style: normal; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+
+/* Cooking screen top bar: Done and Reset. */
+.cook-top { display: flex; gap: 10px; }
+.cook-top .btn { flex: 1; min-height: 52px; }
 
 /* ---------- stages: method tags on the timeline, cooking screen and list ---------- */
 .tag {

@@ -46,8 +46,12 @@ export function createStore(storage) {
   // so older copies of the app can still read the list.
   function cleanItem(item) {
     const n = normalizeItem(item);
-    const stages = n.stages.map(({ method, minutes, temp }) =>
-      method === 'oven' ? { method, minutes, temp } : { method, minutes });
+    const stages = n.stages.map(({ method, minutes, temp, label }) => {
+      const out = method === 'oven' ? { method, minutes, temp } : { method, minutes };
+      const text = typeof label === 'string' ? label.trim() : '';
+      if (text) out.label = text;
+      return out;
+    });
     const oven = stages.find(s => s.method === 'oven');
     return { name: n.name, stages, minutes: oven?.minutes, temp: oven?.temp };
   }
@@ -83,6 +87,10 @@ export function createStore(storage) {
     write(KEYS.lastDinner, dinner);
   }
 
+  function clearLastDinner() {
+    remove(KEYS.lastDinner);
+  }
+
   function getSettings() {
     const value = read(KEYS.settings, {});
     const stored = value && typeof value === 'object' ? value : {};
@@ -112,6 +120,7 @@ export function createStore(storage) {
     removeItem,
     getLastDinner,
     saveLastDinner,
+    clearLastDinner,
     getSettings,
     saveSettings,
     getCooking,
