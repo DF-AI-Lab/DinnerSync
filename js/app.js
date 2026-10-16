@@ -197,24 +197,20 @@ function renderItems() {
   });
 }
 
-function renderSaved() {
-  const wrap = $('saved-items');
-  wrap.replaceChildren();
+// The saved-items dropdown in the add-item card. Value = saved name, label = the same name.
+function renderSavedOptions() {
+  const select = $('saved-select');
   const saved = store.getSavedItems();
-  if (!saved.length) {
-    wrap.append(el('p', { class: 'muted' }, 'Items you add are saved here for next time.'));
-    return;
-  }
-  for (const item of saved) {
-    const chip = el('button', { class: 'chip', type: 'button', title: describeStages(item.stages, null) }, item.name);
-    chip.addEventListener('click', () => addToTonight(item));
-    const forget = el('button', { class: 'chip-x', type: 'button', 'aria-label': `Forget ${item.name}` }, '✕');
-    forget.addEventListener('click', () => {
-      store.removeItem(item.name);
-      renderSaved();
-    });
-    wrap.append(el('span', { class: 'chip-wrap' }, chip, forget));
-  }
+  select.replaceChildren(
+    el('option', { value: '' }, 'Saved ▾'),
+    ...saved.map(item => el('option', { value: item.name }, item.name)),
+  );
+  select.value = '';
+  updateSavedDelete();
+}
+
+function updateSavedDelete() {
+  $('saved-delete').hidden = !$('saved-select').value;
 }
 
 function addToTonight(item) {
@@ -228,7 +224,6 @@ function addToTonight(item) {
 }
 
 function renderAll() {
-  renderSaved();
   renderItems();
   renderStatus();
 }
@@ -268,7 +263,22 @@ function bindPlanScreen() {
     store.saveItem(item);
     addToTonight(item);
     resetDraft();
+    renderSavedOptions();
     $('item-name').focus();
+  });
+
+  $('saved-select').addEventListener('change', () => {
+    const picked = $('saved-select').value;
+    const item = store.getSavedItems().find(x => x.name === picked);
+    if (item) fillDraft(item);
+    updateSavedDelete();
+  });
+
+  $('saved-delete').addEventListener('click', () => {
+    const name = $('saved-select').value;
+    if (!name) return;
+    store.removeItem(name);
+    renderSavedOptions();
   });
 
   $('add-stage').addEventListener('click', () => {
@@ -338,13 +348,35 @@ function bindStageRow(row) {
   });
 }
 
-function addStageRow(method) {
+function appendStageRow(method) {
   const row = $('stage-template').content.firstElementChild.cloneNode(true);
   bindStageRow(row);
   setMethod(row, method);
   $('stage-rows').append(row);
+  return row;
+}
+
+function addStageRow(method) {
+  const row = appendStageRow(method);
   numberRows();
   row.querySelector('.stage-minutes').focus();
+}
+
+// Fill the whole form from a saved item: name, then one row per stage.
+function fillDraft(item) {
+  $('item-name').value = item.name;
+  for (const row of stageRows().slice(1)) row.remove();
+  item.stages.forEach((st, i) => {
+    const row = i === 0 ? stageRows()[0] : appendStageRow(st.method);
+    setMethod(row, st.method);
+    row.querySelector('.stage-label').value = st.label || '';
+    const { h, m } = splitMinutes(st.minutes);
+    row.querySelector('.stage-hours').value = h ? String(h) : '';
+    row.querySelector('.stage-minutes').value = String(m);
+    row.querySelector('.stage-temp').value = st.method === 'oven' ? String(st.temp ?? '') : '';
+  });
+  numberRows();
+  $('item-error').hidden = true;
 }
 
 // Back to one empty oven stage after an item is added.
@@ -611,6 +643,7 @@ function init() {
   renderAll();
 
   bindStageForm();
+  renderSavedOptions();
   bindPlanScreen();
   bindTimelineScreen();
   bindCookScreen();

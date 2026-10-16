@@ -54,10 +54,16 @@
 
       <div id="add-card" class="card">
         <h2>Add an item</h2>
-        <label class="field wide">
-          <span>Name</span>
-          <input id="item-name" type="text" autocomplete="off" placeholder="Chicken">
-        </label>
+        <div class="name-row">
+          <label class="field name-field">
+            <span>Name</span>
+            <input id="item-name" type="text" autocomplete="off" placeholder="Chicken">
+          </label>
+          <select id="saved-select" class="saved-select" aria-label="Pick a saved item">
+            <option value="">Saved ▾</option>
+          </select>
+        </div>
+        <button id="saved-delete" class="btn ghost saved-delete" type="button" hidden>Delete saved</button>
         <div id="stage-rows" class="stage-list">
           <div class="stage-row" data-method="oven">
             <div class="stage-head">
@@ -120,13 +126,8 @@
 
       <div class="card">
         <h2>Tonight</h2>
-        <p id="items-empty" class="muted">Nothing yet. Add an item or tap a saved one.</p>
+        <p id="items-empty" class="muted">Nothing yet. Add an item or pick one from Saved.</p>
         <ul id="items" class="items"></ul>
-      </div>
-
-      <div class="card">
-        <h2>Saved items</h2>
-        <div id="saved-items" class="chips"></div>
       </div>
 
       <div class="card">

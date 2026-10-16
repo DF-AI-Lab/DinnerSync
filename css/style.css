@@ -81,8 +81,7 @@ h2 {
 }
 .field input:focus-visible,
 .btn:focus-visible,
-.chip:focus-visible,
-.chip-x:focus-visible,
+.saved-select:focus-visible,
 .icon-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 
 .ready-row, .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -151,35 +150,6 @@ h2 {
   color: var(--muted);
   font: inherit;
   font-size: 1.1rem;
-  cursor: pointer;
-}
-
-.chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.chip-wrap {
-  display: inline-flex;
-  align-items: center;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-}
-.chip {
-  min-height: 48px;
-  padding: 0 6px 0 18px;
-  background: none;
-  border: 0;
-  color: var(--text);
-  font: inherit;
-  font-size: 1.05rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.chip-x {
-  min-width: 48px;
-  min-height: 48px;
-  background: none;
-  border: 0;
-  color: var(--muted);
-  font: inherit;
   cursor: pointer;
 }
 
@@ -252,6 +222,36 @@ h2 {
 .alarm p { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .alarm { animation: none; background: var(--orange); }
+}
+
+/* ---------- add-item: name input with the saved-items dropdown beside it ---------- */
+.name-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; min-width: 0; }
+.name-field { flex: 1 1 0; min-width: 0; }
+.saved-select {
+  flex: 0 1 auto;
+  max-width: 42%;
+  min-width: 0;
+  min-height: 48px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0 10px;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color-scheme: dark;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.saved-select:focus-visible { outline-offset: 1px; }
+.saved-delete {
+  display: flex;
+  margin: -4px 0 12px auto;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 0.95rem;
+  color: var(--muted);
 }
 
 /* ---------- stages: add-item form ---------- */
