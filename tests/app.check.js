@@ -22,6 +22,18 @@ try {
   assert.ok(rb.height <= 36, 'reset is small');
   const overlap = rb.x < bb.x + bb.width && bb.x < rb.x + rb.width && rb.y < bb.y + bb.height && bb.y < rb.y + rb.height;
   assert.equal(overlap, false, 'reset does not touch the title');
+  // Logo on the left of the title, same height as title + tagline; it's a home button
+  const logo = await page.locator('#home img').boundingBox();
+  const titleBlock = await page.locator('.brand-text').boundingBox();
+  assert.ok(Math.abs(logo.height - titleBlock.height) <= 4, 'logo is as tall as title + tagline');
+  assert.ok(logo.x + logo.width <= bb.x, 'logo is left of the title');
+  // Version to the right of the title, same as the offline cache version
+  const ver = (await page.textContent('#app-version')).trim();
+  assert.match(ver, /^v\d+(\.\d+)*$/);
+  const vb = await page.locator('#app-version').boundingBox();
+  assert.ok(vb.x >= bb.x + bb.width, 'version is right of the title');
+  const sw = (await import('node:fs')).readFileSync('sw.js', 'utf8');
+  assert.match(sw, new RegExp(`const CACHE = 'dinnersync-${ver.replace(/\./g, '\\.')}'`), 'sw cache matches version');
   // Two tiles at the top: When's dinner + Timer. Tap opens a panel, one at a time, tap again closes.
   const isOpen = async id => /\bopen\b/.test(await page.getAttribute(id, 'class'));
   assert.match(await page.textContent('#tile-dinner'), /When's dinner/);
@@ -145,6 +157,12 @@ try {
   await page.waitForSelector('#cook-screen:not([hidden])');
   assert.match(await steps.nth(0).getAttribute('class'), /done/);
   assert.equal(await page.locator('#back-to-cook').isVisible(), false);
+  // The logo is a home button: goes to the plan, cooking carries on
+  await page.click('#home');
+  await page.waitForSelector('#plan-screen:not([hidden])');
+  assert.equal(await page.locator('#back-to-cook').isVisible(), true);
+  await page.click('#back-to-cook');
+  await page.waitForSelector('#cook-screen:not([hidden])');
   await page.waitForSelector('#cook-reset');
   // Reset asks first; "No" keeps cooking
   await page.click('#cook-reset');

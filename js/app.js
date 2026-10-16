@@ -625,6 +625,8 @@ function bindCookScreen() {
     history.pushState({ screen: 'cook' }, '');
     showScreen('cook');
   });
+  // The logo is a home button: show the plan. Cooking carries on; the back-to-cook bar appears.
+  $('home').addEventListener('click', () => showScreen('plan'));
   // One listener on the list: the Done buttons are rebuilt with the list.
   $('cook-steps').addEventListener('click', e => {
     if (e.target.closest('.card-done')) {
