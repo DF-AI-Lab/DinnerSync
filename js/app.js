@@ -30,7 +30,8 @@ let audioCtx = null;
 let wakeLock = null;
 let openDrawer = null; // 'dinner' | 'timer' | null
 const timer = createCountdown();
-let timerAlerted = false; // the timer has already beeped for its current run to 0
+let timerAlerted = false; // the timer has already rung for its current run to 0
+let alarmKind = 'cook';   // what the alarm banner is for: 'cook' or 'timer' (decides what Done does)
 
 // ---------- helpers ----------
 
@@ -651,7 +652,18 @@ function bindCookScreen() {
     $('reset-confirm').hidden = true;
     resetTonight();
   });
-  $('alarm-done').addEventListener('click', markCurrentDone);
+  $('alarm-done').addEventListener('click', () => {
+    if (alarmKind === 'timer') {
+      // Timer alarm: Done silences it and clears the timer
+      stopAlarm();
+      timer.reset();
+      timerAlerted = false;
+      renderTimer();
+      stopKeepAlive();
+    } else {
+      markCurrentDone();
+    }
+  });
 }
 
 function resumeCooking() {
@@ -744,18 +756,18 @@ function buzz() {
   }
 }
 
-function raiseAlarm(text) {
+function raiseAlarm(text, kind = 'cook') {
+  alarmKind = kind;
   $('alarm-text').textContent = text;
   $('alarm-banner').hidden = false;
   buzz();
   unlockAudio();
-  ringAlarm();
+  playRing();
   notify(text);
 }
 
-// Loops the phone-style ring until Done. If the browser blocks it, fall back to the beeps.
-function ringAlarm() {
-  const ring = $('ring');
+// Loops the phone-style ring through the keep-alive element until Done. If the browser blocks it, fall back to the beeps.
+function playRing() {
   const beeps = () => {
     if ($('alarm-banner').hidden) return; // already stopped with Done
     beepOnce();
@@ -763,11 +775,12 @@ function ringAlarm() {
     alarmTimer = setInterval(beepOnce, 2500);
   };
   try {
-    ring.currentTime = 0;
-    ring.volume = 1;
+    setSound('ring');
+    keepAlive.currentTime = 0;
+    keepAlive.volume = 1;
     clearInterval(alarmTimer);
     alarmTimer = setInterval(buzz, RING.loopSeconds * 1000); // vibrate with each loop
-    ring.play().catch(beeps);
+    keepAlive.play().catch(beeps);
   } catch {
     beeps();
   }
@@ -776,10 +789,15 @@ function ringAlarm() {
 function stopAlarm() {
   clearInterval(alarmTimer);
   alarmTimer = null;
-  const ring = $('ring');
-  ring.pause();
-  ring.currentTime = 0;
+  stopRing();
   $('alarm-banner').hidden = true;
+}
+
+// Back to the silent loop; it keeps playing only if something still needs the page awake.
+function stopRing() {
+  setSound('silent');
+  if (needAwake()) keepAlive.play().catch(() => {});
+  else keepAlive.pause();
 }
 
 // ---------- timer panel: countdown with +1/+5/+10 min, Start/Pause, Reset ----------
@@ -797,8 +815,7 @@ function renderTimer() {
   $('timer-display').classList.toggle('flash', done);
   if (done && !timerAlerted) {
     timerAlerted = true;
-    beepOnce();
-    buzz();
+    raiseAlarm('⏳ Timer done', 'timer');
   }
 }
 
@@ -812,14 +829,20 @@ function bindTimer() {
   }
   $('timer-start').addEventListener('click', () => {
     unlockAudio();
-    if (timer.running) timer.pause(Date.now());
-    else timer.start(Date.now());
+    if (timer.running) {
+      timer.pause(Date.now());
+      stopKeepAlive();
+    } else {
+      timer.start(Date.now());
+      if (timer.running) startKeepAlive();
+    }
     renderTimer();
   });
   $('timer-reset').addEventListener('click', () => {
     timer.reset();
     timerAlerted = false;
     renderTimer();
+    stopKeepAlive();
   });
 }
 
@@ -845,13 +868,13 @@ function releaseWakeLock() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || !cook) return;
+  if (document.visibilityState !== 'visible') return;
   requestWakeLock();
-  if (keepAlive.paused) startKeepAlive();
+  if (needAwake() && keepAlive.paused) startKeepAlive();
 });
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 
-// ---------- keep-alive: a silent loop while cooking, so Android keeps the page (and its alarms) running ----------
+// ---------- keep-alive: a silent loop while cooking or timing, so Android keeps the page (and its alarms) running ----------
 
 const keepAlive = $('keep-alive');
 
@@ -867,10 +890,22 @@ function silentWav(seconds = 1, rate = 8000) {
   new Uint8Array(view.buffer, 44).fill(128);
   return new Blob([view.buffer], { type: 'audio/wav' });
 }
-keepAlive.src = URL.createObjectURL(silentWav());
-$('ring').src = URL.createObjectURL(new Blob([ringWav()], { type: 'audio/wav' }));
+const silentUrl = URL.createObjectURL(silentWav());
+const ringUrl = URL.createObjectURL(new Blob([ringWav()], { type: 'audio/wav' }));
+
+// The page must stay awake while cooking or while the kitchen timer runs.
+const needAwake = () => Boolean(cook) || timer.running;
+
+// The one element plays either the silent loop or the ring; data-sound says which.
+function setSound(kind) {
+  if (keepAlive.dataset.sound === kind) return; // same src: keep playing, no reload
+  keepAlive.src = kind === 'ring' ? ringUrl : silentUrl;
+  keepAlive.dataset.sound = kind;
+}
+setSound('silent');
 
 function startKeepAlive() {
+  if (keepAlive.dataset.sound !== 'ring') setSound('silent'); // never swap a ringing src out
   keepAlive.play().catch(() => {
     // Blocked until a tap (e.g. after reload): try again on the next tap while cooking
     document.addEventListener('pointerdown', retryKeepAlive, { once: true });
@@ -885,10 +920,11 @@ function startKeepAlive() {
 }
 
 function retryKeepAlive() {
-  if (cook && keepAlive.paused) startKeepAlive();
+  if (needAwake() && keepAlive.paused) startKeepAlive();
 }
 
 function stopKeepAlive() {
+  if (needAwake()) return; // cooking or the timer still needs it
   keepAlive.pause();
   keepAlive.currentTime = 0;
 }

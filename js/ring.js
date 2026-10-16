@@ -1,4 +1,4 @@
-// Phone-style ring for the cooking alarm: 8-bit mono WAV, looped by the <audio id="ring"> element.
+// Phone-style ring for the cooking alarm: 8-bit mono WAV, played through the keep-alive <audio> element.
 export const RING = {
   loopSeconds: 3,
   bursts: [[0, 0.4], [0.6, 1.0]], // ringing parts of one loop, in seconds; the rest is silence
