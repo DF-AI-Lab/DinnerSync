@@ -1,9 +1,9 @@
 # DinnerSync
 
 ## Where we are
-- Current step: 1. Idea (lite mode)
+- Current step: Build & Test (V1 built)
 - Last session: 2026-10-16 — idea + icon received
-- Next action: Darren picks a look → build → test locally on phone
+- Next action: Darren tries the test build; then set up phone install (GitHub Pages); look later
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -41,7 +41,7 @@
 | 8 | Not enough time → say so and show earliest ready time | Darren's 'enough time' need | 2026-10-16 |
 | 9 | Save on the phone (local storage, no account): saved items + last dinner | Darren wants a local db | 2026-10-16 |
 | 10 | Cooking screen shows live countdowns: preheat, main meal (to dinner), next item | Darren | 2026-10-16 |
-| 11 | Mockup v1 look rejected; new look before build | Darren not keen | 2026-10-16 |
+| 11 | Look: "Dark kitchen" for now; revisit after it works | Darren: operations first | 2026-10-16 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
@@ -62,7 +62,10 @@
 ## Tickets
 
 ## Build / test progress
+- 2026-10-16: V1 built by Haiku first try. 15/15 unit tests + browser check pass. Test build: https://claude.ai/artifact/VG2ApJkyFmTfVxKC2ut3qg
+- Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
 - 2026-10-16: Project file created from brain dump; icon added
+- 2026-10-16: Dark look chosen; V1 built and tests passing
 - 2026-10-16: Destination set to working app; web app chosen over widget
