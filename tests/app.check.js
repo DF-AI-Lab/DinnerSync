@@ -8,6 +8,10 @@ await new Promise(r => setTimeout(r, 800));
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 try {
   const page = await browser.newPage({ viewport: { width: 400, height: 860 } });
+  const pickSaved = async name => {
+    await page.click('#saved-toggle');
+    await page.locator('#saved-list li', { hasText: name }).locator('.saved-pick').click();
+  };
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://localhost:8099/index.html');
@@ -43,6 +47,13 @@ try {
   await page.click('#start-cooking');
   await page.waitForSelector('#cook-screen:not([hidden])');
   assert.match(await page.textContent('#cook-screen'), /Dinner/i);
+  // Steps list on the cooking screen: Done ticks the current step, highlights the next
+  const steps = page.locator('#cook-steps li');
+  assert.ok(await steps.count() >= 4);
+  assert.match(await steps.nth(0).getAttribute('class'), /current/);
+  await page.click('#cook-done');
+  assert.match(await steps.nth(0).getAttribute('class'), /done/);
+  assert.match(await steps.nth(1).getAttribute('class'), /current/);
   // Done and Reset at the top of the cooking screen
   await page.waitForSelector('#cook-done');
   await page.waitForSelector('#cook-reset');
@@ -60,26 +71,29 @@ try {
   // saved items survive reload
   await page.reload();
   // Saved items live in a dropdown inside the add-item card
-  assert.equal(await page.locator('#add-card #saved-select').count(), 1);
+  assert.equal(await page.locator('#add-card #saved-toggle').count(), 1);
   assert.equal(await page.locator('#saved-items').count(), 0);
-  await page.selectOption('#saved-select', { label: 'Chicken' });
+  await pickSaved('Chicken');
   assert.equal(await page.inputValue('#item-name'), 'Chicken');
   assert.equal(await page.inputValue('#item-hours'), '1');
   assert.equal(await page.inputValue('#item-minutes'), '30');
   assert.equal(await page.inputValue('#item-temp'), '180');
   // multi-stage saved item fills every stage, and can be edited before adding
-  await page.selectOption('#saved-select', { label: 'Potatoes' });
+  await pickSaved('Potatoes');
   assert.equal(await page.locator('.stage-row').count(), 2);
   assert.equal(await page.locator('.stage-row').nth(1).locator('.stage-temp').inputValue(), '220');
   await page.locator('.stage-row').nth(1).locator('.stage-temp').fill('200');
   await page.click('#add-item');
   await page.reload();
-  await page.selectOption('#saved-select', { label: 'Potatoes' });
+  await pickSaved('Potatoes');
   assert.equal(await page.locator('.stage-row').nth(1).locator('.stage-temp').inputValue(), '200');
   // saved items can be deleted
-  await page.selectOption('#saved-select', { label: 'Chicken' });
-  await page.click('#saved-delete');
-  assert.equal(await page.locator('#saved-select option', { hasText: 'Chicken' }).count(), 0);
+  await page.click('#saved-toggle');
+  await page.locator('#saved-list li', { hasText: 'Chicken' }).locator('.saved-del').click();
+  assert.equal(await page.locator('#saved-list li', { hasText: 'Chicken' }).count(), 0);
+  await page.reload();
+  await page.click('#saved-toggle');
+  assert.equal(await page.locator('#saved-list li', { hasText: 'Chicken' }).count(), 0);
   assert.deepEqual(errors, []);
   console.log('app.check: OK');
 } finally {
