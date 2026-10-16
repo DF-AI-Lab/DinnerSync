@@ -259,9 +259,8 @@ h2 {
 .stage-list { display: grid; gap: 10px; margin-bottom: 12px; }
 .stage-row {
   background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 10px;
+  border: 0;
+  padding: 4px 0;
   display: grid;
   gap: 8px;
   min-width: 0;
