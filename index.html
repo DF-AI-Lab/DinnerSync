@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DinnerSync</title>
+  <meta name="description" content="Everything finishes together.">
+  <meta name="theme-color" content="#121012">
+  <meta name="color-scheme" content="dark">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <h1 class="brand">DinnerSync</h1>
+      <p class="tag">everything finishes together</p>
+    </header>
+
+    <!-- Screen 1: plan the evening -->
+    <section id="plan-screen" class="screen">
+      <div class="card">
+        <h2>When's dinner?</h2>
+        <div class="ready-row">
+          <label class="field">
+            <span>Ready in (min)</span>
+            <input id="ready-in" type="number" inputmode="numeric" min="1" step="5" value="90">
+          </label>
+          <label class="field">
+            <span>Or at</span>
+            <input id="ready-at" type="time">
+          </label>
+        </div>
+        <p id="ready-clock" class="ready-clock"></p>
+      </div>
+
+      <div class="card">
+        <h2>Add an item</h2>
+        <div class="grid2">
+          <label class="field wide">
+            <span>Name</span>
+            <input id="item-name" type="text" autocomplete="off" placeholder="Chicken">
+          </label>
+          <label class="field">
+            <span>Cook (min)</span>
+            <input id="item-minutes" type="number" inputmode="numeric" min="1">
+          </label>
+          <label class="field">
+            <span>Temp (°C)</span>
+            <input id="item-temp" type="number" inputmode="numeric" min="50" max="300">
+          </label>
+        </div>
+        <p id="item-error" class="error" hidden></p>
+        <button id="add-item" class="btn primary block" type="button">Add to tonight</button>
+      </div>
+
+      <div class="card">
+        <h2>Tonight</h2>
+        <p id="items-empty" class="muted">Nothing yet. Add an item or tap a saved one.</p>
+        <ul id="items" class="items"></ul>
+      </div>
+
+      <div class="card">
+        <h2>Saved items</h2>
+        <div id="saved-items" class="chips"></div>
+      </div>
+
+      <div class="card">
+        <label class="field">
+          <span>Preheat (min)</span>
+          <input id="preheat" type="number" inputmode="numeric" min="0" step="5">
+        </label>
+      </div>
+
+      <div id="status" class="status" hidden></div>
+      <p id="plan-error" class="error" hidden></p>
+      <button id="show-plan" class="btn primary big block" type="button">Show plan</button>
+    </section>
+
+    <!-- Screen 2: timeline -->
+    <section id="timeline-screen" class="screen" hidden>
+      <div class="row">
+        <button id="back-plan" class="btn ghost" type="button">← Back</button>
+      </div>
+      <h2 class="page-title">Plan</h2>
+      <p id="timeline-ready" class="muted"></p>
+      <p id="timeline-oven" class="muted"></p>
+      <div id="timeline-note" class="status warn" hidden></div>
+      <ol id="plan-steps" class="steps"></ol>
+      <button id="start-cooking" class="btn primary big block" type="button">Start cooking</button>
+    </section>
+
+    <!-- Screen 3: cooking -->
+    <section id="cook-screen" class="screen cook" hidden>
+      <p id="cook-now" class="now"></p>
+
+      <div class="next">
+        <p id="next-label" class="label">Next</p>
+        <p id="next-time" class="num huge">--:--</p>
+      </div>
+
+      <div id="preheat-block" class="card block-center" hidden>
+        <span class="label">Preheating, ready in</span>
+        <span id="preheat-left" class="num med">--:--</span>
+      </div>
+
+      <div class="dinner">
+        <span class="label">Dinner in</span>
+        <span id="dinner-in" class="num med">--:--</span>
+      </div>
+
+      <p id="oven-temp" class="oven"></p>
+
+      <button id="stop-cooking" class="btn ghost big block" type="button">Stop cooking</button>
+    </section>
+  </main>
+
+  <div id="alarm-banner" class="alarm" role="alertdialog" aria-live="assertive" hidden>
+    <p id="alarm-text"></p>
+    <button id="alarm-done" class="btn big block done" type="button">Done ✓</button>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
