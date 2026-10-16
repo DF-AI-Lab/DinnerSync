@@ -1,8 +1,9 @@
-import { buildPlan, cookingState } from './plan.js';
+import { buildPlan, cookingState, normalizeItem } from './plan.js';
 import { createStore } from './store.js';
 
 const MIN = 60_000;
 const DEFAULT_READY_MIN = 90;
+const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', rest: '⏸ Rest' };
 const RESUME_GRACE_MS = 2 * 60 * MIN;
 const $ = id => document.getElementById(id);
 
@@ -12,7 +13,7 @@ function safeLocalStorage() {
 const store = createStore(safeLocalStorage());
 
 const state = {
-  items: [],          // tonight's items: {name, minutes, temp}
+  items: [],          // tonight's items: {name, stages: [{method, minutes, temp?}]}
   readyAt: 0,         // absolute ms
   preheatMinutes: 15,
   plan: null,         // plan built when "Show plan" was tapped
@@ -74,6 +75,47 @@ function currentPlan() {
   });
 }
 
+// Keep one valid stage: {method, minutes} and {method, minutes, temp} for oven.
+// Returns null when a stage is missing a minute count or an oven temp.
+function cleanStage(st) {
+  if (!METHOD_LABEL[st?.method]) return null;
+  const minutes = Math.round(Number(st.minutes));
+  if (!(minutes > 0)) return null;
+  if (st.method !== 'oven') return { method: st.method, minutes };
+  const temp = Math.round(Number(st.temp));
+  return temp > 0 ? { method: 'oven', minutes, temp } : null;
+}
+
+// Returns a clean item, or null if the name or any stage is not usable.
+function cleanItem(x) {
+  if (!x || typeof x.name !== 'string' || !x.name.trim()) return null;
+  const raw = normalizeItem(x).stages;
+  if (!Array.isArray(raw) || !raw.length) return null;
+  const stages = raw.map(cleanStage);
+  if (stages.some(st => !st)) return null;
+  return { name: x.name.trim(), stages };
+}
+
+// "Hob 10 min → Oven 45 min 220°C (55 at 180°C) → Rest 15"
+function describeStages(stages, ovenTemp) {
+  return stages.map(st => {
+    if (st.method === 'oven') {
+      const scaled = st.cookMinutes !== undefined && st.cookMinutes !== st.minutes;
+      return `Oven ${st.minutes} min ${st.temp}°C` + (scaled ? ` (${st.cookMinutes} at ${ovenTemp}°C)` : '');
+    }
+    if (st.method === 'hob') return `Hob ${st.minutes} min`;
+    return `Rest ${st.minutes}`;
+  }).join(' → ');
+}
+
+// A small method label followed by the step text, for timeline and cooking screen.
+function stepNodes(step) {
+  const nodes = [];
+  if (step.method) nodes.push(el('span', { class: `tag m-${step.method}` }, METHOD_LABEL[step.method]));
+  nodes.push(document.createTextNode(step.text));
+  return nodes;
+}
+
 function persistTonight() {
   store.saveLastDinner({ items: state.items, preheatMinutes: state.preheatMinutes });
 }
@@ -102,10 +144,11 @@ function renderStatus() {
   }
   box.hidden = false;
   const plan = currentPlan();
-  const preheatStep = plan.steps.find(s => s.type === 'preheat');
+  const first = plan.steps[0];
   if (plan.enoughTime) {
     box.classList.add('ok');
-    box.append(el('p', {}, `Enough time — start preheating at ${formatClock(preheatStep.at)}`));
+    const what = first.type === 'preheat' ? 'preheating' : 'cooking';
+    box.append(el('p', {}, `Enough time — start ${what} at ${formatClock(first.at)}`));
   } else {
     box.classList.add('warn');
     const useBtn = el('button', { class: 'btn', id: 'use-earliest', type: 'button' }, `Use ${formatClock(plan.earliestReady)}`);
@@ -129,9 +172,7 @@ function renderItems() {
     const info = el('div', { class: 'item-info' },
       el('span', { class: 'item-name' }, item.name),
       ...(item.main ? [el('span', { class: 'badge' }, 'Main')] : []),
-      el('div', { class: 'item-detail' },
-        `${item.minutes} min at ${item.temp}°C` +
-        (item.cookMinutes !== item.minutes ? ` → ${item.cookMinutes} min in the oven` : '')),
+      el('div', { class: 'item-detail' }, describeStages(item.stages, plan.ovenTemp)),
     );
     const remove = el('button', { class: 'icon-btn', type: 'button', 'aria-label': `Remove ${item.name}` }, '✕');
     remove.addEventListener('click', () => {
@@ -152,7 +193,7 @@ function renderSaved() {
     return;
   }
   for (const item of saved) {
-    const chip = el('button', { class: 'chip', type: 'button', title: `${item.minutes} min at ${item.temp}°C` }, item.name);
+    const chip = el('button', { class: 'chip', type: 'button', title: describeStages(item.stages, null) }, item.name);
     chip.addEventListener('click', () => addToTonight(item));
     const forget = el('button', { class: 'chip-x', type: 'button', 'aria-label': `Forget ${item.name}` }, '✕');
     forget.addEventListener('click', () => {
@@ -164,7 +205,8 @@ function renderSaved() {
 }
 
 function addToTonight(item) {
-  const clean = { name: item.name, minutes: Number(item.minutes), temp: Number(item.temp) };
+  const clean = cleanItem(item);
+  if (!clean) return;
   const idx = state.items.findIndex(x => sameName(x.name, clean.name));
   if (idx >= 0) state.items[idx] = clean;
   else state.items.push(clean);
@@ -200,23 +242,22 @@ function bindPlanScreen() {
   });
 
   $('add-item').addEventListener('click', () => {
-    const name = $('item-name').value.trim();
-    const minutes = Math.round(Number($('item-minutes').value));
-    const temp = Math.round(Number($('item-temp').value));
     const err = $('item-error');
-    if (!name || !(minutes > 0) || !(temp > 0)) {
-      err.textContent = 'Give a name, cook minutes and a temp.';
+    const item = cleanItem({ name: $('item-name').value, stages: readStageRows() });
+    if (!item) {
+      err.textContent = 'Give a name, and minutes for each stage (plus a temp for oven).';
       err.hidden = false;
       return;
     }
     err.hidden = true;
-    const item = { name, minutes, temp };
     store.saveItem(item);
     addToTonight(item);
-    $('item-name').value = '';
-    $('item-minutes').value = '';
-    $('item-temp').value = '';
+    resetDraft();
     $('item-name').focus();
+  });
+
+  $('add-stage').addEventListener('click', () => {
+    addStageRow('oven');
   });
 
   $('preheat').addEventListener('input', () => {
@@ -242,6 +283,70 @@ function bindPlanScreen() {
   });
 }
 
+// ---------- add-item form: stage rows ----------
+
+function stageRows() {
+  return [...$('stage-rows').querySelectorAll('.stage-row')];
+}
+
+function readStageRows() {
+  return stageRows().map(row => ({
+    method: row.dataset.method,
+    minutes: row.querySelector('.stage-minutes').value,
+    temp: row.querySelector('.stage-temp-input').value,
+  }));
+}
+
+function setMethod(row, method) {
+  row.dataset.method = method;
+  for (const btn of row.querySelectorAll('.seg-btn')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.method === method));
+  }
+  row.querySelector('.stage-temp').hidden = method !== 'oven';
+}
+
+function numberRows() {
+  stageRows().forEach((row, i) => {
+    row.querySelector('.stage-num').textContent = `Stage ${i + 1}`;
+    row.querySelector('.stage-remove').hidden = i === 0;
+  });
+}
+
+function bindStageRow(row) {
+  for (const btn of row.querySelectorAll('.seg-btn')) {
+    btn.addEventListener('click', () => setMethod(row, btn.dataset.method));
+  }
+  row.querySelector('.stage-remove').addEventListener('click', () => {
+    row.remove();
+    numberRows();
+  });
+}
+
+function addStageRow(method) {
+  const row = $('stage-template').content.firstElementChild.cloneNode(true);
+  bindStageRow(row);
+  setMethod(row, method);
+  $('stage-rows').append(row);
+  numberRows();
+  row.querySelector('.stage-minutes').focus();
+}
+
+// Back to one empty oven stage after an item is added.
+function resetDraft() {
+  $('item-name').value = '';
+  for (const row of stageRows().slice(1)) row.remove();
+  const first = stageRows()[0];
+  setMethod(first, 'oven');
+  first.querySelector('.stage-minutes').value = '';
+  first.querySelector('.stage-temp-input').value = '';
+  numberRows();
+}
+
+function bindStageForm() {
+  bindStageRow(stageRows()[0]);
+  numberRows();
+}
+
 // ---------- timeline screen ----------
 
 function renderTimeline() {
@@ -251,10 +356,10 @@ function renderTimeline() {
   for (const s of plan.steps) {
     ol.append(el('li', { class: `step-${s.type}` },
       el('time', {}, formatClock(s.at)),
-      el('span', {}, s.text)));
+      el('span', {}, ...stepNodes(s))));
   }
   $('timeline-ready').textContent = `Dinner at ${formatClock(plan.readyAt)}`;
-  $('timeline-oven').textContent = `Oven ${plan.ovenTemp}°C`;
+  $('timeline-oven').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
   const note = $('timeline-note');
   note.hidden = plan.enoughTime;
   note.textContent = `Not enough time — earliest ready ${formatClock(plan.earliestReady)} (${plan.shortByMinutes} min short)`;
@@ -266,7 +371,7 @@ function bindTimelineScreen() {
     requestNotifications();
     unlockAudio();
     const plan = state.plan || currentPlan();
-    store.saveCooking({ plan });
+    store.saveCooking({ plan, preheatMinutes: state.preheatMinutes });
     beginCooking(plan, Date.now());
   });
 }
@@ -297,15 +402,16 @@ function tick() {
 
 function renderCook(st) {
   const plan = cook.plan;
-  $('cook-now').textContent = st.done
-    ? 'Dinner is ready!'
-    : (st.current ? st.current.text : 'Not started yet');
+  const now = $('cook-now');
+  if (st.done) now.textContent = 'Dinner is ready!';
+  else if (st.current) now.replaceChildren(...stepNodes(st.current));
+  else now.textContent = 'Not started yet';
 
   if (st.next) {
     const n = st.next;
     $('next-label').textContent = n.type === 'preheat'
       ? 'Next: Preheat oven'
-      : n.type === 'in' ? `Next: ${n.name} in` : 'Next: Dinner ready';
+      : n.type === 'in' ? `Next: ${METHOD_LABEL[n.method]} — ${n.name}` : 'Next: Dinner ready';
     $('next-time').textContent = formatCountdown(st.msToNext);
   } else {
     $('next-label').textContent = 'Nothing left to do';
@@ -315,7 +421,7 @@ function renderCook(st) {
   $('preheat-block').hidden = !(st.current?.type === 'preheat');
   $('preheat-left').textContent = formatCountdown(st.preheatLeftMs);
   $('dinner-in').textContent = formatCountdown(st.msToDinner);
-  $('oven-temp').textContent = `Oven ${plan.ovenTemp}°C`;
+  $('oven-temp').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
 }
 
 function stopCooking() {
@@ -335,12 +441,15 @@ function bindCookScreen() {
 function resumeCooking() {
   let saved = null;
   try { saved = store.getCooking(); } catch { saved = null; }
-  const plan = saved?.plan;
-  if (!plan || !Array.isArray(plan.steps) || typeof plan.readyAt !== 'number') return;
-  if (Date.now() > plan.readyAt + RESUME_GRACE_MS) {
+  const savedPlan = saved?.plan;
+  if (!savedPlan || !Array.isArray(savedPlan.items) || typeof savedPlan.readyAt !== 'number') return;
+  if (Date.now() > savedPlan.readyAt + RESUME_GRACE_MS) {
     store.clearCooking();
     return;
   }
+  // Rebuild from the saved items so older saved plans get the stage format.
+  const preheatMinutes = Number.isFinite(saved.preheatMinutes) ? saved.preheatMinutes : state.preheatMinutes;
+  const plan = buildPlan({ items: savedPlan.items, readyAt: savedPlan.readyAt, now: Date.now(), preheatMinutes });
   // Steps that passed while the app was closed do not alarm.
   beginCooking(plan, Date.now());
 }
@@ -455,25 +564,20 @@ document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 // ---------- startup ----------
 
-function isItem(x) {
-  return x && typeof x.name === 'string' && x.name.trim() && Number(x.minutes) > 0 && Number(x.temp) > 0;
-}
-
 function init() {
   state.preheatMinutes = store.getSettings().preheatMinutes;
   $('preheat').value = String(state.preheatMinutes);
 
   const last = store.getLastDinner();
   if (last && Array.isArray(last.items)) {
-    state.items = last.items
-      .filter(isItem)
-      .map(x => ({ name: x.name, minutes: Number(x.minutes), temp: Number(x.temp) }));
+    state.items = last.items.map(cleanItem).filter(Boolean);
   }
 
   state.readyAt = Date.now() + DEFAULT_READY_MIN * MIN;
   syncReadyInputs();
   renderAll();
 
+  bindStageForm();
   bindPlanScreen();
   bindTimelineScreen();
   bindCookScreen();

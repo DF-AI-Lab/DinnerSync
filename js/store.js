@@ -1,6 +1,8 @@
 // Local storage wrapper. Every read and write is guarded so a broken or
 // missing storage never crashes the app.
 
+import { normalizeItem } from './plan.js';
+
 const PREFIX = 'dinnersync.';
 const KEYS = {
   items: PREFIX + 'items',
@@ -40,15 +42,27 @@ export function createStore(storage) {
     }
   }
 
+  // Saved items keep their stages. minutes/temp mirror the first oven stage
+  // so older copies of the app can still read the list.
+  function cleanItem(item) {
+    const n = normalizeItem(item);
+    const stages = n.stages.map(({ method, minutes, temp }) =>
+      method === 'oven' ? { method, minutes, temp } : { method, minutes });
+    const oven = stages.find(s => s.method === 'oven');
+    return { name: n.name, stages, minutes: oven?.minutes, temp: oven?.temp };
+  }
+
   function getSavedItems() {
     const value = read(KEYS.items, []);
     if (!Array.isArray(value)) return [];
-    return value.filter(x => x && typeof x.name === 'string' && x.name.trim());
+    return value
+      .filter(x => x && typeof x.name === 'string' && x.name.trim())
+      .map(normalizeItem);
   }
 
   function saveItem(item) {
     const list = getSavedItems();
-    const clean = { name: item.name, minutes: item.minutes, temp: item.temp };
+    const clean = cleanItem(item);
     const i = list.findIndex(x => sameName(x.name, clean.name));
     if (i >= 0) list[i] = clean;
     else list.push(clean);
@@ -60,7 +74,9 @@ export function createStore(storage) {
   }
 
   function getLastDinner() {
-    return read(KEYS.lastDinner, null);
+    const dinner = read(KEYS.lastDinner, null);
+    if (!dinner || !Array.isArray(dinner.items)) return dinner;
+    return { ...dinner, items: dinner.items.filter(x => x && typeof x.name === 'string').map(normalizeItem) };
   }
 
   function saveLastDinner(dinner) {

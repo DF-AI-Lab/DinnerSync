@@ -251,3 +251,60 @@ h2 {
 @media (prefers-reduced-motion: reduce) {
   .alarm { animation: none; background: var(--orange); }
 }
+
+/* ---------- stages: add-item form ---------- */
+.stage-list { display: grid; gap: 12px; margin-bottom: 12px; }
+.stage-row {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+.stage-head { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
+.stage-head .label { margin: 0; }
+.stage-remove { min-width: 48px; min-height: 48px; }
+.seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 4px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.seg-btn {
+  min-height: 52px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.seg-btn[aria-pressed="true"] { background: var(--orange); color: var(--ink); box-shadow: 0 6px 20px var(--glow); }
+.stage-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stage-fields:has(.stage-temp[hidden]) { grid-template-columns: 1fr; }
+
+/* ---------- stages: method tags on the timeline, cooking screen and list ---------- */
+.tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.tag.m-oven { border-color: var(--orange); color: var(--orange-soft); }
+.tag.m-hob { border-color: var(--danger); color: var(--danger); }
+.tag.m-rest { border-color: var(--ok); color: var(--ok); }

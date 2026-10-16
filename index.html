@@ -41,23 +41,61 @@
 
       <div class="card">
         <h2>Add an item</h2>
-        <div class="grid2">
-          <label class="field wide">
-            <span>Name</span>
-            <input id="item-name" type="text" autocomplete="off" placeholder="Chicken">
-          </label>
-          <label class="field">
-            <span>Cook (min)</span>
-            <input id="item-minutes" type="number" inputmode="numeric" min="1">
-          </label>
-          <label class="field">
-            <span>Temp (°C)</span>
-            <input id="item-temp" type="number" inputmode="numeric" min="50" max="300">
-          </label>
+        <label class="field wide">
+          <span>Name</span>
+          <input id="item-name" type="text" autocomplete="off" placeholder="Chicken">
+        </label>
+        <div id="stage-rows" class="stage-list">
+          <div class="stage-row" data-method="oven">
+            <div class="stage-head">
+              <span class="label stage-num">Stage 1</span>
+              <button class="icon-btn stage-remove" type="button" aria-label="Remove stage" hidden>✕</button>
+            </div>
+            <div class="seg" role="group" aria-label="Method">
+              <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
+              <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
+              <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
+            </div>
+            <div class="stage-fields">
+              <label class="field">
+                <span>Minutes</span>
+                <input id="item-minutes" class="stage-minutes" type="number" inputmode="numeric" min="1">
+              </label>
+              <label class="field stage-temp">
+                <span>Temp (°C)</span>
+                <input id="item-temp" class="stage-temp-input" type="number" inputmode="numeric" min="50" max="300">
+              </label>
+            </div>
+          </div>
         </div>
+        <button id="add-stage" class="btn ghost block" type="button">+ Then</button>
         <p id="item-error" class="error" hidden></p>
         <button id="add-item" class="btn primary block" type="button">Add to tonight</button>
       </div>
+
+      <template id="stage-template">
+        <div class="stage-row" data-method="oven">
+          <div class="stage-head">
+            <span class="label stage-num"></span>
+            <button class="icon-btn stage-remove" type="button" aria-label="Remove stage">✕</button>
+          </div>
+          <div class="seg" role="group" aria-label="Method">
+            <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
+            <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
+            <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
+          </div>
+          <div class="stage-fields">
+            <label class="field">
+              <span>Minutes</span>
+              <input class="stage-minutes" type="number" inputmode="numeric" min="1">
+            </label>
+            <label class="field stage-temp">
+              <span>Temp (°C)</span>
+              <input class="stage-temp-input" type="number" inputmode="numeric" min="50" max="300">
+            </label>
+          </div>
+        </div>
+      </template>
 
       <div class="card">
         <h2>Tonight</h2>

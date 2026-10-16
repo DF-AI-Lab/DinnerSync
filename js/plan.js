@@ -1,18 +1,45 @@
 // Pure dinner-planning logic. No DOM access.
+//
+// An item is { name, stages: [{ method: 'oven'|'hob'|'rest', minutes, temp? }] }.
+// Stages run back-to-back in order; the last one finishes at readyAt.
+// Old items { name, minutes, temp } are a single oven stage.
 
 const MIN = 60_000;
 export const DEFAULT_PREHEAT = 15;
+
+const METHOD_TEXT = {
+  oven: (name, temp) => `${name} into the oven — ${temp}°C`,
+  hob: name => `${name} on the hob`,
+  rest: name => `${name} out to rest`,
+};
+
+// Old single-stage items become one oven stage. Stage items are left alone.
+export function normalizeItem(item) {
+  if (Array.isArray(item.stages)) return item;
+  const { minutes, temp, ...rest } = item;
+  return { ...rest, stages: [{ method: 'oven', minutes, temp }] };
+}
 
 // Scale an item's cook time to the oven temperature (hotter oven = shorter).
 export function adjustedMinutes(item, ovenTemp) {
   return Math.round((item.minutes * item.temp) / ovenTemp);
 }
 
-// The main item is the longest cook. Ties go to the first item listed.
+const ovenMinutes = item =>
+  normalizeItem(item).stages
+    .filter(s => s.method === 'oven')
+    .reduce((total, s) => total + s.minutes, 0);
+
+// The main item has the most oven minutes. Ties go to the first item listed.
 export function pickMain(items) {
   let main = null;
+  let best = -1;
   for (const item of items) {
-    if (!main || item.minutes > main.minutes) main = item;
+    const minutes = ovenMinutes(item);
+    if (minutes > best) {
+      main = item;
+      best = minutes;
+    }
   }
   return main;
 }
@@ -22,37 +49,63 @@ export function buildPlan({ items = [], readyAt, now, preheatMinutes = DEFAULT_P
     return { ovenTemp: null, readyAt, items: [], steps: [], enoughTime: true, earliestReady: null, shortByMinutes: 0 };
   }
 
-  const main = pickMain(items);
-  const mainIndex = items.indexOf(main);
-  const ovenTemp = main.temp;
+  const normalized = items.map(normalizeItem);
+  const main = pickMain(normalized);
+  const mainIndex = normalized.indexOf(main);
 
-  const planItems = items.map((item, i) => ({
-    ...item,
-    cookMinutes: adjustedMinutes(item, ovenTemp),
-    main: i === mainIndex,
-  }));
+  // Oven temp = the main item's first oven stage (or the first oven stage anywhere).
+  const firstOven = normalized.flatMap(i => i.stages).find(s => s.method === 'oven');
+  const ovenStage = main.stages.find(s => s.method === 'oven') ?? firstOven;
+  const ovenTemp = ovenStage?.temp ?? null;
 
-  const longest = Math.max(...planItems.map(i => i.cookMinutes));
-  const earliestIn = readyAt - longest * MIN;
+  // Only oven stages are scaled to the oven temperature.
+  const planItems = normalized.map((item, i) => {
+    const stages = item.stages.map(st => ({
+      ...st,
+      cookMinutes: st.method === 'oven' && st.temp && ovenTemp
+        ? adjustedMinutes(st, ovenTemp)
+        : st.minutes,
+    }));
+    return {
+      ...item,
+      stages,
+      cookMinutes: stages.reduce((total, st) => total + st.cookMinutes, 0),
+      main: i === mainIndex,
+    };
+  });
 
+  // Lay each item out backwards from readyAt so its last stage finishes then.
   // rank breaks ties at the same time: preheat, main item, other items, ready.
-  const ranked = [
-    {
+  const ranked = [];
+  for (const item of planItems) {
+    let at = readyAt - item.cookMinutes * MIN;
+    for (const st of item.stages) {
+      const text = (METHOD_TEXT[st.method] ?? (name => name))(item.name, ovenTemp);
+      ranked.push({
+        rank: item.main ? 1 : 2,
+        step: { type: 'in', name: item.name, method: st.method, at, text, minutes: st.cookMinutes },
+      });
+      at += st.cookMinutes * MIN;
+    }
+  }
+
+  const ovenStarts = ranked.filter(r => r.step.method === 'oven').map(r => r.step.at);
+  if (ovenStarts.length) {
+    ranked.push({
       rank: 0,
-      step: { type: 'preheat', at: earliestIn - preheatMinutes * MIN, text: `Preheat oven to ${ovenTemp}°C` },
-    },
-    ...planItems.map((item, i) => ({
-      rank: item.main ? 1 : 2,
-      step: { type: 'in', name: item.name, at: readyAt - item.cookMinutes * MIN, text: `${item.name} in — oven ${ovenTemp}°C` },
-    })),
-    { rank: 3, step: { type: 'ready', at: readyAt, text: 'Dinner is ready!' } },
-  ];
+      step: { type: 'preheat', at: Math.min(...ovenStarts) - preheatMinutes * MIN, text: `Preheat oven to ${ovenTemp}°C` },
+    });
+  }
+  ranked.push({ rank: 3, step: { type: 'ready', at: readyAt, text: 'Dinner is ready!' } });
   ranked.sort((a, b) => a.step.at - b.step.at || a.rank - b.rank);
   const steps = ranked.map(r => r.step);
 
+  // Lead time = from the earliest step (preheat included) to dinner.
   // Round up to the whole minute (the UI shows minutes) so "use this time"
   // stays enough a few ms later when the status is redrawn.
-  const earliestReady = Math.ceil((now + (preheatMinutes + longest) * MIN) / MIN) * MIN;
+  const earliestStep = Math.min(...steps.map(s => s.at));
+  const lead = readyAt - earliestStep;
+  const earliestReady = Math.ceil((now + lead) / MIN) * MIN;
   const enoughTime = earliestReady <= readyAt;
   const shortByMinutes = enoughTime ? 0 : Math.round((earliestReady - readyAt) / MIN);
 
@@ -72,10 +125,11 @@ export function cookingState(plan, now) {
   const msToNext = next ? next.at - now : 0;
   const msToDinner = Math.max(0, readyAt - now);
 
+  // Preheat counts down to the first oven stage, not a hob stage.
   let preheatLeftMs = 0;
   if (current?.type === 'preheat') {
-    const firstIn = steps.find(s => s.type === 'in');
-    if (firstIn) preheatLeftMs = Math.max(0, firstIn.at - now);
+    const firstOven = steps.find(s => s.type === 'in' && s.method === 'oven');
+    if (firstOven) preheatLeftMs = Math.max(0, firstOven.at - now);
   }
 
   return { current, next, msToNext, msToDinner, preheatLeftMs, done: now >= readyAt };
