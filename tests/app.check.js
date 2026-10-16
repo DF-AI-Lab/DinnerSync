@@ -61,7 +61,7 @@ try {
   await page.reload();
   // Saved items live in a dropdown inside the add-item card
   assert.equal(await page.locator('#add-card #saved-select').count(), 1);
-  assert.equal(await page.locator('.saved-chips, #saved-card').count(), 0);
+  assert.equal(await page.locator('#saved-items').count(), 0);
   await page.selectOption('#saved-select', { label: 'Chicken' });
   assert.equal(await page.inputValue('#item-name'), 'Chicken');
   assert.equal(await page.inputValue('#item-hours'), '1');
@@ -77,7 +77,7 @@ try {
   await page.selectOption('#saved-select', { label: 'Potatoes' });
   assert.equal(await page.locator('.stage-row').nth(1).locator('.stage-temp').inputValue(), '200');
   // saved items can be deleted
-  page.selectOption('#saved-select', { label: 'Chicken' });
+  await page.selectOption('#saved-select', { label: 'Chicken' });
   await page.click('#saved-delete');
   assert.equal(await page.locator('#saved-select option', { hasText: 'Chicken' }).count(), 0);
   assert.deepEqual(errors, []);
