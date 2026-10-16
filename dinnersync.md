@@ -1,9 +1,9 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Brain Dump → playing back
+- Current step: 1. Idea (lite mode)
 - Last session: 2026-10-16 — idea + icon received
-- Next action: Darren confirms summary, then Step 1 (Idea)
+- Next action: Darren answers: iPhone or Android?
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -12,12 +12,14 @@
 ## 1. Idea
 - Who: Darren (home cook)
 - Problem: juggling items with different cook times/temps so they all finish together
-- Destination: app that works backwards from a "ready at" time
+- Destination: a fully working phone app (web app on home screen), not just a plan
 - In scope (brain dump):
   - Set when dinner should be ready (e.g. in 1h30)
   - Add items with cook time + temp (chicken, roast potatoes, veg)
   - App tells me when each item goes in
   - App tells me oven temp, and when to change it
+  - Phone makes a noise: "put X in, set oven to Y"
+  - Checks if there's enough time before the ready time
 - Out of scope:
 - Missing info:
 
@@ -30,6 +32,9 @@
 ## Decisions
 | # | Decision | Why | Date |
 |---|----------|-----|------|
+| 1 | Destination = working app, not just a plan | Darren wants to use it | 2026-10-16 |
+| 2 | Web app added to home screen, not a native widget | Widgets need native iOS/Android code; much harder | 2026-10-16 |
+| 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
 
@@ -39,6 +44,7 @@
 
 ## Risks
 - Items needing different temps at the same time in one oven
+- Phone alarms when screen is locked or app is closed (web apps are limited)
 
 ## Later / V2
 
@@ -50,3 +56,4 @@
 
 ## Change log
 - 2026-10-16: Project file created from brain dump; icon added
+- 2026-10-16: Destination set to working app; web app chosen over widget
