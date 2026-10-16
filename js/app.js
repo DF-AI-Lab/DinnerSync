@@ -70,7 +70,15 @@ function formatCountdown(ms) {
 function showScreen(name) {
   const ids = { plan: 'plan-screen', timeline: 'timeline-screen', cook: 'cook-screen' };
   for (const [key, id] of Object.entries(ids)) $(id).hidden = key !== name;
+  renderBackToCook();
   window.scrollTo(0, 0);
+}
+
+// The bar back to the cook screen: shown only while cooking and the plan screen is up.
+function renderBackToCook(now = Date.now()) {
+  const bar = $('back-to-cook');
+  bar.hidden = !(cook && !$('plan-screen').hidden);
+  if (!bar.hidden) bar.textContent = `🔥 Cooking — dinner in ${formatCountdown(cook.plan.readyAt - now)} · tap to return`;
 }
 
 function currentPlan() {
@@ -472,6 +480,8 @@ function beginCooking(plan, since, done) {
   cook = { plan, done, lastChecked: since, timer: null, spare: null, spareFor: null };
   cardKey = null;
   showScreen('cook');
+  // A history entry for the cook screen: the phone back button then goes to the plan, not out of the app.
+  history.pushState({ screen: 'cook' }, '');
   tick();
   cook.timer = setInterval(tick, 1000);
   requestWakeLock();
@@ -541,7 +551,8 @@ function cookStepItem(s, card, spare) {
   } else {
     parts.push(el('div', { class: 'card-row' }, el('span', { class: 'card-count' })));
     if (card.badge === 'NOW') {
-      parts.push(el('div', { class: 'card-bar' }, el('i')));
+      // The bar sits in the bottom row, above the "until" line, beside Done.
+      left.push(el('div', { class: 'card-bar' }, el('i')));
       left.push(el('p', { class: 'card-until' }, `until: ${card.until}`));
     } else {
       left.push(el('p', { class: 'card-sub' }, 'starts in'));
@@ -580,6 +591,7 @@ function renderCook(now) {
 
   $('dinner-in').textContent = formatCountdown(plan.readyAt - now);
   $('oven-temp').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
+  renderBackToCook(now);
   if (card) renderCookSteps(steps, card, spare);
   else $('cook-steps').replaceChildren();
 }
@@ -603,6 +615,14 @@ function resetTonight() {
 }
 
 function bindCookScreen() {
+  // Phone back button while cooking: show the plan. Cooking, the timer and alarms carry on.
+  window.addEventListener('popstate', () => {
+    if (cook && !$('cook-screen').hidden) showScreen('plan');
+  });
+  $('back-to-cook').addEventListener('click', () => {
+    history.pushState({ screen: 'cook' }, '');
+    showScreen('cook');
+  });
   // One listener on the list: the Done buttons are rebuilt with the list.
   $('cook-steps').addEventListener('click', e => {
     if (e.target.closest('.card-done')) {

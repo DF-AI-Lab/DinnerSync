@@ -119,12 +119,27 @@ try {
   const doneBox = await curCard.locator('.card-done').boundingBox();
   const countBox = await curCard.locator('.card-count').boundingBox();
   assert.ok(doneBox.y > countBox.y + countBox.height - 1, 'Done is below the countdown');
+  // Done sits at the very bottom, level with the "Done early" line
+  const spareBox = await curCard.locator('.card-spare').boundingBox();
+  assert.ok(Math.abs((doneBox.y + doneBox.height) - (spareBox.y + spareBox.height)) <= 6, 'Done bottom lines up with the spare line');
   // Tap a ticked circle to undo that step: it becomes current again
   await steps.nth(0).locator('.dot').click();
   assert.match(await steps.nth(0).getAttribute('class'), /current/);
   assert.doesNotMatch(await steps.nth(1).getAttribute('class'), /done|current/);
   await page.locator('#cook-steps li.current .card-done').click();
   assert.match(await steps.nth(0).getAttribute('class'), /done/);
+  // Phone back button: leave the cooking screen but keep cooking in the background
+  await page.goBack();
+  await page.waitForSelector('#plan-screen:not([hidden])');
+  assert.equal(await page.locator('#cook-screen').isVisible(), false);
+  assert.equal(await page.locator('#back-to-cook').isVisible(), true);
+  assert.match(await page.textContent('#back-to-cook'), /Cooking/);
+  assert.match(await page.textContent('#back-to-cook'), /\d+:\d\d/);
+  // Tap the bar to go back: same steps, still ticked
+  await page.click('#back-to-cook');
+  await page.waitForSelector('#cook-screen:not([hidden])');
+  assert.match(await steps.nth(0).getAttribute('class'), /done/);
+  assert.equal(await page.locator('#back-to-cook').isVisible(), false);
   await page.waitForSelector('#cook-reset');
   // Reset asks first; "No" keeps cooking
   await page.click('#cook-reset');
