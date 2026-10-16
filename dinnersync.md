@@ -1,9 +1,9 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — V1 live, next round of changes mocked and approved
-- Last session: 2026-10-16 — built V1, stages, saved items, step list; live on GitHub Pages; mock v2 agreed
-- Next action: build the mock v2 changes (see "Next build" below), tests first, Haiku builds
+- Current step: Build & Test — mock v2 built, tests passing, on branch claude/clever-wright-ozar7s
+- Last session: 2026-10-16 — built all of mock v2 (tiles, timer, egg-style cooking card, small Reset)
+- Next action: merge to the default branch so it goes live, then try it on Darren's phone
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -71,6 +71,7 @@
 ## Tickets
 
 ## Build / test progress
+- 2026-10-16: Mock v2 built by Haiku first try (tests written first). 46 unit tests + browser check pass. Small CSS polish after (spacing, ring glow, wrap on narrow phones). Known gaps: "X min spare" is lost on reload mid-cook; timer beeps once at 0, not on repeat.
 - 2026-10-16: Added stages (hob/oven/rest + labels), hr/min inputs, saved dropdown with ×, step progress list, Reset with confirm. 32 tests pass. Live on GitHub Pages.
 - 2026-10-16: V1 built by Haiku first try. 15/15 unit tests + browser check pass. Test build: https://claude.ai/artifact/VG2ApJkyFmTfVxKC2ut3qg
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on

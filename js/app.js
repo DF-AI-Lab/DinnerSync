@@ -1,10 +1,13 @@
-import { buildPlan, stepStatuses, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
+import { buildPlan, stepStatuses, currentCard, spareMinutes, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
 import { createStore } from './store.js';
+import { createCountdown } from './timer.js';
 
 const MIN = 60_000;
 const DEFAULT_READY_MIN = 90;
 const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', rest: '⏸ Rest' };
 const RESUME_GRACE_MS = 2 * 60 * MIN;
+const RING_LEN = 2 * Math.PI * 52; // circumference of the timer ring (r=52)
+const DRAWERS = ['dinner', 'timer'];
 const $ = id => document.getElementById(id);
 
 function safeLocalStorage() {
@@ -19,10 +22,14 @@ const state = {
   plan: null,         // plan built when "Show plan" was tapped
 };
 
-let cook = null;      // {plan, done, lastChecked, timer} while cooking; done = ticked step indexes
+let cook = null;      // {plan, done, lastChecked, timer, spare, spareFor} while cooking; done = ticked step indexes
+let cardKey = null;   // what the cooking list was last built from (see renderCookSteps)
 let alarmTimer = null;
 let audioCtx = null;
 let wakeLock = null;
+let openDrawer = null; // 'dinner' | 'timer' | null
+const timer = createCountdown();
+let timerAlerted = false; // the timer has already beeped for its current run to 0
 
 // ---------- helpers ----------
 
@@ -136,15 +143,42 @@ function setReadyDuration(mins) {
   $('ready-minutes').value = String(m);
 }
 
+// The dinner time, shown in the tile and under the inputs.
+function showDinnerTime() {
+  const text = formatClock(state.readyAt);
+  $('ready-clock').textContent = `Dinner at ${text}`;
+  $('tile-dinner-time').textContent = text;
+}
+
 function syncReadyInputs() {
   setReadyDuration(Math.max(0, Math.round((state.readyAt - Date.now()) / MIN)));
   $('ready-at').value = toTimeValue(state.readyAt);
-  $('ready-clock').textContent = `Dinner at ${formatClock(state.readyAt)}`;
+  showDinnerTime();
 }
 
 function onReadyChanged() {
-  $('ready-clock').textContent = `Dinner at ${formatClock(state.readyAt)}`;
+  showDinnerTime();
   renderStatus();
+}
+
+// ---------- tiles: "When's dinner" and "Timer" drawers ----------
+
+// Tap a tile to open its drawer; tap it again to close. Only one is open at a time.
+function toggleDrawer(name) {
+  openDrawer = openDrawer === name ? null : name;
+  for (const key of DRAWERS) {
+    const open = key === openDrawer;
+    $(`tile-${key}`).classList.toggle('on', open);
+    $(`tile-${key}`).setAttribute('aria-expanded', String(open));
+    $(`panel-${key}`).classList.toggle('open', open);
+  }
+  // The timer works on its own: hide the rest of the plan while it is open.
+  $('plan-rest').hidden = openDrawer === 'timer';
+}
+
+function bindTiles() {
+  $('tile-dinner').addEventListener('click', () => toggleDrawer('dinner'));
+  $('tile-timer').addEventListener('click', () => toggleDrawer('timer'));
 }
 
 function renderStatus() {
@@ -435,7 +469,8 @@ function bindTimelineScreen() {
 
 function beginCooking(plan, since, done) {
   stopTimer();
-  cook = { plan, done, lastChecked: since, timer: null };
+  cook = { plan, done, lastChecked: since, timer: null, spare: null, spareFor: null };
+  cardKey = null;
   showScreen('cook');
   tick();
   cook.timer = setInterval(tick, 1000);
@@ -468,58 +503,79 @@ function tick() {
 function markCurrentDone() {
   stopAlarm();
   if (!cook) return;
-  const current = cookSteps().find(s => s.status === 'current');
+  const now = Date.now();
+  const current = cookSteps(now).find(s => s.status === 'current');
   if (!current || current.type === 'ready') {
     stopCooking();
     return;
   }
   cook.done.push(current.index);
+  // Finished early: say how much time is spare before the next step. Times never move.
+  const next = cookSteps(now).find(s => s.status === 'current');
+  if (next && !next.due) {
+    cook.spare = spareMinutes(next, now);
+    cook.spareFor = next.index;
+  } else {
+    cook.spare = null;
+    cook.spareFor = null;
+  }
   persistCooking();
-  renderCook(Date.now());
+  renderCook(now);
 }
 
-function nextLabel(n) {
-  if (n.type === 'preheat') return 'Next: Preheat oven';
-  if (n.type === 'in') return `Next: ${METHOD_LABEL[n.method]} — ${n.label ?? n.name}`;
-  return 'Next: Dinner ready';
+// One step in the cooking list. The current step is a card with its countdown and Done.
+function cookStepItem(s, card, spare) {
+  const attrs = { class: s.status, ...(s.status === 'current' ? { 'aria-current': 'step' } : {}) };
+  const dot = el('span', { class: 'dot', 'aria-hidden': 'true' }, s.status === 'done' ? '✓' : '');
+  const text = [el('time', {}, formatClock(s.at)), ...stepNodes(s)];
+  if (s.status !== 'current' || !card) return el('li', attrs, dot, el('div', { class: 'step-body' }, ...text));
+
+  const parts = [el('div', { class: 'card-head' }, el('span', {}, ...text),
+    el('span', { class: card.badge === 'NOW' ? 'step-badge' : 'step-badge wait' }, card.badge))];
+  if (card.last) {
+    parts.push(el('div', { class: 'card-row' }, el('span', { class: 'card-sub' }, 'Enjoy 🍽'), doneButton()));
+  } else {
+    parts.push(el('div', { class: 'card-row' }, el('span', { class: 'card-count' }), doneButton()));
+    if (card.badge === 'NOW') {
+      parts.push(el('div', { class: 'card-bar' }, el('i')), el('p', { class: 'card-until' }, `until: ${card.until}`));
+    } else {
+      parts.push(el('p', { class: 'card-sub' }, 'starts in'));
+      if (spare != null) parts.push(el('p', { class: 'card-spare' }, `✓ Done early, ${spare} min spare before this`));
+    }
+  }
+  return el('li', attrs, dot, el('div', { class: 'step-body' }, ...parts));
 }
 
-function renderCookSteps(steps) {
-  $('cook-steps').replaceChildren(...steps.map(s => {
-    const body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
-    if (s.status === 'current') body.append(el('span', { class: 'step-badge' }, s.due ? 'NOW' : 'NEXT'));
-    const attrs = { class: s.status, ...(s.status === 'current' ? { 'aria-current': 'step' } : {}) };
-    return el('li', attrs, el('span', { class: 'dot', 'aria-hidden': 'true' }, s.status === 'done' ? '✓' : ''), body);
-  }));
+function doneButton() {
+  return el('button', { class: 'card-done', type: 'button' }, 'Done ✓');
+}
+
+// Rebuild the list only when a step's status or the card's wording changes. Otherwise
+// just move the countdown and the bar, so a Done tap is never swallowed by a redraw.
+function renderCookSteps(steps, card, spare) {
+  const current = steps.find(s => s.status === 'current');
+  const key = JSON.stringify([steps.map(s => s.status + (s.due ? '!' : '')), card && [card.badge, card.last, card.until], spare]);
+  if (key !== cardKey) {
+    cardKey = key;
+    $('cook-steps').replaceChildren(...steps.map(s => cookStepItem(s, s === current ? card : null, spare)));
+  }
+  const count = $('cook-steps').querySelector('.card-count');
+  if (count) count.textContent = formatCountdown(card.countdownMs);
+  const bar = $('cook-steps').querySelector('.card-bar i');
+  if (bar) bar.style.width = `${card.barPct}%`;
 }
 
 function renderCook(now) {
   const plan = cook.plan;
   const steps = cookSteps(now);
+  const card = currentCard(steps, now);
   const current = steps.find(s => s.status === 'current');
-  // Headline: the current step once it is due. Countdown: the next step not yet done
-  // (the current one itself while it is still in the future).
-  const target = current?.due ? steps.find(s => s.status === 'upcoming') : current;
+  const spare = card?.badge === 'NEXT' && cook.spareFor === current?.index ? cook.spare : null;
 
-  const headline = $('cook-now');
-  if (!current) headline.textContent = 'Dinner is ready!';
-  else if (current.due) headline.replaceChildren(...stepNodes(current));
-  else headline.textContent = 'Nothing due yet';
-
-  if (target) {
-    $('next-label').textContent = nextLabel(target);
-    $('next-time').textContent = formatCountdown(target.at - now);
-  } else {
-    $('next-label').textContent = 'Nothing left to do';
-    $('next-time').textContent = '0:00';
-  }
-
-  const firstOven = plan.steps.find(s => s.type === 'in' && s.method === 'oven');
-  $('preheat-block').hidden = !(current?.type === 'preheat' && current.due);
-  $('preheat-left').textContent = formatCountdown(firstOven ? firstOven.at - now : 0);
   $('dinner-in').textContent = formatCountdown(plan.readyAt - now);
   $('oven-temp').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
-  renderCookSteps(steps);
+  if (card) renderCookSteps(steps, card, spare);
+  else $('cook-steps').replaceChildren();
 }
 
 function stopCooking() {
@@ -541,7 +597,10 @@ function resetTonight() {
 }
 
 function bindCookScreen() {
-  $('cook-done').addEventListener('click', markCurrentDone);
+  // One listener on the list: the Done buttons are rebuilt with the list.
+  $('cook-steps').addEventListener('click', e => {
+    if (e.target.closest('.card-done')) markCurrentDone();
+  });
   $('cook-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
   $('reset-no').addEventListener('click', () => { $('reset-confirm').hidden = true; });
   $('reset-yes').addEventListener('click', () => {
@@ -633,14 +692,18 @@ function notify(body) {
   }
 }
 
-function raiseAlarm(text) {
-  $('alarm-text').textContent = text;
-  $('alarm-banner').hidden = false;
+function buzz() {
   try {
     if ('vibrate' in navigator) navigator.vibrate([400, 200, 400]);
   } catch {
     // ignore
   }
+}
+
+function raiseAlarm(text) {
+  $('alarm-text').textContent = text;
+  $('alarm-banner').hidden = false;
+  buzz();
   beepOnce();
   clearInterval(alarmTimer);
   alarmTimer = setInterval(beepOnce, 2500);
@@ -651,6 +714,47 @@ function stopAlarm() {
   clearInterval(alarmTimer);
   alarmTimer = null;
   $('alarm-banner').hidden = true;
+}
+
+// ---------- timer panel: countdown with +1/+5/+10 min, Start/Pause, Reset ----------
+
+function renderTimer() {
+  const now = Date.now();
+  const text = formatCountdown(timer.remaining(now));
+  $('timer-display').textContent = text;
+  $('tile-timer-time').textContent = text;
+  $('timer-ring').style.strokeDasharray = String(RING_LEN);
+  $('timer-ring').style.strokeDashoffset = String(RING_LEN * (1 - timer.fraction(now)));
+  $('timer-start').textContent = timer.running ? 'Pause' : 'Start';
+
+  const done = timer.finished(now);
+  $('timer-display').classList.toggle('flash', done);
+  if (done && !timerAlerted) {
+    timerAlerted = true;
+    beepOnce();
+    buzz();
+  }
+}
+
+function bindTimer() {
+  for (const btn of $('panel-timer').querySelectorAll('[data-add]')) {
+    btn.addEventListener('click', () => {
+      timer.add(Number(btn.dataset.add), Date.now());
+      timerAlerted = false;
+      renderTimer();
+    });
+  }
+  $('timer-start').addEventListener('click', () => {
+    unlockAudio();
+    if (timer.running) timer.pause(Date.now());
+    else timer.start(Date.now());
+    renderTimer();
+  });
+  $('timer-reset').addEventListener('click', () => {
+    timer.reset();
+    timerAlerted = false;
+    renderTimer();
+  });
 }
 
 // ---------- screen wake lock ----------
@@ -700,6 +804,12 @@ function init() {
   bindPlanScreen();
   bindTimelineScreen();
   bindCookScreen();
+  bindTiles();
+  bindTimer();
+  renderTimer();
+
+  // The timer is shown live (about 4 times a second); it is cheap to redraw.
+  setInterval(renderTimer, 250);
 
   // Keep the status fresh while the plan screen is open.
   setInterval(() => {

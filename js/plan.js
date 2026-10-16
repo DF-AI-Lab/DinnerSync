@@ -175,3 +175,32 @@ export function stepStatuses(plan, now, doneIndexes = []) {
     return { ...step, index, status, due: step.at <= now };
   });
 }
+
+// The card for the current step: what the cook sees under "Dinner in".
+// Due: counts down to the next step, with a bar that shrinks. Not due: counts
+// down to the start of the current step. The last step ('ready') has no target.
+export function currentCard(statuses, now) {
+  const current = statuses.find(s => s.status === 'current');
+  if (!current) return null;
+  if (current.type === 'ready') {
+    return { badge: 'NOW', countdownMs: 0, barPct: null, until: null, last: true };
+  }
+  if (!current.due) {
+    return { badge: 'NEXT', countdownMs: current.at - now, barPct: null, until: null, last: false };
+  }
+  const next = statuses[current.index + 1];
+  const left = next.at - now;
+  const span = next.at - current.at;
+  return {
+    badge: 'NOW',
+    countdownMs: Math.max(0, left),
+    barPct: span > 0 ? Math.max(0, (left / span) * 100) : 0,
+    until: next.text,
+    last: false,
+  };
+}
+
+// Whole minutes between now and a step's start. Never negative.
+export function spareMinutes(step, now) {
+  return Math.max(0, Math.round((step.at - now) / MIN));
+}

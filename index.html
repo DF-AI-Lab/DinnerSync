@@ -18,9 +18,13 @@
 <body>
   <main class="app">
     <header class="top">
-      <h1 class="brand">DinnerSync</h1>
-      <p class="tag">everything finishes together</p>
-      <button id="cook-reset" class="btn ghost reset-top" type="button">Reset</button>
+      <div class="top-row">
+        <div>
+          <h1 class="brand">DinnerSync</h1>
+          <p class="tagline">everything finishes together</p>
+        </div>
+        <button id="cook-reset" class="btn ghost reset-top" type="button">Reset</button>
+      </div>
     </header>
 
       <div id="reset-confirm" class="reset-confirm" role="alertdialog" aria-labelledby="reset-question" hidden>
@@ -34,24 +38,59 @@
 
     <!-- Screen 1: plan the evening -->
     <section id="plan-screen" class="screen">
-      <div class="card">
-        <h2>When's dinner?</h2>
-        <div class="ready-row">
-          <div class="field">
-            <span>Ready in</span>
-            <div class="dur">
-              <input id="ready-hours" type="number" inputmode="numeric" min="0" aria-label="Ready in hours" value="1"><em>hr</em>
-              <input id="ready-minutes" type="number" inputmode="numeric" min="0" aria-label="Ready in minutes" value="30"><em>min</em>
-            </div>
-          </div>
-          <label class="field">
-            <span>Or at</span>
-            <input id="ready-at" type="time">
-          </label>
-        </div>
-        <p id="ready-clock" class="ready-clock"></p>
+      <div class="tiles">
+        <button id="tile-dinner" class="tile" type="button" aria-expanded="false" aria-controls="panel-dinner">
+          <small>🍽 When's dinner</small>
+          <b id="tile-dinner-time">--:--</b>
+        </button>
+        <button id="tile-timer" class="tile" type="button" aria-expanded="false" aria-controls="panel-timer">
+          <small>⏳ Timer</small>
+          <b id="tile-timer-time">0:00</b>
+        </button>
       </div>
 
+      <div id="panel-dinner" class="drawer" aria-labelledby="tile-dinner">
+        <div class="drawer-inner">
+          <div class="panel">
+            <div class="ready-line">
+              <span class="muted">Ready in</span>
+              <input id="ready-hours" class="ready-input" type="number" inputmode="numeric" min="0" aria-label="Ready in hours" value="1"><em>hr</em>
+              <input id="ready-minutes" class="ready-input" type="number" inputmode="numeric" min="0" aria-label="Ready in minutes" value="30"><em>min</em>
+              <span class="muted">or at</span>
+              <input id="ready-at" class="ready-input ready-time" type="time" aria-label="Dinner time">
+            </div>
+            <p id="ready-clock" class="ready-clock"></p>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-timer" class="drawer" aria-labelledby="tile-timer">
+        <div class="drawer-inner">
+          <div class="panel">
+            <div class="ring">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="track" cx="60" cy="60" r="52"></circle>
+                <circle id="timer-ring" class="prog" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="ring-text">
+                <small>Remaining</small>
+                <span id="timer-display" class="timer-digits">0:00</span>
+              </div>
+            </div>
+            <div class="quick">
+              <button type="button" data-add="60">+1 min</button>
+              <button type="button" data-add="300">+5 min</button>
+              <button type="button" data-add="600">+10 min</button>
+            </div>
+            <div class="timer-btns">
+              <button id="timer-start" class="btn primary" type="button">Start</button>
+              <button id="timer-reset" class="btn" type="button">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="plan-rest">
       <div id="add-card" class="card">
         <h2>Add an item</h2>
         <div class="name-row">
@@ -143,6 +182,7 @@
       <div id="status" class="status" hidden></div>
       <p id="plan-error" class="error" hidden></p>
       <button id="show-plan" class="btn primary big block" type="button">Show plan</button>
+      </div>
     </section>
 
     <!-- Screen 2: timeline -->
@@ -160,22 +200,6 @@
 
     <!-- Screen 3: cooking -->
     <section id="cook-screen" class="screen cook" hidden>
-      <div class="cook-top">
-        <button id="cook-done" class="btn done" type="button">Done ✓</button>
-      </div>
-
-      <p id="cook-now" class="now"></p>
-
-      <div class="next">
-        <p id="next-label" class="label">Next</p>
-        <p id="next-time" class="num huge">--:--</p>
-      </div>
-
-      <div id="preheat-block" class="card block-center" hidden>
-        <span class="label">Preheating, ready in</span>
-        <span id="preheat-left" class="num med">--:--</span>
-      </div>
-
       <div class="dinner">
         <span class="label">Dinner in</span>
         <span id="dinner-in" class="num med">--:--</span>
