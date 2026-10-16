@@ -20,7 +20,17 @@
     <header class="top">
       <h1 class="brand">DinnerSync</h1>
       <p class="tag">everything finishes together</p>
+      <button id="cook-reset" class="btn ghost reset-top" type="button">Reset</button>
     </header>
+
+      <div id="reset-confirm" class="reset-confirm" role="alertdialog" aria-labelledby="reset-question" hidden>
+        <p id="reset-question">Reset tonight? This clears tonight's items.</p>
+        <div class="reset-actions">
+          <button id="reset-yes" class="btn" type="button">Yes, reset</button>
+          <button id="reset-no" class="btn ghost" type="button">No</button>
+        </div>
+      </div>
+
 
     <!-- Screen 1: plan the evening -->
     <section id="plan-screen" class="screen">
@@ -148,15 +158,6 @@
     <section id="cook-screen" class="screen cook" hidden>
       <div class="cook-top">
         <button id="cook-done" class="btn done" type="button">Done ✓</button>
-        <button id="cook-reset" class="btn ghost" type="button">Reset</button>
-      </div>
-
-      <div id="reset-confirm" class="reset-confirm" role="alertdialog" aria-labelledby="reset-question" hidden>
-        <p id="reset-question">Reset tonight? This clears tonight's items.</p>
-        <div class="reset-actions">
-          <button id="reset-yes" class="btn" type="button">Yes, reset</button>
-          <button id="reset-no" class="btn ghost" type="button">No</button>
-        </div>
       </div>
 
       <p id="cook-now" class="now"></p>

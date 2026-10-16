@@ -39,7 +39,8 @@ body {
   padding: max(16px, env(safe-area-inset-top)) 16px max(40px, env(safe-area-inset-bottom));
 }
 
-.top { text-align: center; padding: 8px 0 18px; }
+.top { text-align: center; padding: 8px 0 18px; position: relative; }
+.reset-top { position: absolute; top: 4px; right: 0; width: auto; min-height: 40px; padding: 6px 14px; font-size: 0.9rem; }
 .brand { font-family: var(--display); font-weight: 800; font-size: 2rem; margin: 0; color: var(--orange); text-shadow: 0 0 22px var(--glow); }
 .tag { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
 

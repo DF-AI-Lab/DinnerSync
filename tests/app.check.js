@@ -11,6 +11,8 @@ try {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://localhost:8099/index.html');
+  // Reset is at the top of every screen
+  assert.equal(await page.locator('#cook-reset').isVisible(), true);
   await page.fill('#item-name', 'Chicken');
   await page.fill('#item-hours', '1');
   await page.fill('#item-minutes', '30');
