@@ -81,7 +81,6 @@ h2 {
 }
 .field input:focus-visible,
 .btn:focus-visible,
-.saved-select:focus-visible,
 .icon-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 
 .ready-row, .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -199,6 +198,82 @@ h2 {
 .dinner { display: flex; flex-direction: column; align-items: center; }
 .oven { color: var(--orange-soft); font-size: 1.3rem; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
 
+/* ---------- cooking screen: step progress as a vertical timeline ---------- */
+.cook-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  text-align: left;
+  min-width: 0;
+}
+.cook-steps li {
+  position: relative;
+  min-width: 0;
+  padding: 0 0 12px 40px;
+}
+.cook-steps li::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+.cook-steps li:last-child::before { bottom: auto; height: 12px; }
+.cook-steps .dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.cook-steps .step-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.cook-steps time { font-family: var(--display); font-weight: 800; color: var(--orange); font-variant-numeric: tabular-nums; }
+.cook-steps li.done .dot { background: var(--ok); border-color: var(--ok); }
+.cook-steps li.done .step-body { color: var(--muted); opacity: 0.55; }
+.cook-steps li.current .dot { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 16px var(--glow); }
+.cook-steps li.current .step-body {
+  margin-top: -2px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--orange);
+  border-radius: 16px;
+  box-shadow: 0 0 22px var(--glow);
+  font-weight: 700;
+}
+.cook-steps li.current .dot { top: 12px; }
+.cook-steps li.upcoming .step-body { color: var(--muted); }
+.cook-steps .step-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
 .alarm {
   position: fixed;
   left: 12px;
@@ -224,35 +299,69 @@ h2 {
   .alarm { animation: none; background: var(--orange); }
 }
 
-/* ---------- add-item: name input with the saved-items dropdown beside it ---------- */
+/* ---------- add-item: name input with the saved-items menu beside it ---------- */
 .name-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; min-width: 0; }
 .name-field { flex: 1 1 0; min-width: 0; }
-.saved-select {
-  flex: 0 1 auto;
-  max-width: 42%;
+.saved-menu { position: relative; flex: 0 0 auto; }
+.saved-toggle { min-height: 48px; padding: 0 14px; font-size: 1rem; white-space: nowrap; }
+.saved-toggle[aria-expanded="true"] { border-color: var(--orange); color: var(--orange-soft); }
+.saved-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  width: 240px;
+  max-width: calc(100vw - 32px);
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+.saved-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.saved-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
-  min-height: 48px;
+  background: var(--panel);
+  border-radius: 12px;
+}
+.saved-pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
   font: inherit;
   font-size: 1rem;
-  font-weight: 600;
-  padding: 0 10px;
-  background: var(--field);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  color-scheme: dark;
-  text-overflow: ellipsis;
+  font-weight: 700;
+  text-align: left;
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
-.saved-select:focus-visible { outline-offset: 1px; }
-.saved-delete {
-  display: flex;
-  margin: -4px 0 12px auto;
-  min-height: 40px;
-  padding: 0 12px;
-  font-size: 0.95rem;
+.saved-del {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
   color: var(--muted);
+  font: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
 }
+.saved-del:hover, .saved-del:focus-visible { color: var(--danger); }
+.saved-empty { margin: 4px 8px; font-size: 0.95rem; }
+.saved-toggle:focus-visible,
+.saved-pick:focus-visible,
+.saved-del:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 
 /* ---------- stages: add-item form ---------- */
 /* The add-item card holds the stage rows, so they are lighter than cards of their own. */

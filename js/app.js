@@ -1,4 +1,4 @@
-import { buildPlan, cookingState, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
+import { buildPlan, stepStatuses, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
 import { createStore } from './store.js';
 
 const MIN = 60_000;
@@ -19,7 +19,7 @@ const state = {
   plan: null,         // plan built when "Show plan" was tapped
 };
 
-let cook = null;      // {plan, lastChecked, timer} while cooking
+let cook = null;      // {plan, done, lastChecked, timer} while cooking; done = ticked step indexes
 let alarmTimer = null;
 let audioCtx = null;
 let wakeLock = null;
@@ -197,20 +197,39 @@ function renderItems() {
   });
 }
 
-// The saved-items dropdown in the add-item card. Value = saved name, label = the same name.
-function renderSavedOptions() {
-  const select = $('saved-select');
-  const saved = store.getSavedItems();
-  select.replaceChildren(
-    el('option', { value: '' }, 'Saved ▾'),
-    ...saved.map(item => el('option', { value: item.name }, item.name)),
-  );
-  select.value = '';
-  updateSavedDelete();
+// The saved-items menu in the add-item card: a panel of picks, each with a × to delete.
+function setSavedOpen(open) {
+  $('saved-panel').hidden = !open;
+  $('saved-toggle').setAttribute('aria-expanded', String(open));
+  if (open) renderSavedItems();
 }
 
-function updateSavedDelete() {
-  $('saved-delete').hidden = !$('saved-select').value;
+function renderSavedItems() {
+  const saved = store.getSavedItems();
+  $('saved-list').replaceChildren(...saved.map(item => {
+    const pick = el('button', { class: 'saved-pick', type: 'button' }, item.name);
+    pick.addEventListener('click', () => {
+      fillDraft(item);
+      setSavedOpen(false);
+    });
+    const del = el('button', { class: 'saved-del', type: 'button', 'aria-label': `Delete ${item.name}` }, '×');
+    del.addEventListener('click', () => {
+      store.removeItem(item.name);
+      renderSavedItems();
+    });
+    return el('li', {}, pick, del);
+  }));
+  $('saved-empty').hidden = saved.length > 0;
+}
+
+function bindSavedMenu() {
+  $('saved-toggle').addEventListener('click', () => setSavedOpen($('saved-panel').hidden));
+  document.addEventListener('pointerdown', e => {
+    if (!$('saved-panel').hidden && !$('saved-menu').contains(e.target)) setSavedOpen(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !$('saved-panel').hidden) setSavedOpen(false);
+  });
 }
 
 function addToTonight(item) {
@@ -263,22 +282,8 @@ function bindPlanScreen() {
     store.saveItem(item);
     addToTonight(item);
     resetDraft();
-    renderSavedOptions();
+    renderSavedItems();
     $('item-name').focus();
-  });
-
-  $('saved-select').addEventListener('change', () => {
-    const picked = $('saved-select').value;
-    const item = store.getSavedItems().find(x => x.name === picked);
-    if (item) fillDraft(item);
-    updateSavedDelete();
-  });
-
-  $('saved-delete').addEventListener('click', () => {
-    const name = $('saved-select').value;
-    if (!name) return;
-    store.removeItem(name);
-    renderSavedOptions();
   });
 
   $('add-stage').addEventListener('click', () => {
@@ -421,16 +426,16 @@ function bindTimelineScreen() {
     requestNotifications();
     unlockAudio();
     const plan = state.plan || currentPlan();
-    store.saveCooking({ plan, preheatMinutes: state.preheatMinutes });
-    beginCooking(plan, Date.now());
+    store.saveCooking({ plan, preheatMinutes: state.preheatMinutes, done: [] });
+    beginCooking(plan, Date.now(), []);
   });
 }
 
 // ---------- cooking ----------
 
-function beginCooking(plan, since) {
+function beginCooking(plan, since, done) {
   stopTimer();
-  cook = { plan, lastChecked: since, timer: null };
+  cook = { plan, done, lastChecked: since, timer: null };
   showScreen('cook');
   tick();
   cook.timer = setInterval(tick, 1000);
@@ -441,37 +446,80 @@ function stopTimer() {
   if (cook?.timer) clearInterval(cook.timer);
 }
 
+function persistCooking() {
+  store.saveCooking({ plan: cook.plan, preheatMinutes: state.preheatMinutes, done: cook.done });
+}
+
+function cookSteps(now = Date.now()) {
+  return stepStatuses(cook.plan, now, cook.done);
+}
+
 function tick() {
   if (!cook) return;
   const now = Date.now();
   const due = cook.plan.steps.filter(s => s.at > cook.lastChecked && s.at <= now);
   cook.lastChecked = now;
   if (due.length) raiseAlarm(due.map(s => s.text).join(' · '));
-  renderCook(cookingState(cook.plan, now));
+  renderCook(now);
 }
 
-function renderCook(st) {
-  const plan = cook.plan;
-  const now = $('cook-now');
-  if (st.done) now.textContent = 'Dinner is ready!';
-  else if (st.current) now.replaceChildren(...stepNodes(st.current));
-  else now.textContent = 'Not started yet';
+// "Done ✓" (and the alarm's Done): the current step is finished. The last step
+// ('ready') ends cooking.
+function markCurrentDone() {
+  stopAlarm();
+  if (!cook) return;
+  const current = cookSteps().find(s => s.status === 'current');
+  if (!current || current.type === 'ready') {
+    stopCooking();
+    return;
+  }
+  cook.done.push(current.index);
+  persistCooking();
+  renderCook(Date.now());
+}
 
-  if (st.next) {
-    const n = st.next;
-    $('next-label').textContent = n.type === 'preheat'
-      ? 'Next: Preheat oven'
-      : n.type === 'in' ? `Next: ${METHOD_LABEL[n.method]} — ${n.label ?? n.name}` : 'Next: Dinner ready';
-    $('next-time').textContent = formatCountdown(st.msToNext);
+function nextLabel(n) {
+  if (n.type === 'preheat') return 'Next: Preheat oven';
+  if (n.type === 'in') return `Next: ${METHOD_LABEL[n.method]} — ${n.label ?? n.name}`;
+  return 'Next: Dinner ready';
+}
+
+function renderCookSteps(steps) {
+  $('cook-steps').replaceChildren(...steps.map(s => {
+    const body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+    if (s.status === 'current') body.append(el('span', { class: 'step-badge' }, s.due ? 'NOW' : 'NEXT'));
+    const attrs = { class: s.status, ...(s.status === 'current' ? { 'aria-current': 'step' } : {}) };
+    return el('li', attrs, el('span', { class: 'dot', 'aria-hidden': 'true' }, s.status === 'done' ? '✓' : ''), body);
+  }));
+}
+
+function renderCook(now) {
+  const plan = cook.plan;
+  const steps = cookSteps(now);
+  const current = steps.find(s => s.status === 'current');
+  // Headline: the current step once it is due. Countdown: the next step not yet done
+  // (the current one itself while it is still in the future).
+  const target = current?.due ? steps.find(s => s.status === 'upcoming') : current;
+
+  const headline = $('cook-now');
+  if (!current) headline.textContent = 'Dinner is ready!';
+  else if (current.due) headline.replaceChildren(...stepNodes(current));
+  else headline.textContent = 'Nothing due yet';
+
+  if (target) {
+    $('next-label').textContent = nextLabel(target);
+    $('next-time').textContent = formatCountdown(target.at - now);
   } else {
     $('next-label').textContent = 'Nothing left to do';
     $('next-time').textContent = '0:00';
   }
 
-  $('preheat-block').hidden = !(st.current?.type === 'preheat');
-  $('preheat-left').textContent = formatCountdown(st.preheatLeftMs);
-  $('dinner-in').textContent = formatCountdown(st.msToDinner);
+  const firstOven = plan.steps.find(s => s.type === 'in' && s.method === 'oven');
+  $('preheat-block').hidden = !(current?.type === 'preheat' && current.due);
+  $('preheat-left').textContent = formatCountdown(firstOven ? firstOven.at - now : 0);
+  $('dinner-in').textContent = formatCountdown(plan.readyAt - now);
   $('oven-temp').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
+  renderCookSteps(steps);
 }
 
 function stopCooking() {
@@ -493,14 +541,14 @@ function resetTonight() {
 }
 
 function bindCookScreen() {
-  $('cook-done').addEventListener('click', stopCooking);
+  $('cook-done').addEventListener('click', markCurrentDone);
   $('cook-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
   $('reset-no').addEventListener('click', () => { $('reset-confirm').hidden = true; });
   $('reset-yes').addEventListener('click', () => {
     $('reset-confirm').hidden = true;
     resetTonight();
   });
-  $('alarm-done').addEventListener('click', stopAlarm);
+  $('alarm-done').addEventListener('click', markCurrentDone);
 }
 
 function resumeCooking() {
@@ -516,7 +564,11 @@ function resumeCooking() {
   const preheatMinutes = Number.isFinite(saved.preheatMinutes) ? saved.preheatMinutes : state.preheatMinutes;
   const plan = buildPlan({ items: savedPlan.items, readyAt: savedPlan.readyAt, now: Date.now(), preheatMinutes });
   // Steps that passed while the app was closed do not alarm.
-  beginCooking(plan, Date.now());
+  // Ticked-off steps are kept as step indexes; they still line up with the rebuilt plan.
+  const done = Array.isArray(saved.done)
+    ? [...new Set(saved.done)].filter(i => Number.isInteger(i) && i >= 0 && i < plan.steps.length)
+    : [];
+  beginCooking(plan, Date.now(), done);
 }
 
 // ---------- alarm: sound, vibration, notification, banner ----------
@@ -643,7 +695,8 @@ function init() {
   renderAll();
 
   bindStageForm();
-  renderSavedOptions();
+  renderSavedItems();
+  bindSavedMenu();
   bindPlanScreen();
   bindTimelineScreen();
   bindCookScreen();

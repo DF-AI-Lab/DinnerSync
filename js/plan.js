@@ -159,3 +159,19 @@ export function cookingState(plan, now) {
 
   return { current, next, msToNext, msToDinner, preheatLeftMs, done: now >= readyAt };
 }
+
+// Progress through the steps. doneIndexes are the steps the cook has ticked off.
+// The first step not ticked off is 'current'; everything after it is 'upcoming'.
+export function stepStatuses(plan, now, doneIndexes = []) {
+  const done = new Set(doneIndexes);
+  let currentFound = false;
+  return plan.steps.map((step, index) => {
+    let status;
+    if (done.has(index)) status = 'done';
+    else if (!currentFound) {
+      status = 'current';
+      currentFound = true;
+    } else status = 'upcoming';
+    return { ...step, index, status, due: step.at <= now };
+  });
+}

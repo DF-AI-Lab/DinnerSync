@@ -59,11 +59,14 @@
             <span>Name</span>
             <input id="item-name" type="text" autocomplete="off" placeholder="Chicken">
           </label>
-          <select id="saved-select" class="saved-select" aria-label="Pick a saved item">
-            <option value="">Saved ▾</option>
-          </select>
+          <div id="saved-menu" class="saved-menu">
+            <button id="saved-toggle" class="btn ghost saved-toggle" type="button" aria-expanded="false" aria-controls="saved-panel">Saved ▾</button>
+            <div id="saved-panel" class="saved-panel" hidden>
+              <ul id="saved-list" class="saved-list"></ul>
+              <p id="saved-empty" class="muted saved-empty" hidden>No saved items yet</p>
+            </div>
+          </div>
         </div>
-        <button id="saved-delete" class="btn ghost saved-delete" type="button" hidden>Delete saved</button>
         <div id="stage-rows" class="stage-list">
           <div class="stage-row" data-method="oven">
             <div class="stage-head">
@@ -179,6 +182,8 @@
       </div>
 
       <p id="oven-temp" class="oven"></p>
+
+      <ol id="cook-steps" class="cook-steps" aria-label="Cooking steps"></ol>
     </section>
   </main>
 
