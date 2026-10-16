@@ -105,11 +105,8 @@ try {
   assert.equal(await keep.count(), 1);
   await page.waitForFunction(() => { const a = document.getElementById('keep-alive'); return a && !a.paused; });
   assert.equal(await keep.evaluate(a => a.loop), true);
-  // Alarm ring tone: a looping audio element, ready but silent until an alarm
-  const ring = page.locator('#ring');
-  assert.equal(await ring.count(), 1);
-  assert.equal(await ring.evaluate(a => a.loop && !!a.src), true);
-  assert.equal(await ring.evaluate(a => a.paused), true);
+  // The ring plays through the same, already-playing element (so a locked phone lets it start); silent until an alarm
+  assert.equal(await keep.getAttribute('data-sound'), 'silent');
   // Only "Dinner in" at the top: no big countdown, no preheat card, no big Done
   assert.match(await page.textContent('#cook-screen'), /Dinner in/i);
   assert.equal(await page.locator('#next-time').count(), 0);
@@ -222,6 +219,28 @@ try {
     assert.ok(lg.height <= 64, `logo not too big at ${width}px`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `no side scroll at ${width}px`);
   }
+  // Kitchen timer: keeps the app awake while running, and rings like the cooking alarm when it hits 0
+  const tp = await browser.newPage({ viewport: { width: 400, height: 860 } });
+  tp.on('pageerror', e => errors.push(e.message));
+  await tp.clock.install();
+  await tp.goto('http://localhost:8099/index.html');
+  await tp.click('#tile-timer');
+  await tp.click('#panel-timer [data-add="60"]');
+  await tp.click('#timer-start');
+  await tp.waitForFunction(() => !document.getElementById('keep-alive').paused);
+  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'silent');
+  await tp.clock.runFor(62_000);
+  await tp.waitForSelector('#alarm-banner:not([hidden])');
+  assert.match(await tp.textContent('#alarm-text'), /Timer/i);
+  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'ring');
+  assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), false);
+  // Done stops the ring; nothing else running, so the silent loop stops too
+  await tp.click('#alarm-done');
+  await tp.waitForSelector('#alarm-banner', { state: 'hidden' });
+  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'silent');
+  assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), true);
+  assert.equal(await tp.isVisible('#cook-screen'), false);
+  await tp.close();
   assert.deepEqual(errors, []);
   console.log('app.check: OK');
 } finally {
