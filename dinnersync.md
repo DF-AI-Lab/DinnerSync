@@ -3,7 +3,7 @@
 ## Where we are
 - Current step: 1. Idea (lite mode)
 - Last session: 2026-10-16 — idea + icon received
-- Next action: Darren says go → write tests, then build
+- Next action: Darren picks a look → build → test locally on phone
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -39,6 +39,9 @@
 | 6 | Oven set to main item's temp (longest cook = main). Others' times scaled: new time = time × their temp ÷ oven temp | Darren: "if it's cooked it's cooked" | 2026-10-16 |
 | 7 | Preheat 15 min (editable) counted in the time check | Oven must be hot before first item | 2026-10-16 |
 | 8 | Not enough time → say so and show earliest ready time | Darren's 'enough time' need | 2026-10-16 |
+| 9 | Save on the phone (local storage, no account): saved items + last dinner | Darren wants a local db | 2026-10-16 |
+| 10 | Cooking screen shows live countdowns: preheat, main meal (to dinner), next item | Darren | 2026-10-16 |
+| 11 | Mockup v1 look rejected; new look before build | Darren not keen | 2026-10-16 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
@@ -46,6 +49,7 @@
 ## Research
 
 ## Prototypes / tests
+- Mockup v1: https://claude.ai/artifact/Gi6sBQpME7pXr7LztSDcMc (look rejected, flow OK)
 
 ## Risks
 - Items needing different temps at the same time in one oven
