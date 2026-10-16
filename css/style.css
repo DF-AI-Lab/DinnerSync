@@ -338,6 +338,16 @@ h2 {
   font-size: 0.8rem;
   font-weight: 800;
 }
+/* A done step's dot is a button (tap to undo): look the same as the span. */
+.cook-steps button.dot {
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cook-steps button.dot:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 .cook-steps .step-body {
   display: flex;
   flex-wrap: wrap;
@@ -364,17 +374,19 @@ h2 {
 .cook-steps li.current .dot { top: 12px; }
 .cook-steps li.upcoming .step-body { color: var(--muted); }
 
-/* The current card: head row, countdown + Done, bar and "until" line. Each takes a full row. */
+/* The current card: head row, big countdown, bar, then a foot row with the text on the left and Done on the right. Each takes a full row. */
 .cook-steps .card-head,
 .cook-steps .card-row,
 .cook-steps .card-bar,
-.cook-steps .card-until,
-.cook-steps .card-sub,
-.cook-steps .card-spare { flex: 1 0 100%; }
+.cook-steps .card-foot { flex: 1 0 100%; }
 .cook-steps .card-head { display: flex; align-items: center; gap: 8px; }
 .cook-steps .card-head .step-badge { margin-left: auto; }
 .cook-steps .card-head time { margin-right: 6px; }
-.cook-steps .card-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 6px; }
+.cook-steps .card-row { display: flex; align-items: center; margin-top: 6px; }
+.cook-steps .card-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
+.cook-steps .card-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.cook-steps .card-text > p { margin: 0; }
+.cook-steps .card-text > p + p { margin-top: 6px; }
 .cook-steps .card-count {
   font-family: var(--display);
   font-size: clamp(2.2rem, 11vw, 2.8rem);
@@ -386,7 +398,7 @@ h2 {
 }
 .cook-steps .card-sub { margin: 0; color: var(--orange-soft); font-size: 1.1rem; }
 .cook-steps .card-done {
-  flex: none;
+  flex: 0 0 auto;
   min-height: 40px;
   padding: 0 18px;
   border: 0;
@@ -403,8 +415,8 @@ h2 {
 .cook-steps .card-done:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 .cook-steps .card-bar { height: 6px; margin-top: 10px; border-radius: 9px; background: var(--panel-2); overflow: hidden; }
 .cook-steps .card-bar i { display: block; height: 100%; background: var(--orange); transition: width 1s linear; }
-.cook-steps .card-until { margin: 6px 0 0; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
-.cook-steps .card-spare { margin: 6px 0 0; color: var(--ok); font-size: 0.9rem; font-weight: 600; }
+.cook-steps .card-until { margin: 0; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.cook-steps .card-spare { margin: 0; color: var(--ok); font-size: 0.9rem; font-weight: 600; }
 .cook-steps .step-badge {
   flex: none;
   padding: 3px 8px;
