@@ -88,6 +88,11 @@ try {
   assert.match(txt, /Roast potatoes into the oven/);
   await page.click('#start-cooking');
   await page.waitForSelector('#cook-screen:not([hidden])');
+  // Silent sound loops while cooking, so Android keeps the app (and its alarms) running when locked
+  const keep = page.locator('#keep-alive');
+  assert.equal(await keep.count(), 1);
+  await page.waitForFunction(() => { const a = document.getElementById('keep-alive'); return a && !a.paused; });
+  assert.equal(await keep.evaluate(a => a.loop), true);
   // Only "Dinner in" at the top: no big countdown, no preheat card, no big Done
   assert.match(await page.textContent('#cook-screen'), /Dinner in/i);
   assert.equal(await page.locator('#next-time').count(), 0);
@@ -150,6 +155,8 @@ try {
   await page.click('#cook-reset');
   await page.click('#reset-yes');
   await page.waitForSelector('#cook-screen', { state: 'hidden' });
+  // Cooking stopped: the silent sound stops too
+  assert.equal(await keep.evaluate(a => a.paused), true);
   // reset clears tonight's items but keeps saved items
   assert.equal(await page.locator('#items li').count(), 0);
   // saved items survive reload

@@ -42,6 +42,7 @@
 | 9 | Save on the phone (local storage, no account): saved items + last dinner | Darren wants a local db | 2026-10-16 |
 | 10 | Cooking screen shows live countdowns: preheat, main meal (to dinner), next item | Darren | 2026-10-16 |
 | 11 | Look: "Dark kitchen" for now; revisit after it works | Darren: operations first | 2026-10-16 |
+| 12 | Silent sound loops while cooking so alarms still fire when the phone is locked (not if the app is swiped closed) | Cheapest fix for locked-phone alarms | 2026-10-16 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
@@ -56,6 +57,7 @@
 - Phone alarms when screen is locked or app is closed (web apps are limited)
 
 ## Later / V2
+- Once everything works well: make it a real Android app (APK) using the phone's own alarm system, so alarms work even when the app is closed (Darren, 2026-10-16)
 
 ## Next build (from mock v2: docs/mock-v2.html, also https://claude.ai/artifact/1tJQUZWz9QuZA2HyFtKTkv)
 1. Plan screen top: two equal tiles "🍽 When's dinner" (shows 7:44pm) and "⏳ Timer" (shows remaining). Tap opens a panel with slide animation; one open at a time; tap again closes.
