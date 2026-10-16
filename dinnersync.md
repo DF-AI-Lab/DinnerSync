@@ -3,7 +3,7 @@
 ## Where we are
 - Current step: 1. Idea (lite mode)
 - Last session: 2026-10-16 — idea + icon received
-- Next action: Darren decides how to handle clashing oven temps
+- Next action: Darren says go → write tests, then build
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -36,6 +36,9 @@
 | 2 | Web app added to home screen, not a native widget | Widgets need native iOS/Android code; much harder | 2026-10-16 |
 | 4 | Android first; install as web app | Darren's phone | 2026-10-16 |
 | 5 | Screen stays on while cooking (wake lock) + sound, vibrate and notification | Web apps can't reliably alarm when phone is locked; no server needed | 2026-10-16 |
+| 6 | Oven set to main item's temp (longest cook = main). Others' times scaled: new time = time × their temp ÷ oven temp | Darren: "if it's cooked it's cooked" | 2026-10-16 |
+| 7 | Preheat 15 min (editable) counted in the time check | Oven must be hot before first item | 2026-10-16 |
+| 8 | Not enough time → say so and show earliest ready time | Darren's 'enough time' need | 2026-10-16 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
