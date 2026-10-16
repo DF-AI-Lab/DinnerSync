@@ -105,6 +105,11 @@ try {
   assert.equal(await keep.count(), 1);
   await page.waitForFunction(() => { const a = document.getElementById('keep-alive'); return a && !a.paused; });
   assert.equal(await keep.evaluate(a => a.loop), true);
+  // Alarm ring tone: a looping audio element, ready but silent until an alarm
+  const ring = page.locator('#ring');
+  assert.equal(await ring.count(), 1);
+  assert.equal(await ring.evaluate(a => a.loop && !!a.src), true);
+  assert.equal(await ring.evaluate(a => a.paused), true);
   // Only "Dinner in" at the top: no big countdown, no preheat card, no big Done
   assert.match(await page.textContent('#cook-screen'), /Dinner in/i);
   assert.equal(await page.locator('#next-time').count(), 0);
