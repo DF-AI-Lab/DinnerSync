@@ -1,6 +1,7 @@
 import { buildPlan, stepStatuses, currentCard, spareMinutes, alarmSteps, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
 import { createStore } from './store.js';
 import { createCountdown } from './timer.js';
+import { ringWav, RING } from './ring.js';
 
 const MIN = 60_000;
 const DEFAULT_READY_MIN = 90;
@@ -748,15 +749,36 @@ function raiseAlarm(text) {
   $('alarm-banner').hidden = false;
   buzz();
   unlockAudio();
-  beepOnce();
-  clearInterval(alarmTimer);
-  alarmTimer = setInterval(beepOnce, 2500);
+  ringAlarm();
   notify(text);
+}
+
+// Loops the phone-style ring until Done. If the browser blocks it, fall back to the beeps.
+function ringAlarm() {
+  const ring = $('ring');
+  const beeps = () => {
+    if ($('alarm-banner').hidden) return; // already stopped with Done
+    beepOnce();
+    clearInterval(alarmTimer);
+    alarmTimer = setInterval(beepOnce, 2500);
+  };
+  try {
+    ring.currentTime = 0;
+    ring.volume = 1;
+    clearInterval(alarmTimer);
+    alarmTimer = setInterval(buzz, RING.loopSeconds * 1000); // vibrate with each loop
+    ring.play().catch(beeps);
+  } catch {
+    beeps();
+  }
 }
 
 function stopAlarm() {
   clearInterval(alarmTimer);
   alarmTimer = null;
+  const ring = $('ring');
+  ring.pause();
+  ring.currentTime = 0;
   $('alarm-banner').hidden = true;
 }
 
@@ -846,6 +868,7 @@ function silentWav(seconds = 1, rate = 8000) {
   return new Blob([view.buffer], { type: 'audio/wav' });
 }
 keepAlive.src = URL.createObjectURL(silentWav());
+$('ring').src = URL.createObjectURL(new Blob([ringWav()], { type: 'audio/wav' }));
 
 function startKeepAlive() {
   keepAlive.play().catch(() => {
