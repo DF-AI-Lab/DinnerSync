@@ -6,7 +6,10 @@ import { readFileSync } from 'node:fs';
 function loadSw({ online }) {
   const handlers = {};
   const cache = new Map([['https://x/css/style.css', 'old css']]);
-  const self = { location: { origin: 'https://x' }, addEventListener: (t, f) => { handlers[t] = f; }, skipWaiting() {}, clients: { claim() {} } };
+  const posted = [];
+  const client = { postMessage: m => posted.push(m), focus: async () => client };
+  const self = { location: { origin: 'https://x' }, addEventListener: (t, f) => { handlers[t] = f; }, skipWaiting() {},
+    clients: { claim() {}, matchAll: async () => [client], openWindow: async () => client } };
   const caches = {
     match: async req => cache.get(req.url),
     open: async () => ({ put: async (req, res) => cache.set(req.url, res.body), addAll: async () => {} }),
@@ -17,7 +20,7 @@ function loadSw({ online }) {
     return { ok: true, body: 'new css', clone() { return this; } };
   };
   new Function('self', 'caches', 'fetch', readFileSync('sw.js', 'utf8'))(self, caches, fetch);
-  return { handlers, cache };
+  return { handlers, cache, posted };
 }
 
 async function get(handlers, url) {
@@ -37,4 +40,21 @@ test('online: always gets the newest file, not an old saved copy', async () => {
 test('offline: falls back to the saved copy', async () => {
   const { handlers } = loadSw({ online: false });
   assert.equal(await get(handlers, 'https://x/css/style.css'), 'old css');
+});
+
+test('tapping Done on the notification tells the app to stop the alarm', async () => {
+  const { handlers, posted } = loadSw({ online: true });
+  let closed = false, wait;
+  handlers.notificationclick({ action: 'done', notification: { close: () => { closed = true; } }, waitUntil: p => { wait = p; } });
+  await wait;
+  assert.equal(closed, true);
+  assert.deepEqual(posted, [{ type: 'alarm-done' }]);
+});
+
+test('tapping the notification itself opens the app, no Done', async () => {
+  const { handlers, posted } = loadSw({ online: true });
+  let wait;
+  handlers.notificationclick({ action: '', notification: { close() {} }, waitUntil: p => { wait = p; } });
+  await wait;
+  assert.deepEqual(posted, []);
 });

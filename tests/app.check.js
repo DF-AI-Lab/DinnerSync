@@ -223,6 +223,18 @@ try {
   const tp = await browser.newPage({ viewport: { width: 400, height: 860 } });
   tp.on('pageerror', e => errors.push(e.message));
   await tp.clock.install();
+  // Count alarm notifications (stand-in for the phone's notification system)
+  await tp.addInitScript(() => {
+    window.__notes = [];
+    const fake = function (title, opts) { window.__notes.push(opts); };
+    fake.permission = 'granted';
+    fake.requestPermission = async () => 'granted';
+    window.Notification = fake;
+    if (window.ServiceWorkerRegistration) {
+      ServiceWorkerRegistration.prototype.showNotification = async function (title, opts) { window.__notes.push(opts); };
+      ServiceWorkerRegistration.prototype.getNotifications = async () => [];
+    }
+  });
   await tp.goto('http://localhost:8099/index.html');
   await tp.click('#tile-timer');
   await tp.click('#panel-timer [data-add="60"]');
@@ -234,12 +246,22 @@ try {
   assert.match(await tp.textContent('#alarm-text'), /Timer/i);
   assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'ring');
   assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), false);
+  // The notification repeats (makes a sound again each time) until Done
+  await tp.clock.runFor(25_000);
+  const notes = await tp.evaluate(() => window.__notes);
+  assert.ok(notes.length >= 3, `notification repeats (got ${notes.length})`);
+  assert.equal(notes.at(-1).renotify, true);
+  assert.equal(notes.at(-1).requireInteraction, true);
+  assert.ok(notes.at(-1).actions?.some(a => a.action === 'done'), 'notification has a Done button');
   // Done stops the ring; nothing else running, so the silent loop stops too
   await tp.click('#alarm-done');
   await tp.waitForSelector('#alarm-banner', { state: 'hidden' });
   assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'silent');
   assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), true);
   assert.equal(await tp.isVisible('#cook-screen'), false);
+  const after = await tp.evaluate(() => window.__notes.length);
+  await tp.clock.runFor(30_000);
+  assert.equal(await tp.evaluate(() => window.__notes.length), after, 'no more notifications after Done');
   await tp.close();
   assert.deepEqual(errors, []);
   console.log('app.check: OK');

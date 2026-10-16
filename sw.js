@@ -1,6 +1,6 @@
 // Network-first service worker: online it always fetches the newest file and saves a copy;
 // offline it falls back to the saved copy. Bump CACHE and the #app-version in index.html together.
-const CACHE = 'dinnersync-v1.1.4';
+const CACHE = 'dinnersync-v1.1.5';
 const ASSETS = [
   './',
   './index.html',
@@ -25,6 +25,18 @@ self.addEventListener('activate', event => {
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+  );
+});
+
+// Done on the alarm notification tells every open page to stop the alarm; a plain tap just opens the app.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      if (event.action === 'done') clients.forEach(c => c.postMessage({ type: 'alarm-done' }));
+      if (clients.length) return clients[0].focus();
+      return self.clients.openWindow('./');
+    })
   );
 });
 
