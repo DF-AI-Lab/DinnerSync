@@ -12,23 +12,42 @@ try {
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://localhost:8099/index.html');
   await page.fill('#item-name', 'Chicken');
-  await page.fill('#item-minutes', '90');
+  await page.fill('#item-hours', '1');
+  await page.fill('#item-minutes', '30');
   await page.fill('#item-temp', '180');
   await page.click('#add-item');
   await page.fill('#item-name', 'Potatoes');
-  await page.fill('#item-minutes', '45');
-  await page.fill('#item-temp', '220');
+  await page.fill('#item-hours', '');
+  await page.fill('#item-minutes', '10');
+  await page.locator('.stage-row').first().getByRole('button', { name: /Hob/ }).click();
+  await page.locator('.stage-row').first().locator('.stage-label').fill('Boil potatoes');
+  await page.click('#add-stage');
+  const row2 = page.locator('.stage-row').nth(1);
+  await row2.locator('.stage-label').fill('Roast potatoes');
+  await row2.locator('.stage-minutes').fill('45');
+  await row2.locator('.stage-temp').fill('220');
+  // stage rows live inside the add-item card
+  assert.equal(await page.locator('#add-card .stage-row').count(), 2);
   await page.click('#add-item');
   assert.equal(await page.locator('#items li').count(), 2);
-  await page.fill('#ready-in', '180');
+  await page.fill('#ready-hours', '3');
+  await page.fill('#ready-minutes', '0');
   await page.click('#show-plan');
   await page.waitForSelector('#plan-steps li');
   const txt = await page.textContent('#plan-steps');
   assert.match(txt, /Preheat/i);
-  assert.match(txt, /Potatoes/);
+  assert.match(txt, /Boil potatoes on the hob/);
+  assert.match(txt, /Roast potatoes into the oven/);
   await page.click('#start-cooking');
   await page.waitForSelector('#cook-screen:not([hidden])');
   assert.match(await page.textContent('#cook-screen'), /Dinner/i);
+  // Done and Reset at the top of the cooking screen
+  await page.waitForSelector('#cook-done');
+  await page.waitForSelector('#cook-reset');
+  await page.click('#cook-reset');
+  await page.waitForSelector('#cook-screen', { state: 'hidden' });
+  // reset clears tonight's items but keeps saved items
+  assert.equal(await page.locator('#items li').count(), 0);
   // saved items survive reload
   await page.reload();
   assert.match(await page.textContent('body'), /Chicken/);

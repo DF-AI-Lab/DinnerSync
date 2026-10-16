@@ -80,3 +80,20 @@ test('cookingState walks through stages', () => {
   assert.equal(c.next.method, 'oven');
   assert.equal(c.next.name, 'Roast potatoes');
 });
+
+test('stage label replaces item name in step text', () => {
+  const item = { name: 'Potatoes', stages: [
+    { method: 'hob', minutes: 10, label: 'Boil potatoes' },
+    { method: 'oven', minutes: 45, temp: 200, label: 'Roast potatoes' },
+  ] };
+  const p = buildPlan({ items: [item], readyAt: at(19, 0), now });
+  const t = p.steps.filter(s => s.type === 'in').map(s => s.text);
+  assert.match(t[0], /^Boil potatoes on the hob/);
+  assert.match(t[1], /^Roast potatoes into the oven/);
+  assert.equal(p.steps.find(s => s.method === 'hob').label, 'Boil potatoes');
+});
+
+test('blank stage label falls back to item name', () => {
+  const p = buildPlan({ items: [{ name: 'Veg', stages: [{ method: 'hob', minutes: 5, label: '  ' }] }], readyAt: at(18, 0), now });
+  assert.match(p.steps[0].text, /^Veg on the hob/);
+});
