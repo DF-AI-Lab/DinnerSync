@@ -44,7 +44,14 @@ try {
   // Done and Reset at the top of the cooking screen
   await page.waitForSelector('#cook-done');
   await page.waitForSelector('#cook-reset');
+  // Reset asks first; "No" keeps cooking
   await page.click('#cook-reset');
+  await page.waitForSelector('#reset-confirm:not([hidden])');
+  await page.click('#reset-no');
+  await page.waitForSelector('#reset-confirm', { state: 'hidden' });
+  assert.equal(await page.locator('#cook-screen').isVisible(), true);
+  await page.click('#cook-reset');
+  await page.click('#reset-yes');
   await page.waitForSelector('#cook-screen', { state: 'hidden' });
   // reset clears tonight's items but keeps saved items
   assert.equal(await page.locator('#items li').count(), 0);
