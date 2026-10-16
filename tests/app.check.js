@@ -59,7 +59,27 @@ try {
   assert.equal(await page.locator('#items li').count(), 0);
   // saved items survive reload
   await page.reload();
-  assert.match(await page.textContent('body'), /Chicken/);
+  // Saved items live in a dropdown inside the add-item card
+  assert.equal(await page.locator('#add-card #saved-select').count(), 1);
+  assert.equal(await page.locator('.saved-chips, #saved-card').count(), 0);
+  await page.selectOption('#saved-select', { label: 'Chicken' });
+  assert.equal(await page.inputValue('#item-name'), 'Chicken');
+  assert.equal(await page.inputValue('#item-hours'), '1');
+  assert.equal(await page.inputValue('#item-minutes'), '30');
+  assert.equal(await page.inputValue('#item-temp'), '180');
+  // multi-stage saved item fills every stage, and can be edited before adding
+  await page.selectOption('#saved-select', { label: 'Potatoes' });
+  assert.equal(await page.locator('.stage-row').count(), 2);
+  assert.equal(await page.locator('.stage-row').nth(1).locator('.stage-temp').inputValue(), '220');
+  await page.locator('.stage-row').nth(1).locator('.stage-temp').fill('200');
+  await page.click('#add-item');
+  await page.reload();
+  await page.selectOption('#saved-select', { label: 'Potatoes' });
+  assert.equal(await page.locator('.stage-row').nth(1).locator('.stage-temp').inputValue(), '200');
+  // saved items can be deleted
+  page.selectOption('#saved-select', { label: 'Chicken' });
+  await page.click('#saved-delete');
+  assert.equal(await page.locator('#saved-select option', { hasText: 'Chicken' }).count(), 0);
   assert.deepEqual(errors, []);
   console.log('app.check: OK');
 } finally {
