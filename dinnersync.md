@@ -1,9 +1,9 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test (V1 built)
-- Last session: 2026-10-16 — idea + icon received
-- Next action: Darren installs from https://df-ai-lab.github.io/DinnerSync/ and tests alarms on Android
+- Current step: Build & Test — V1 live, next round of changes mocked and approved
+- Last session: 2026-10-16 — built V1, stages, saved items, step list; live on GitHub Pages; mock v2 agreed
+- Next action: build the mock v2 changes (see "Next build" below), tests first, Haiku builds
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -57,6 +57,15 @@
 
 ## Later / V2
 
+## Next build (from mock v2: docs/mock-v2.html, also https://claude.ai/artifact/1tJQUZWz9QuZA2HyFtKTkv)
+1. Plan screen top: two equal tiles "🍽 When's dinner" (shows 7:44pm) and "⏳ Timer" (shows remaining). Tap opens a panel with slide animation; one open at a time; tap again closes.
+2. When's dinner panel: one line "Ready in [h] hr [m] min or at [time]" + "Dinner at 7:44pm" below.
+3. Timer panel: countdown only (no stopwatch). Big digits in a glowing ring that empties, label "Remaining", +1/+5/+10 min buttons, Start/Pause, Reset back to 0:00. Beep + vibrate at 0. Hide the Add-an-item card (and rest of plan) while Timer is open.
+4. Reset (top right) smaller with margin, not touching the title.
+5. Cooking screen: only "Dinner in" countdown at top. Remove big countdown, preheat card and the big Done button.
+6. Current step card grows ("snake swallowing an egg"): holds the countdown to the next step + progress bar that SHRINKS as time runs out + "until: next step". Small NOW (due) / NEXT (not due yet) badge top right, small, 6px corners.
+7. Small green "Done ✓" button right next to the countdown in the current card (6px corners). Done early = step ticked, next card shows "✓ Done early, X min spare before this" and counts down to its start. Times never shift — everything still finishes together.
+
 ## PRD
 
 ## Tickets
@@ -67,6 +76,7 @@
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-16: Mock v2 agreed (tiles, timer, egg-style cooking screen); saved to docs/mock-v2.html
 - 2026-10-16: Project file created from brain dump; icon added
 - 2026-10-16: Dark look chosen; V1 built and tests passing
 - 2026-10-16: Destination set to working app; web app chosen over widget

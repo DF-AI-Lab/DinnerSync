@@ -1,0 +1,216 @@
+<title>DinnerSync Mockup 2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap">
+<style>
+/* Layout: two phone screens side by side (stack on phones), app's own dark-kitchen palette */
+:root{
+  --bg:#121012; --panel:#1c191c; --panel-2:#26222a; --field:#0e0c0e; --line:#3a343b;
+  --text:#f3ede6; --muted:#a39a93; --orange:#ff7a2f; --orange-soft:#ffb07a; --glow:rgba(255,122,47,.45);
+  --ok:#7fd6a0; --ink:#1a0f08;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px 4px}
+.phone{background:radial-gradient(ellipse at 50% -10%,rgba(255,122,47,.18),transparent 60%),var(--bg);border:1px solid var(--line);border-radius:28px;padding:16px;display:flex;flex-direction:column;gap:14px;min-height:640px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-family:var(--display);font-weight:800;font-size:24px;color:var(--orange);text-shadow:0 0 18px var(--glow);margin:0}
+.reset{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font:600 13px var(--body)}
+button{cursor:pointer}
+button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+/* Tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;text-align:left;color:var(--text);display:flex;flex-direction:column;gap:4px;
+  transition:transform .25s ease,border-color .25s,box-shadow .25s}
+.tile small{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.tile b{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
+.tile.on{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),0 8px 30px -10px var(--glow);transform:translateY(-2px)}
+.tile:active{transform:scale(.97)}
+.drawer{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s cubic-bezier(.2,.8,.2,1),opacity .3s;opacity:0}
+.drawer.open{grid-template-rows:1fr;opacity:1}
+.drawer>div{overflow:hidden}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.field{background:var(--field);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:10px;width:56px;font:500 18px var(--body)}
+.field.time{width:auto}
+.muted{color:var(--muted)}
+.sw{font-family:var(--display);font-size:54px;font-weight:800;color:var(--orange);text-shadow:0 0 22px var(--glow);text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:0;border-radius:14px;padding:12px;font:700 15px var(--body);background:var(--panel-2);color:var(--text)}
+.btn.go{background:var(--orange);color:var(--ink)}
+.btn.ok{background:var(--ok);color:var(--ink)}
+.ghost-card{background:var(--panel);border:1px dashed var(--line);border-radius:18px;padding:14px;color:var(--muted);text-align:center}
+
+/* Cooking */
+.dinner{display:flex;justify-content:space-between;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 16px}
+.dinner small{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.dinner b{font-family:var(--display);font-size:30px;color:var(--orange);font-variant-numeric:tabular-nums}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;position:relative}
+.steps::before{content:"";position:absolute;left:11px;top:10px;bottom:10px;width:2px;background:var(--line)}
+.step{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;position:relative}
+.dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--muted);background:var(--bg);margin-top:10px;display:grid;place-items:center;font-size:12px;color:var(--ink);font-weight:800;z-index:1;transition:all .35s}
+.card{border-radius:14px;padding:10px 12px;border:1px solid transparent;transition:all .45s cubic-bezier(.2,.8,.2,1)}
+.card .t{color:var(--orange-soft);font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
+.card .egg{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.2,.8,.2,1)}
+.card .egg>div{overflow:hidden}
+.count{font-family:var(--display);font-size:46px;font-weight:800;color:var(--orange);text-shadow:0 0 18px var(--glow);font-variant-numeric:tabular-nums;line-height:1.05;margin-top:6px}
+.bar{height:6px;border-radius:9px;background:var(--panel-2);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--orange);width:30%;transition:width 1s linear}
+.nextlbl{font-size:12px;color:var(--muted);margin-top:6px}
+.step.done .card{opacity:.45}
+.step.done .dot{background:var(--ok);border-color:var(--ok)}
+.step.current .dot{background:var(--orange);border-color:var(--orange);box-shadow:0 0 14px var(--glow)}
+.step.current .card{background:var(--panel);border-color:var(--orange);box-shadow:0 8px 30px -12px var(--glow);padding:14px}
+.step.current .egg{grid-template-rows:1fr}
+.modes{display:grid;grid-template-columns:1fr 1fr;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.modes button{border:0;border-radius:9px;padding:9px;font:700 14px var(--body);background:transparent;color:var(--muted)}
+.modes button.on{background:var(--orange);color:var(--ink)}
+.ringbox{position:relative;width:min(260px,100%);aspect-ratio:1;margin:4px auto 0;max-width:100%}
+.ringbox svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ringbox circle{fill:none;stroke-width:10}
+.ringbox .track{stroke:var(--panel-2)}
+.ringbox .prog{stroke:var(--orange);stroke-linecap:round;filter:drop-shadow(0 0 8px var(--glow));transition:stroke-dashoffset .25s linear}
+.ringbox .in{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:2px}
+.ringbox .in small{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.big{font-family:var(--display);font-size:58px;font-weight:800;color:var(--orange);text-shadow:0 0 22px var(--glow);font-variant-numeric:tabular-nums;line-height:1}
+.quick{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.quick button{background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font:700 14px var(--body)}
+.ringbox.ring-done .big{animation:flash .5s steps(2) infinite}
+@keyframes flash{50%{opacity:.2}}
+.btn{padding:15px;font-size:16px}
+.oneline{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0}
+.field.sm{width:44px;padding:9px 6px;text-align:center;font-size:16px}
+.field.time{width:auto;min-width:0;flex:1 1 90px;padding:9px 8px;font-size:16px}
+.oneline .muted{white-space:nowrap;font-size:14px}
+.dinner-at{font-family:var(--display);font-size:22px;color:var(--orange-soft)}
+.side{float:right;margin-left:10px}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.crow .carddone{width:72px;padding:9px 0;font-size:13px}
+.carddone{border:0;border-radius:6px;padding:5px 0;font:800 12px var(--body);letter-spacing:.04em;background:var(--ok);color:var(--ink);text-align:center}
+.spare{margin-top:6px;font-size:13px;color:var(--ok);font-weight:600}
+.badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border-radius:6px;background:var(--orange);color:var(--ink)}
+.badge.wait{background:var(--panel-2);color:var(--muted)}
+.note{max-width:900px;margin:18px auto 0;color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<section>
+  <p class="label">Plan screen · tap a button</p>
+  <div class="phone">
+    <div class="top"><h1 class="brand">DinnerSync</h1><button class="reset" type="button">Reset</button></div>
+    <div class="tiles">
+      <button class="tile on" id="t-dinner" type="button"><small>🍽 When's dinner</small><b>7:44pm</b></button>
+      <button class="tile" id="t-sw" type="button"><small>⏳ Timer</small><b id="sw-mini">0:00</b></button>
+    </div>
+    <div class="drawer open" id="d-dinner"><div><div class="panel">
+      <div class="oneline"><span class="muted">Ready in</span><input class="field sm" value="1" aria-label="hours"><span class="muted">hr</span><input class="field sm" value="30" aria-label="minutes"><span class="muted">min</span><span class="muted">or at</span><input class="field time" type="time" value="19:44" aria-label="time"></div>
+      <div class="dinner-at">Dinner at 7:44pm</div>
+    </div></div></div>
+    <div class="drawer" id="d-sw"><div><div class="panel">
+      <div class="ringbox" id="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="52"/><circle class="prog" id="prog" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+        <div class="in"><small id="ring-lbl">Remaining</small><span class="big" id="sw">0:00</span></div></div>
+      <div class="quick" id="quick"><button type="button" data-add="60">+1 min</button><button type="button" data-add="300">+5 min</button><button type="button" data-add="600">+10 min</button></div>
+      <div class="btns"><button class="btn go" id="sw-go" type="button">Start</button><button class="btn" id="sw-reset" type="button">Reset</button></div>
+    </div></div></div>
+    <div class="ghost-card" id="below">Add an item card below…</div>
+  </div>
+</section>
+
+<section>
+  <p class="label">Cooking screen · Done lives in the current card</p>
+  <div class="phone">
+    <div class="top"><h1 class="brand">DinnerSync</h1><button class="reset" type="button">Reset</button></div>
+    <div class="dinner"><small>Dinner in</small><b id="dinner">1:38:58</b></div>
+    <ol class="steps" id="steps"></ol>
+  </div>
+</section>
+</div>
+<p class="note">Example dinner only. Tap Done ✓ in the highlighted card. Finish a stage early and the spare time shows before the next one.</p>
+
+<script>
+// Tiles: one open at a time, tap again to close
+const tiles={dinner:[t('t-dinner'),t('d-dinner')],sw:[t('t-sw'),t('d-sw')]};
+function t(id){return document.getElementById(id)}
+for(const k in tiles){tiles[k][0].addEventListener('click',()=>{
+  const wasOpen=tiles[k][1].classList.contains('open');
+  for(const j in tiles){tiles[j][0].classList.remove('on');tiles[j][1].classList.remove('open')}
+  if(!wasOpen){tiles[k][0].classList.add('on');tiles[k][1].classList.add('open')}
+  t('below').hidden=t('d-sw').classList.contains('open');
+})}
+// Stopwatch + countdown
+let mode='sw',run=false,start=0,acc=0,cdTotal=0;
+const fmt=ms=>{const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(s%60).padStart(2,'0')};
+const C=326.7;
+function elapsed(){return acc+(run?Date.now()-start:0)}
+function paintSw(){
+  const e=elapsed();let shown,frac;
+  if(mode==='sw'){shown=e;frac=(e/60000)%1}
+  else{const left=Math.max(0,cdTotal*1000-e);shown=Math.ceil(left/1000)*1000;frac=cdTotal?left/(cdTotal*1000):0;
+    t('ring').classList.toggle('ring-done',cdTotal>0&&left===0&&acc>0);if(left===0&&run){run=false;acc=cdTotal*1000;t('sw-go').textContent='Start'}}
+  t('sw').textContent=fmt(shown);t('prog').style.strokeDashoffset=C*(1-frac);
+  t('sw-mini').textContent=fmt(shown);
+}
+function setMode(m){mode=m;run=false;acc=0;cdTotal=0;t('sw-go').textContent='Start';
+  
+  t('quick').hidden=m!=='cd';t('ring-lbl').textContent=m==='cd'?'Remaining':'Elapsed';t('ring').classList.remove('ring-done');paintSw()}
+setMode('cd');
+t('quick').addEventListener('click',e=>{const a=+e.target.dataset.add;if(a){cdTotal+=a;t('ring').classList.remove('ring-done');paintSw()}});
+t('sw-go').addEventListener('click',()=>{
+  if(run){acc+=Date.now()-start;run=false;t('sw-go').textContent='Start'}
+  else{if(mode==='cd'&&elapsed()>=cdTotal*1000)return;start=Date.now();run=true;t('sw-go').textContent='Pause'}});
+t('sw-reset').addEventListener('click',()=>{run=false;acc=0;cdTotal=0;t('sw-go').textContent='Start';t('ring').classList.remove('ring-done');paintSw()});
+// Ready in <-> at
+// Cooking demo
+// demo clock: seconds since 6:20pm
+const base=new Date(2026,9,16,18,20).getTime();
+const clock=sec=>new Date(base+sec*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}).replace(' ','').toLowerCase();
+const steps=[
+  [-600,'Preheat oven to 180°C'],
+  [0,'🔥 Boil potatoes on the hob'],
+  [600,'♨️ Roast potatoes into the oven'],
+  [2400,'⏸ Chicken out to rest'],
+  [3300,'Dinner is ready!'],
+];
+let cur=1, now=180, spare=0, dinner=3120;
+function render(){
+  t('steps').innerHTML=steps.map((s,i)=>{
+    const st=i<cur?'done':i===cur?'current':'upcoming';
+    const due=now>=s[0], nxt=steps[i+1];
+    let egg='';
+    if(i===cur){
+      if(!nxt) egg='<div class="crow"><div class="nextlbl">Enjoy 🍽</div><button class="carddone" type="button" data-done>Done ✓</button></div>';
+      else if(due) egg=`<div class="crow"><div class="count" data-c></div><button class="carddone" type="button" data-done>Done ✓</button></div><div class="bar"><i data-b></i></div><div class="nextlbl">until: ${nxt[1]}</div>`;
+      else egg=`<div class="crow"><div class="count" data-c></div><button class="carddone" type="button" data-done>Done ✓</button></div><div class="nextlbl">starts in</div>${spare?`<div class="spare">✓ Done early, ${spare} min spare before this</div>`:''}`;
+    }
+    const badge=i===cur?`<div class="side">${due?'<span class="badge">NOW</span>':'<span class="badge wait">NEXT</span>'}</div>`:'';
+    return `<li class="step ${st}"><span class="dot">${i<cur?'✓':''}</span><div class="card">${badge}<span class="t">${clock(s[0])}</span>${s[1]}
+      <div class="egg"><div>${egg}</div></div></div></li>`}).join('');
+  tick();
+}
+function tick(){
+  const s=steps[cur],nxt=steps[cur+1];const c=document.querySelector('[data-c]'),b=document.querySelector('[data-b]');
+  if(!c||!nxt)return;
+  const due=now>=s[0];
+  if(due!==(document.querySelector('.step.current .badge')?.textContent==='NOW')){spare=0;return render()}
+  const target=due?nxt[0]:s[0];c.textContent=fmt(Math.max(0,target-now)*1000);
+  if(b)b.style.width=Math.max(0,100-(now-s[0])/(nxt[0]-s[0])*100)+'%';
+}
+t('steps').addEventListener('click',e=>{
+  if(!e.target.closest('[data-done]'))return;
+  const s=steps[cur],nxt=steps[cur+1];
+  if(!nxt){cur=1;now=180;spare=0;return render()}
+  spare=now<nxt[0]?Math.round((nxt[0]-now)/60):0;
+  cur++;render();
+});
+render();
+setInterval(()=>{
+  dinner=Math.max(0,dinner-1);const h=Math.floor(dinner/3600),m=Math.floor(dinner%3600/60),s=dinner%60;
+  t('dinner').textContent=`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  now++;tick();
+},1000);
+setInterval(paintSw,250);
+</script>
