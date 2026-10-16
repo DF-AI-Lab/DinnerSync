@@ -160,6 +160,12 @@ export function cookingState(plan, now) {
   return { current, next, msToNext, msToDinner, preheatLeftMs, done: now >= readyAt };
 }
 
+// Steps whose time falls in (from, to] that should sound: not already ticked off.
+export function alarmSteps(plan, from, to, doneIndexes = []) {
+  const done = new Set(doneIndexes);
+  return plan.steps.filter((s, i) => s.at > from && s.at <= to && !done.has(i));
+}
+
 // Progress through the steps. doneIndexes are the steps the cook has ticked off.
 // The first step not ticked off is 'current'; everything after it is 'upcoming'.
 export function stepStatuses(plan, now, doneIndexes = []) {

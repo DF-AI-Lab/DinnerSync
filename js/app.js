@@ -1,4 +1,4 @@
-import { buildPlan, stepStatuses, currentCard, spareMinutes, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
+import { buildPlan, stepStatuses, currentCard, spareMinutes, alarmSteps, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
 import { createStore } from './store.js';
 import { createCountdown } from './timer.js';
 
@@ -492,7 +492,7 @@ function cookSteps(now = Date.now()) {
 function tick() {
   if (!cook) return;
   const now = Date.now();
-  const due = cook.plan.steps.filter(s => s.at > cook.lastChecked && s.at <= now);
+  const due = alarmSteps(cook.plan, cook.lastChecked, now, cook.done);
   cook.lastChecked = now;
   if (due.length) raiseAlarm(due.map(s => s.text).join(' · '));
   renderCook(now);
@@ -524,25 +524,31 @@ function markCurrentDone() {
 }
 
 // One step in the cooking list. The current step is a card with its countdown and Done.
+// A done step's ✓ circle is a button: tap it to undo that step.
 function cookStepItem(s, card, spare) {
   const attrs = { class: s.status, ...(s.status === 'current' ? { 'aria-current': 'step' } : {}) };
-  const dot = el('span', { class: 'dot', 'aria-hidden': 'true' }, s.status === 'done' ? '✓' : '');
+  const dot = s.status === 'done'
+    ? el('button', { class: 'dot', type: 'button', 'aria-label': `Undo: ${s.text}` }, '✓')
+    : el('span', { class: 'dot', 'aria-hidden': 'true' }, '');
   const text = [el('time', {}, formatClock(s.at)), ...stepNodes(s)];
   if (s.status !== 'current' || !card) return el('li', attrs, dot, el('div', { class: 'step-body' }, ...text));
 
   const parts = [el('div', { class: 'card-head' }, el('span', {}, ...text),
     el('span', { class: card.badge === 'NOW' ? 'step-badge' : 'step-badge wait' }, card.badge))];
+  const left = [];
   if (card.last) {
-    parts.push(el('div', { class: 'card-row' }, el('span', { class: 'card-sub' }, 'Enjoy 🍽'), doneButton()));
+    left.push(el('p', { class: 'card-sub' }, 'Enjoy 🍽'));
   } else {
-    parts.push(el('div', { class: 'card-row' }, el('span', { class: 'card-count' }), doneButton()));
+    parts.push(el('div', { class: 'card-row' }, el('span', { class: 'card-count' })));
     if (card.badge === 'NOW') {
-      parts.push(el('div', { class: 'card-bar' }, el('i')), el('p', { class: 'card-until' }, `until: ${card.until}`));
+      parts.push(el('div', { class: 'card-bar' }, el('i')));
+      left.push(el('p', { class: 'card-until' }, `until: ${card.until}`));
     } else {
-      parts.push(el('p', { class: 'card-sub' }, 'starts in'));
-      if (spare != null) parts.push(el('p', { class: 'card-spare' }, `✓ Done early, ${spare} min spare before this`));
+      left.push(el('p', { class: 'card-sub' }, 'starts in'));
+      if (spare != null) left.push(el('p', { class: 'card-spare' }, `✓ Done early, ${spare} min spare before this`));
     }
   }
+  parts.push(el('div', { class: 'card-foot' }, el('div', { class: 'card-text' }, ...left), doneButton()));
   return el('li', attrs, dot, el('div', { class: 'step-body' }, ...parts));
 }
 
@@ -599,7 +605,20 @@ function resetTonight() {
 function bindCookScreen() {
   // One listener on the list: the Done buttons are rebuilt with the list.
   $('cook-steps').addEventListener('click', e => {
-    if (e.target.closest('.card-done')) markCurrentDone();
+    if (e.target.closest('.card-done')) {
+      markCurrentDone();
+    } else if (e.target.closest('li.done .dot')) {
+      // Undo: the step goes back to being the current one.
+      const li = e.target.closest('li');
+      const index = [...$('cook-steps').children].indexOf(li);
+      if (!cook || index < 0) return;
+      cook.done = cook.done.filter(i => i !== index);
+      cook.spare = null;
+      cook.spareFor = null;
+      stopAlarm();
+      persistCooking();
+      renderCook(Date.now());
+    }
   });
   $('cook-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
   $('reset-no').addEventListener('click', () => { $('reset-confirm').hidden = true; });

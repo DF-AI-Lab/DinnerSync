@@ -112,6 +112,19 @@ try {
   assert.match(await steps.nth(1).getAttribute('class'), /current/);
   assert.match(await page.locator('#cook-steps li.current .card-spare').textContent(), /Done early, \d+ min spare before this/);
   assert.equal(await steps.nth(1).locator('time').textContent(), firstAt);
+  // Done sits in the bottom row of the card, beside the "Done early" line, below the countdown
+  const curCard = page.locator('#cook-steps li.current');
+  assert.equal(await curCard.locator('.card-foot .card-done').count(), 1);
+  assert.equal(await curCard.locator('.card-foot .card-spare').count(), 1);
+  const doneBox = await curCard.locator('.card-done').boundingBox();
+  const countBox = await curCard.locator('.card-count').boundingBox();
+  assert.ok(doneBox.y > countBox.y + countBox.height - 1, 'Done is below the countdown');
+  // Tap a ticked circle to undo that step: it becomes current again
+  await steps.nth(0).locator('.dot').click();
+  assert.match(await steps.nth(0).getAttribute('class'), /current/);
+  assert.doesNotMatch(await steps.nth(1).getAttribute('class'), /done|current/);
+  await page.locator('#cook-steps li.current .card-done').click();
+  assert.match(await steps.nth(0).getAttribute('class'), /done/);
   await page.waitForSelector('#cook-reset');
   // Reset asks first; "No" keeps cooking
   await page.click('#cook-reset');
