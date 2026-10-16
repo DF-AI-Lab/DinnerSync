@@ -26,6 +26,7 @@ const state = {
 let cook = null;      // {plan, done, lastChecked, timer, spare, spareFor} while cooking; done = ticked step indexes
 let cardKey = null;   // what the cooking list was last built from (see renderCookSteps)
 let alarmTimer = null;
+let notifyTimer = null; // repeats the alarm notification (and its sound) until Done
 let audioCtx = null;
 let wakeLock = null;
 let openDrawer = null; // 'dinner' | 'timer' | null
@@ -721,6 +722,11 @@ function beepOnce() {
   }
 }
 
+// Done on the notification (sw.js posts this) stops the alarm, as if Done was tapped here.
+navigator.serviceWorker?.addEventListener('message', e => {
+  if (e.data?.type === 'alarm-done' && !$('alarm-banner').hidden) $('alarm-done').click();
+});
+
 function requestNotifications() {
   try {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -735,13 +741,23 @@ function requestNotifications() {
 function notify(body) {
   try {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const options = { body, tag: 'dinnersync-alarm' };
+    const options = {
+      body,
+      tag: 'dinnersync-alarm',
+      renotify: true,
+      requireInteraction: true,
+      vibrate: [400, 200, 400],
+      icon: 'icons/icon-192.png',
+      actions: [{ action: 'done', title: 'Done ✓' }],
+    };
+    // The page Notification constructor throws if given actions, so the fallback leaves them out.
+    const { actions, ...pageOptions } = options;
     if (navigator.serviceWorker?.ready) {
       navigator.serviceWorker.ready
         .then(reg => reg.showNotification('DinnerSync', options))
-        .catch(() => new Notification('DinnerSync', options));
+        .catch(() => new Notification('DinnerSync', pageOptions));
     } else {
-      new Notification('DinnerSync', options);
+      new Notification('DinnerSync', pageOptions);
     }
   } catch {
     // notifications blocked or unsupported
@@ -764,6 +780,8 @@ function raiseAlarm(text, kind = 'cook') {
   unlockAudio();
   playRing();
   notify(text);
+  clearInterval(notifyTimer);
+  notifyTimer = setInterval(() => notify(text), 10_000); // repeats until Done
 }
 
 // Loops the phone-style ring through the keep-alive element until Done. If the browser blocks it, fall back to the beeps.
@@ -789,6 +807,16 @@ function playRing() {
 function stopAlarm() {
   clearInterval(alarmTimer);
   alarmTimer = null;
+  clearInterval(notifyTimer);
+  notifyTimer = null;
+  try {
+    navigator.serviceWorker?.ready
+      .then(reg => reg.getNotifications({ tag: 'dinnersync-alarm' }))
+      .then(ns => ns.forEach(n => n.close()))
+      .catch(() => {});
+  } catch {
+    // no service worker support
+  }
   stopRing();
   $('alarm-banner').hidden = true;
 }
