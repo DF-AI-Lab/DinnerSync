@@ -1,0 +1,192 @@
+<title>DinnerSync Mockup 3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap">
+<style>
+/* Layout: three phone cards side by side (stack on phones), the app's own dark-kitchen palette */
+:root{
+  --bg:#121012; --panel:#1c191c; --panel-2:#26222a; --field:#0e0c0e; --line:#3a343b;
+  --text:#f3ede6; --muted:#a39a93; --orange:#ff7a2f; --orange-soft:#ffb07a; --glow:rgba(255,122,47,.45);
+  --ok:#7fd6a0; --ink:#1a0f08; --key:#2e2a30;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
+.intro{color:var(--muted);margin:0 0 20px;max-width:60ch}
+.wrap{max-width:1000px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:24px;align-items:start}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-soft);font-weight:700;margin:0 0 4px 4px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 10px 4px;min-height:2.6em}
+.phone{background:radial-gradient(ellipse at 50% -10%,rgba(255,122,47,.16),transparent 60%),var(--bg);border:1px solid var(--line);border-radius:28px;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:560px;position:relative;overflow:hidden}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.row{display:flex;gap:8px;align-items:center;min-width:0}
+input.f{flex:1;min-width:0;background:var(--field);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:16px;padding:12px}
+input.f:focus{outline:2px solid var(--orange);outline-offset:1px}
+.btn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px 12px;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--body)}
+.btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.btn.go{background:var(--orange);color:var(--ink);border-color:var(--orange)}
+.tick{width:48px;height:46px;flex:none;border-radius:12px;background:var(--ok);color:var(--ink);border:0;font-size:22px;font-weight:800;cursor:pointer}
+.tick[hidden]{display:none}
+.toast{background:rgba(127,214,160,.12);border:1px solid var(--ok);color:var(--ok);border-radius:12px;padding:8px 12px;font-weight:600;font-size:14px}
+.menu{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column}
+.menu button{background:none;border:0;color:var(--text);text-align:left;padding:10px 12px;font-size:15px;cursor:pointer;border-bottom:1px solid var(--line)}
+.menu button:last-child{border-bottom:0}
+.kb{position:absolute;left:0;right:0;bottom:0;background:#1a181b;border-top:1px solid var(--line);padding:10px 8px 14px;display:grid;grid-template-columns:repeat(10,1fr);gap:5px;transform:translateY(100%);transition:transform .2s ease}
+.kb.up{transform:none}
+.kb span{background:var(--key);border-radius:6px;height:34px;display:grid;place-items:center;color:var(--muted);font-size:13px}
+.kb .note{grid-column:1/-1;background:none;height:auto;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+/* number pickers */
+.big{font-family:var(--display);font-weight:800;font-size:2rem;font-variant-numeric:tabular-nums;text-align:center;color:var(--text)}
+.step{display:grid;grid-template-columns:56px 1fr 56px;gap:8px;align-items:center}
+.step .btn{height:52px;font-size:22px;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer;font-variant-numeric:tabular-nums}
+.chip.on{background:var(--orange);color:var(--ink);border-color:var(--orange)}
+.unit{color:var(--muted);font-size:14px;font-weight:600}
+.pick{font-size:12px;color:var(--muted);text-align:center}
+.tag{display:inline-block;background:rgba(255,122,47,.14);color:var(--orange-soft);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;align-self:flex-start}
+@media (prefers-reduced-motion:reduce){.kb{transition:none}}
+</style>
+
+<div class="wrap">
+  <h1>DinnerSync — mockup 3</h1>
+  <p class="intro">Tap around: these work. Idea 1 is the keyboard fix. Ideas 2A and 2B are two ways to set time and temp with no keyboard. Pick 2A or 2B (or a mix).</p>
+
+  <div class="grid">
+    <!-- Idea 1 -->
+    <section>
+      <p class="label">Idea 1 · Keyboard only when you tap</p>
+      <p class="sub">Pick a saved item: no keyboard. Tap the name box: keyboard + ✓. Tap ✓: keyboard goes away.</p>
+      <div class="phone" id="p1">
+        <div class="card">
+          <span class="cap">Add an item</span>
+          <div class="row">
+            <input class="f" id="name1" placeholder="Chicken" autocomplete="off">
+            <button class="tick" id="tick1" type="button" aria-label="Done typing" hidden>✓</button>
+            <button class="btn" id="saved1" type="button">Saved ▾</button>
+          </div>
+          <div class="menu" id="menu1" hidden>
+            <button type="button">Roast chicken</button>
+            <button type="button">Roast potatoes</button>
+            <button type="button">Yorkshire puddings</button>
+          </div>
+          <div class="toast" id="toast1" hidden></div>
+          <button class="btn go" type="button" id="add1">Add</button>
+        </div>
+        <div class="kb" id="kb1" aria-hidden="true">
+          <span class="note">phone keyboard</span>
+          <span>q</span><span>w</span><span>e</span><span>r</span><span>t</span><span>y</span><span>u</span><span>i</span><span>o</span><span>p</span>
+          <span>a</span><span>s</span><span>d</span><span>f</span><span>g</span><span>h</span><span>j</span><span>k</span><span>l</span><span>⌫</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Idea 2A -->
+    <section>
+      <p class="label">Idea 2A · + and − buttons</p>
+      <p class="sub">Tap − / + to change. Time goes up 5 min a tap. Temp goes up 10° a tap.</p>
+      <div class="phone">
+        <div class="card">
+          <span class="cap">Time</span>
+          <div class="step">
+            <button class="btn" type="button" data-t="-5" aria-label="5 minutes less">−</button>
+            <div class="big" id="t2a">45 min</div>
+            <button class="btn" type="button" data-t="5" aria-label="5 minutes more">+</button>
+          </div>
+          <span class="cap">Temp</span>
+          <div class="step">
+            <button class="btn" type="button" data-c="-10" aria-label="10 degrees less">−</button>
+            <div class="big" id="c2a">200°C</div>
+            <button class="btn" type="button" data-c="10" aria-label="10 degrees more">+</button>
+          </div>
+          <p class="pick">Hold a button to go faster</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Idea 2B -->
+    <section>
+      <p class="label">Idea 2B · Quick-pick chips</p>
+      <p class="sub">One tap on a common number. Small − / + to fine-tune.</p>
+      <div class="phone">
+        <div class="card">
+          <span class="cap">Time</span>
+          <div class="chips" id="tchips"></div>
+          <div class="row" style="justify-content:space-between">
+            <button class="btn" type="button" data-bt="-5">− 5</button>
+            <div class="big" id="t2b">45 min</div>
+            <button class="btn" type="button" data-bt="5">+ 5</button>
+          </div>
+          <span class="cap">Temp</span>
+          <div class="chips" id="cchips"></div>
+          <div class="row" style="justify-content:space-between">
+            <button class="btn" type="button" data-bc="-10">− 10</button>
+            <div class="big" id="c2b">200°C</div>
+            <button class="btn" type="button" data-bc="10">+ 10</button>
+          </div>
+          <span class="tag">My pick for speed</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+// ---- Idea 1: keyboard (shown as a slide-up panel) only while the name box is tapped ----
+const kb = $('kb1'), name1 = $('name1'), tick = $('tick1');
+const kbUp = up => { kb.classList.toggle('up', up); tick.hidden = !up; };
+name1.addEventListener('focus', () => kbUp(true));
+name1.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== name1) kbUp(false); }, 0));
+tick.addEventListener('pointerdown', e => e.preventDefault()); // keep focus until the click lands
+tick.addEventListener('click', () => { name1.blur(); kbUp(false); });
+name1.addEventListener('keydown', e => { if (e.key === 'Enter') { name1.blur(); kbUp(false); } });
+$('saved1').addEventListener('click', () => { $('menu1').hidden = !$('menu1').hidden; });
+$('menu1').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  name1.value = e.target.textContent; $('menu1').hidden = true;
+  name1.blur(); kbUp(false); // picking from the list never opens the keyboard
+});
+$('add1').addEventListener('click', () => {
+  const t = $('toast1');
+  t.textContent = name1.value ? `✓ ${name1.value} added. No keyboard popped up.` : 'Give it a name first';
+  t.hidden = false; name1.value = ''; name1.blur(); kbUp(false);
+});
+
+// ---- shared number formatting ----
+const fmtT = m => m >= 60 ? `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60}` : ''}${m % 60 ? ' min' : ''}` : `${m} min`;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// ---- Idea 2A: steppers, hold to repeat ----
+let t2a = 45, c2a = 200;
+const draw2a = () => { $('t2a').textContent = fmtT(t2a); $('c2a').textContent = `${c2a}°C`; };
+document.querySelectorAll('[data-t],[data-c]').forEach(b => {
+  let timer;
+  const bump = () => {
+    if (b.dataset.t) t2a = clamp(t2a + +b.dataset.t, 5, 600);
+    else c2a = clamp(c2a + +b.dataset.c, 50, 260);
+    draw2a();
+  };
+  b.addEventListener('pointerdown', () => { bump(); timer = setInterval(bump, 180); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearInterval(timer)));
+});
+
+// ---- Idea 2B: chips + fine-tune ----
+let t2b = 45, c2b = 200;
+const T = [10, 15, 20, 30, 45, 60, 90, 120], C = [160, 180, 190, 200, 220];
+function draw2b() {
+  $('t2b').textContent = fmtT(t2b); $('c2b').textContent = `${c2b}°C`;
+  $('tchips').replaceChildren(...T.map(m => chip(fmtT(m), m === t2b, () => { t2b = m; draw2b(); })));
+  $('cchips').replaceChildren(...C.map(c => chip(`${c}°`, c === c2b, () => { c2b = c; draw2b(); })));
+}
+function chip(text, on, fn) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip' + (on ? ' on' : ''); b.textContent = text; b.onclick = fn; return b;
+}
+document.querySelectorAll('[data-bt]').forEach(b => b.onclick = () => { t2b = clamp(t2b + +b.dataset.bt, 5, 600); draw2b(); });
+document.querySelectorAll('[data-bc]').forEach(b => b.onclick = () => { c2b = clamp(c2b + +b.dataset.bc, 50, 260); draw2b(); });
+draw2a(); draw2b();
+</script>
