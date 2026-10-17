@@ -120,3 +120,60 @@ test('slow cook setting defaults to Low in the step text', () => {
   const plan = buildPlan({ items: [{ name: 'Stew', stages: [{ method: 'slow', minutes: 240 }] }], readyAt: at(23, 0), now, preheatMinutes: 15 });
   assert.equal(plan.steps.find(s => s.name === 'Stew').text, 'Stew into the slow cooker — Low');
 });
+
+// Mince pie: fry mince ‖ (boil potatoes → mash), then build, then oven. group = runs one after another; track = side by side in a group.
+const pie = {
+  name: 'Mince pie',
+  stages: [
+    { method: 'hob', minutes: 25, label: 'Fry mince', group: 0, track: 0 },
+    { method: 'hob', minutes: 15, label: 'Boil potatoes', group: 0, track: 1 },
+    { method: 'prep', minutes: 5, label: 'Mash', group: 0, track: 1 },
+    { method: 'prep', minutes: 5, label: 'Build pie', group: 1, track: 0 },
+    { method: 'oven', minutes: 30, temp: 200, group: 2, track: 0 },
+  ],
+};
+
+test('same-time tracks finish together, then the next group starts', () => {
+  const plan = buildPlan({ items: [pie], readyAt: at(18, 0), now, preheatMinutes: 15 });
+  const when = label => plan.steps.find(s => s.label === label)?.at;
+  assert.equal(when('Fry mince'), at(17, 0));
+  assert.equal(when('Boil potatoes'), at(17, 5));
+  assert.equal(when('Mash'), at(17, 20));
+  assert.equal(when('Build pie'), at(17, 25));
+  assert.equal(when('Mince pie'), at(17, 30)); // the unlabelled oven stage uses the item name
+  assert.equal(plan.items[0].cookMinutes, 60); // 25 (longest track) + 5 + 30
+  assert.equal(plan.ovenTemp, 200);
+  assert.equal(plan.steps[0].type, 'preheat');
+  assert.equal(plan.steps[0].at, at(17, 15));
+  // steps come out in time order
+  const ats = plan.steps.map(s => s.at);
+  assert.deepEqual(ats, [...ats].sort((a, b) => a - b));
+});
+
+test('the longest track sets the group time, whichever track it is', () => {
+  const item = { name: 'X', stages: [
+    { method: 'hob', minutes: 10, label: 'Short', group: 0, track: 0 },
+    { method: 'hob', minutes: 40, label: 'Long', group: 0, track: 1 },
+  ] };
+  const plan = buildPlan({ items: [item], readyAt: at(18, 0), now, preheatMinutes: 15 });
+  assert.equal(plan.steps.find(s => s.label === 'Long').at, at(17, 20));
+  assert.equal(plan.steps.find(s => s.label === 'Short').at, at(17, 50));
+  assert.equal(plan.items[0].cookMinutes, 40);
+});
+
+test('stages with no group or track still run one after another', () => {
+  const item = { name: 'Potatoes', stages: [
+    { method: 'hob', minutes: 10, label: 'Boil' },
+    { method: 'oven', minutes: 45, temp: 200, label: 'Roast' },
+  ] };
+  const plan = buildPlan({ items: [item], readyAt: at(18, 0), now, preheatMinutes: 15 });
+  assert.equal(plan.steps.find(s => s.label === 'Boil').at, at(17, 5));
+  assert.equal(plan.steps.find(s => s.label === 'Roast').at, at(17, 15));
+});
+
+test('prep stage: hands-on time, no oven, step text is just the label', () => {
+  const plan = buildPlan({ items: [{ name: 'Salad', stages: [{ method: 'prep', minutes: 10, label: 'Chop salad' }] }], readyAt: at(18, 0), now, preheatMinutes: 15 });
+  assert.equal(plan.ovenTemp, null);
+  assert.equal(plan.steps.find(s => s.label === 'Chop salad').text, 'Chop salad');
+  assert.equal(plan.steps.some(s => s.type === 'preheat'), false);
+});
