@@ -24,12 +24,15 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.1.8</span>
+              <span id="app-version" class="app-version">v1.1.9</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
         </div>
-        <button id="cook-reset" class="btn ghost reset-top" type="button">Reset</button>
+        <div class="top-side">
+          <button id="cook-reset" class="btn ghost reset-top" type="button">Reset</button>
+          <span id="now-clock" class="now-clock" aria-label="Time now"></span>
+        </div>
       </div>
     </header>
 
@@ -67,6 +70,7 @@
               <input id="ready-at" class="ready-input ready-time" type="time" aria-label="Dinner time">
             </div>
             <p id="ready-clock" class="ready-clock"></p>
+            <button id="cook-now" class="btn block" type="button" disabled>🔥 Cook now</button>
           </div>
         </div>
       </div>

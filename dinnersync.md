@@ -59,6 +59,7 @@
 | 18 | Keep-alive loop is a faint 30 Hz hum (~-60 dBFS), not perfect silence | Chrome may still pause a tab whose sound is pure silence | 2026-10-17 |
 | 19 | Alarm = the app's own beep-beep-beep looped until Done; no notifications, no phone ring (replaces 16, 17) | Ring felt like ringing himself; Android spaced notification sounds ~8 s apart | 2026-10-17 |
 | 20 | Finish v1 (web) first, then build the real Android app | Locked-phone alarms aren't reliable in a web app | 2026-10-17 |
+| 21 | Cook now button (dinner = earliest ready from now) in the dinner panel; current time under Reset on every screen | Darren | 2026-10-17 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
