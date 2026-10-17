@@ -37,12 +37,10 @@ h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7r
 /* "same time" group: two lanes side by side with a join bar */
 .together{border:1px dashed var(--orange);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:8px;background:rgba(255,122,47,.05)}
 .together-head{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--orange-soft)}
-.lanes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.lane{display:flex;flex-direction:column;gap:6px;min-width:0}
-.lane .stage{padding:8px}
-.lane .step{grid-template-columns:34px 1fr 34px}
-.lane .step button{height:36px;font-size:18px}
-.lane .val{font-size:1rem}
+.lanes{display:flex;flex-direction:column;gap:8px}
+.lane{display:flex;flex-direction:column;gap:6px;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
+.lane-head{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.alongside{color:var(--orange-soft);font-size:12px;font-weight:800;text-align:center;letter-spacing:.06em;text-transform:uppercase}
 .then{color:var(--muted);font-size:12px;font-weight:700;text-align:center;letter-spacing:.06em}
 .finish{font-size:12px;color:var(--ok);text-align:center;font-weight:600}
 .wait{font-size:12px;color:var(--muted);text-align:center}
@@ -71,7 +69,7 @@ h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7r
   <div class="grid">
     <section>
       <p class="label">Add an item · with "Same time"</p>
-      <p class="sub">The dashed box holds the stages that cook side by side.</p>
+      <p class="sub">The dashed box holds the things on the go at the same time, one card under the other.</p>
       <div class="phone">
         <div class="card" id="form">
           <span class="cap">Add an item</span>
@@ -144,14 +142,16 @@ function draw() {
     box.innerHTML = '<div class="together-head">‖ Same time — finish together</div><div class="lanes"></div>';
     const lanes = box.querySelector('.lanes');
     const longest = groupMin(g);
-    for (const lane of g.lanes) {
+    g.lanes.forEach((lane, li) => {
+      if (li) lanes.insertAdjacentHTML('beforeend', '<div class="alongside">‖ at the same time</div>');
       const col = document.createElement('div');
       col.className = 'lane';
+      col.insertAdjacentHTML('beforeend', `<div class="lane-head">Track ${li + 1}</div>`);
       lane.forEach((st, i) => { if (i) col.insertAdjacentHTML('beforeend', '<div class="then">then</div>'); col.append(stageEl(st)); });
       const spare = longest - laneMin(lane);
       col.insertAdjacentHTML('beforeend', spare ? `<div class="wait">starts ${spare} min later</div>` : '<div class="finish">longest — sets the time</div>');
       lanes.append(col);
-    }
+    });
     host.append(box);
   });
   drawTimeline();
