@@ -244,25 +244,22 @@ try {
   await tp.clock.runFor(62_000);
   await tp.waitForSelector('#alarm-banner:not([hidden])');
   assert.match(await tp.textContent('#alarm-text'), /Timer/i);
-  // No ring tone: the hum keeps playing (keeps the app awake), the notification is the sound
-  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'silent');
+  // The app plays its own alarm beep through the already-playing element (works locked); no notification at all
+  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'alarm');
   assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), false);
-  // The notification repeats every second until Done
   await tp.clock.runFor(10_000);
-  const notes = await tp.evaluate(() => window.__notes);
-  assert.ok(notes.length >= 10, `notification repeats every second (got ${notes.length})`);
-  assert.equal(notes.at(-1).renotify, true);
-  assert.equal(notes.at(-1).requireInteraction, true);
-  assert.ok(notes.at(-1).actions?.some(a => a.action === 'done'), 'notification has a Done button');
+  assert.equal(await tp.evaluate(() => window.__notes.length), 0, 'no notifications');
+  // If the phone pauses the alarm, it starts again until Done
+  await tp.locator('#keep-alive').evaluate(a => a.pause());
+  await tp.clock.runFor(1_000);
+  await tp.waitForFunction(() => !document.getElementById('keep-alive').paused);
+  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'alarm');
   // Done stops the alarm; nothing else running, so the hum stops too
   await tp.click('#alarm-done');
   await tp.waitForSelector('#alarm-banner', { state: 'hidden' });
   assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'silent');
   assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), true);
   assert.equal(await tp.isVisible('#cook-screen'), false);
-  const after = await tp.evaluate(() => window.__notes.length);
-  await tp.clock.runFor(30_000);
-  assert.equal(await tp.evaluate(() => window.__notes.length), after, 'no more notifications after Done');
   await tp.close();
   assert.deepEqual(errors, []);
   console.log('app.check: OK');

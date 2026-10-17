@@ -39,8 +39,10 @@
 | 6 | Oven set to main item's temp (longest cook = main). Others' times scaled: new time = time × their temp ÷ oven temp | Darren: "if it's cooked it's cooked" | 2026-10-16 |
 | 7 | Preheat 15 min (editable) counted in the time check | Oven must be hot before first item | 2026-10-16 |
 | 8 | Keep-alive loop is a faint 30 Hz hum (~-60 dBFS), not perfect silence | Chrome may still pause a tab whose sound is pure silence once the phone locks | 2026-10-17 |
+| 9 | Alarm = the app's own beep-beep-beep looped until Done; no notification, no phone ring | Darren: ring felt like ringing himself; Android spaces notification sounds ~8 s apart | 2026-10-17 |
 | 9 | Alarm = the notification sound repeating every 1 s; no ring tone | Darren: a ring tone felt like ringing himself; 10 s gaps felt like it had stopped | 2026-10-17 |
 | 8 | Not enough time → say so and show earliest ready time | Darren's 'enough time' need | 2026-10-16 |
+| 9 | Alarm = the app's own beep-beep-beep looped until Done; no notification, no phone ring | Darren: ring felt like ringing himself; Android spaces notification sounds ~8 s apart | 2026-10-17 |
 | 9 | Alarm = the notification sound repeating every 1 s; no ring tone | Darren: a ring tone felt like ringing himself; 10 s gaps felt like it had stopped | 2026-10-17 |
 | 9 | Save on the phone (local storage, no account): saved items + last dinner | Darren wants a local db | 2026-10-16 |
 | 10 | Cooking screen shows live countdowns: preheat, main meal (to dinner), next item | Darren | 2026-10-16 |
