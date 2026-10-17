@@ -24,7 +24,7 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.1.9</span>
+              <span id="app-version" class="app-version">v1.1.10</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
@@ -103,12 +103,8 @@
 
       <div id="plan-rest">
       <div id="add-card" class="card">
-        <h2>Add an item</h2>
-        <div class="name-row">
-          <label class="field name-field">
-            <span>Name</span>
-            <input id="item-name" type="text" autocomplete="off" placeholder="Chicken">
-          </label>
+        <div class="head-row">
+          <h2>Add an item</h2>
           <div id="saved-menu" class="saved-menu">
             <button id="saved-toggle" class="btn ghost saved-toggle" type="button" aria-expanded="false" aria-controls="saved-panel">Saved ▾</button>
             <div id="saved-panel" class="saved-panel" hidden>
@@ -117,30 +113,55 @@
             </div>
           </div>
         </div>
+        <div class="name-row">
+          <div class="field name-field">
+            <span>Name</span>
+            <div class="input-row">
+              <input id="item-name" type="text" autocomplete="off" aria-label="Item name" placeholder="Chicken">
+              <button id="name-done" class="tick off" type="button" aria-label="Done typing">✓</button>
+            </div>
+          </div>
+        </div>
         <div id="stage-rows" class="stage-list">
-          <div class="stage-row" data-method="oven">
+          <div class="stage-row" data-method="oven" data-minutes="30" data-temp="200" data-setting="low">
             <div class="stage-head">
               <span class="label stage-num">Stage 1</span>
               <button class="icon-btn stage-remove" type="button" aria-label="Remove stage" hidden>✕</button>
             </div>
-            <input class="stage-label" type="text" autocomplete="off" aria-label="Stage name" placeholder="e.g. Boil potatoes">
+            <div class="input-row">
+              <input class="stage-label" type="text" autocomplete="off" aria-label="Stage name" placeholder="e.g. Boil potatoes">
+              <button class="tick stage-tick off" type="button" aria-label="Done typing">✓</button>
+            </div>
             <div class="seg" role="group" aria-label="Method">
               <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
               <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
+              <button class="seg-btn" type="button" data-method="slow" aria-pressed="false">🍲 Slow cook</button>
               <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
             </div>
             <div class="stage-fields">
               <div class="field">
                 <span>Time</span>
-                <div class="dur">
-                  <input id="item-hours" class="stage-hours" type="number" inputmode="numeric" min="0" aria-label="Hours"><em>hr</em>
-                  <input id="item-minutes" class="stage-minutes" type="number" inputmode="numeric" min="0" aria-label="Minutes"><em>min</em>
+                <div class="stepper">
+                  <button class="btn step-btn time-down" type="button" aria-label="Less time">−</button>
+                  <span class="stage-time">30 min</span>
+                  <button class="btn step-btn time-up" type="button" aria-label="More time">+</button>
                 </div>
               </div>
-              <label class="field temp-field">
-                <span>Temp (°C)</span>
-                <input id="item-temp" class="stage-temp" type="number" inputmode="numeric" min="50" max="300">
-              </label>
+              <div class="field temp-field">
+                <span>Temp</span>
+                <div class="stepper">
+                  <button class="btn step-btn temp-down" type="button" aria-label="Less heat">−</button>
+                  <span class="stage-temp">200°C</span>
+                  <button class="btn step-btn temp-up" type="button" aria-label="More heat">+</button>
+                </div>
+              </div>
+              <div class="field slow-field" hidden>
+                <span>Setting</span>
+                <div class="seg" role="group" aria-label="Slow cooker setting">
+                  <button class="seg-btn slow-btn" type="button" data-setting="low" aria-pressed="true">Low</button>
+                  <button class="seg-btn slow-btn" type="button" data-setting="high" aria-pressed="false">High</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -150,29 +171,45 @@
       </div>
 
       <template id="stage-template">
-        <div class="stage-row" data-method="oven">
+        <div class="stage-row" data-method="oven" data-minutes="30" data-temp="200" data-setting="low">
           <div class="stage-head">
             <span class="label stage-num"></span>
             <button class="icon-btn stage-remove" type="button" aria-label="Remove stage">✕</button>
           </div>
-          <input class="stage-label" type="text" autocomplete="off" aria-label="Stage name" placeholder="e.g. Boil potatoes">
+          <div class="input-row">
+            <input class="stage-label" type="text" autocomplete="off" aria-label="Stage name" placeholder="e.g. Boil potatoes">
+            <button class="tick stage-tick off" type="button" aria-label="Done typing">✓</button>
+          </div>
           <div class="seg" role="group" aria-label="Method">
             <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
             <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
+            <button class="seg-btn" type="button" data-method="slow" aria-pressed="false">🍲 Slow cook</button>
             <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
           </div>
           <div class="stage-fields">
             <div class="field">
               <span>Time</span>
-              <div class="dur">
-                <input class="stage-hours" type="number" inputmode="numeric" min="0" aria-label="Hours"><em>hr</em>
-                <input class="stage-minutes" type="number" inputmode="numeric" min="0" aria-label="Minutes"><em>min</em>
+              <div class="stepper">
+                <button class="btn step-btn time-down" type="button" aria-label="Less time">−</button>
+                <span class="stage-time">30 min</span>
+                <button class="btn step-btn time-up" type="button" aria-label="More time">+</button>
               </div>
             </div>
-            <label class="field temp-field">
-              <span>Temp (°C)</span>
-              <input class="stage-temp" type="number" inputmode="numeric" min="50" max="300">
-            </label>
+            <div class="field temp-field">
+              <span>Temp</span>
+              <div class="stepper">
+                <button class="btn step-btn temp-down" type="button" aria-label="Less heat">−</button>
+                <span class="stage-temp">200°C</span>
+                <button class="btn step-btn temp-up" type="button" aria-label="More heat">+</button>
+              </div>
+            </div>
+            <div class="field slow-field" hidden>
+              <span>Setting</span>
+              <div class="seg" role="group" aria-label="Slow cooker setting">
+                <button class="seg-btn slow-btn" type="button" data-setting="low" aria-pressed="true">Low</button>
+                <button class="seg-btn slow-btn" type="button" data-setting="high" aria-pressed="false">High</button>
+              </div>
+            </div>
           </div>
         </div>
       </template>

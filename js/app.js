@@ -5,7 +5,8 @@ import { keepAliveWav, alarmWav, ALARM } from './ring.js';
 
 const MIN = 60_000;
 const DEFAULT_READY_MIN = 90;
-const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', rest: '⏸ Rest' };
+const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow cook', rest: '⏸ Rest' };
+const STAGE_DEFAULTS = { minutes: 30, temp: 200, setting: 'low' };
 const RESUME_GRACE_MS = 2 * 60 * MIN;
 const RING_LEN = 2 * Math.PI * 52; // circumference of the timer ring (r=52)
 const DRAWERS = ['dinner', 'timer'];
@@ -104,6 +105,7 @@ function cleanStage(st) {
     if (!(temp > 0)) return null;
     out.temp = temp;
   }
+  if (st.method === 'slow') out.setting = st.setting === 'high' ? 'high' : 'low';
   if (label) out.label = label;
   return out;
 }
@@ -128,6 +130,7 @@ function describeStages(stages, ovenTemp) {
       return `${prefix}Oven ${formatDuration(st.minutes)} ${st.temp}°C${scaledText}`;
     }
     if (st.method === 'hob') return `${prefix}Hob ${formatDuration(st.minutes)}`;
+    if (st.method === 'slow') return `${prefix}Slow cook ${formatDuration(st.minutes)} (${st.setting === 'high' ? 'High' : 'Low'})`;
     return `${prefix}Rest ${formatDuration(st.minutes)}`;
   }).join(' → ');
 }
@@ -270,6 +273,7 @@ function renderSavedItems() {
     pick.addEventListener('click', () => {
       fillDraft(item);
       setSavedOpen(false);
+      document.activeElement?.blur();
     });
     const del = el('button', { class: 'saved-del', type: 'button', 'aria-label': `Delete ${item.name}` }, '×');
     del.addEventListener('click', () => {
@@ -342,7 +346,7 @@ function bindPlanScreen() {
     addToTonight(item);
     resetDraft();
     renderSavedItems();
-    $('item-name').focus();
+    document.activeElement?.blur();
   });
 
   $('add-stage').addEventListener('click', () => {
@@ -382,17 +386,35 @@ function readStageRows() {
   return stageRows().map(row => ({
     method: row.dataset.method,
     label: row.querySelector('.stage-label').value,
-    minutes: toMinutes(row.querySelector('.stage-hours').value, row.querySelector('.stage-minutes').value),
-    temp: row.querySelector('.stage-temp').value,
+    minutes: Number(row.dataset.minutes),
+    temp: row.dataset.temp,
+    setting: row.dataset.setting,
   }));
 }
 
-function setMethod(row, method) {
-  row.dataset.method = method;
-  for (const btn of row.querySelectorAll('.seg-btn')) {
+// Show a stage row from its data attributes: the method, the setting, the time and the temp.
+function paintStage(row) {
+  const method = row.dataset.method;
+  for (const btn of row.querySelectorAll('.seg-btn[data-method]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.method === method));
   }
+  for (const btn of row.querySelectorAll('.slow-btn')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.setting === row.dataset.setting));
+  }
   row.querySelector('.temp-field').hidden = method !== 'oven';
+  row.querySelector('.slow-field').hidden = method !== 'slow';
+  row.querySelector('.stage-time').textContent = formatDuration(Number(row.dataset.minutes));
+  row.querySelector('.stage-temp').textContent = `${row.dataset.temp}°C`;
+}
+
+// Switching to slow cook starts at 4 hr; switching away from a long slow cook goes back to 30 min.
+function setMethod(row, method) {
+  const was = row.dataset.method;
+  const minutes = Number(row.dataset.minutes);
+  if (method === 'slow' && was !== 'slow' && minutes < 120) row.dataset.minutes = '240';
+  if (was === 'slow' && method !== 'slow' && minutes > 180) row.dataset.minutes = String(STAGE_DEFAULTS.minutes);
+  row.dataset.method = method;
+  paintStage(row);
 }
 
 function numberRows() {
@@ -402,10 +424,70 @@ function numberRows() {
   });
 }
 
+// One − / + tap: time moves 5 min (30 min for slow cook), from 5 to 720 min.
+function nudgeTime(row, dir) {
+  const step = row.dataset.method === 'slow' ? 30 : 5;
+  const minutes = Number(row.dataset.minutes) + dir * step;
+  row.dataset.minutes = String(Math.min(720, Math.max(5, minutes)));
+  paintStage(row);
+}
+
+// One − / + tap on the temp: 10° a tap, from 50 to 260°C.
+function nudgeTemp(row, dir) {
+  const temp = Number(row.dataset.temp) + dir * 10;
+  row.dataset.temp = String(Math.min(260, Math.max(50, temp)));
+  paintStage(row);
+}
+
+// A − / + button: one step per tap. Held down, it keeps stepping until released.
+function bindStepper(btn, step) {
+  let delay = null;
+  let repeat = null;
+  const stop = () => {
+    clearTimeout(delay);
+    clearInterval(repeat);
+    delay = null;
+    repeat = null;
+  };
+  btn.addEventListener('pointerdown', () => {
+    stop();
+    step();
+    delay = setTimeout(() => { repeat = setInterval(step, 150); }, 400);
+  });
+  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(type, stop);
+  // A tap is handled on pointerdown. A keyboard press has no pointer, so it steps here.
+  btn.addEventListener('click', e => {
+    if (e.detail === 0) step();
+  });
+}
+
+// The ✓ beside a text box: faded until the box is focused. Tapping it closes the keyboard.
+function bindTick(input, tick) {
+  input.addEventListener('focus', () => tick.classList.remove('off'));
+  input.addEventListener('blur', () => tick.classList.add('off'));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+  });
+  // Stop the box losing focus on press, so the click can still reach the tick.
+  tick.addEventListener('pointerdown', e => e.preventDefault());
+  tick.addEventListener('click', () => input.blur());
+}
+
 function bindStageRow(row) {
-  for (const btn of row.querySelectorAll('.seg-btn')) {
+  for (const btn of row.querySelectorAll('.seg-btn[data-method]')) {
     btn.addEventListener('click', () => setMethod(row, btn.dataset.method));
   }
+  for (const btn of row.querySelectorAll('.slow-btn')) {
+    btn.addEventListener('click', () => {
+      row.dataset.setting = btn.dataset.setting;
+      paintStage(row);
+    });
+  }
+  bindStepper(row.querySelector('.time-down'), () => nudgeTime(row, -1));
+  bindStepper(row.querySelector('.time-up'), () => nudgeTime(row, 1));
+  bindStepper(row.querySelector('.temp-down'), () => nudgeTemp(row, -1));
+  bindStepper(row.querySelector('.temp-up'), () => nudgeTemp(row, 1));
+  bindTick(row.querySelector('.stage-label'), row.querySelector('.stage-tick'));
   row.querySelector('.stage-remove').addEventListener('click', () => {
     row.remove();
     numberRows();
@@ -415,15 +497,16 @@ function bindStageRow(row) {
 function appendStageRow(method) {
   const row = $('stage-template').content.firstElementChild.cloneNode(true);
   bindStageRow(row);
-  setMethod(row, method);
+  row.dataset.method = method;
+  paintStage(row);
   $('stage-rows').append(row);
   return row;
 }
 
+// A new stage after "+ Then". Nothing is focused, so the keyboard stays shut.
 function addStageRow(method) {
-  const row = appendStageRow(method);
+  appendStageRow(method);
   numberRows();
-  row.querySelector('.stage-minutes').focus();
 }
 
 // Fill the whole form from a saved item: name, then one row per stage.
@@ -432,12 +515,12 @@ function fillDraft(item) {
   for (const row of stageRows().slice(1)) row.remove();
   item.stages.forEach((st, i) => {
     const row = i === 0 ? stageRows()[0] : appendStageRow(st.method);
-    setMethod(row, st.method);
+    row.dataset.method = st.method;
+    row.dataset.minutes = String(st.minutes);
+    row.dataset.temp = String(st.temp ?? STAGE_DEFAULTS.temp);
+    row.dataset.setting = st.setting === 'high' ? 'high' : 'low';
     row.querySelector('.stage-label').value = st.label || '';
-    const { h, m } = splitMinutes(st.minutes);
-    row.querySelector('.stage-hours').value = h ? String(h) : '';
-    row.querySelector('.stage-minutes').value = String(m);
-    row.querySelector('.stage-temp').value = st.method === 'oven' ? String(st.temp ?? '') : '';
+    paintStage(row);
   });
   numberRows();
   $('item-error').hidden = true;
@@ -448,16 +531,22 @@ function resetDraft() {
   $('item-name').value = '';
   for (const row of stageRows().slice(1)) row.remove();
   const first = stageRows()[0];
-  setMethod(first, 'oven');
   first.querySelector('.stage-label').value = '';
-  first.querySelector('.stage-hours').value = '';
-  first.querySelector('.stage-minutes').value = '';
-  first.querySelector('.stage-temp').value = '';
+  Object.assign(first.dataset, {
+    method: 'oven',
+    minutes: String(STAGE_DEFAULTS.minutes),
+    temp: String(STAGE_DEFAULTS.temp),
+    setting: STAGE_DEFAULTS.setting,
+  });
+  paintStage(first);
   numberRows();
 }
 
 function bindStageForm() {
-  bindStageRow(stageRows()[0]);
+  const first = stageRows()[0];
+  bindStageRow(first);
+  bindTick($('item-name'), $('name-done'));
+  paintStage(first);
   numberRows();
 }
 

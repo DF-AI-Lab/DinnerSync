@@ -96,3 +96,27 @@ test('cookingState: done at ready time', () => {
   assert.equal(c.done, true);
   assert.equal(c.msToDinner, 0);
 });
+
+test('slow cook stage: own step text with its setting, never sets or scales the oven temp', () => {
+  const items = [
+    { name: 'Chicken', stages: [{ method: 'oven', minutes: 90, temp: 180 }] },
+    { name: 'Beef stew', stages: [{ method: 'slow', minutes: 240, setting: 'high' }] },
+  ];
+  const plan = buildPlan({ items, readyAt: at(23, 0), now, preheatMinutes: 15 });
+  assert.equal(plan.ovenTemp, 180);
+  const stew = plan.steps.find(s => s.name === 'Beef stew');
+  assert.equal(stew.method, 'slow');
+  assert.equal(stew.text, 'Beef stew into the slow cooker — High');
+  assert.equal(stew.at, at(19, 0)); // 4 hr before dinner, not scaled
+  assert.equal(stew.minutes, 240);
+  // a slow cook alone needs no oven and no preheat
+  const alone = buildPlan({ items: [items[1]], readyAt: at(23, 0), now, preheatMinutes: 15 });
+  assert.equal(alone.ovenTemp, null);
+  assert.equal(alone.steps.some(s => s.type === 'preheat'), false);
+  assert.equal(alone.steps.find(s => s.name === 'Beef stew').text, 'Beef stew into the slow cooker — High');
+});
+
+test('slow cook setting defaults to Low in the step text', () => {
+  const plan = buildPlan({ items: [{ name: 'Stew', stages: [{ method: 'slow', minutes: 240 }] }], readyAt: at(23, 0), now, preheatMinutes: 15 });
+  assert.equal(plan.steps.find(s => s.name === 'Stew').text, 'Stew into the slow cooker — Low');
+});

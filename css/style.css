@@ -495,10 +495,35 @@ h2 {
 }
 
 /* ---------- add-item: name input with the saved-items menu beside it ---------- */
+.head-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.head-row h2 { margin: 0; }
 .name-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; min-width: 0; }
+/* A text box with its ✓ beside it. */
+.input-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.input-row > input { flex: 1 1 0; width: auto; min-width: 0; }
+/* ✓ next to a text box: faded until the box is focused; tapping it closes the keyboard. */
+.tick {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ok);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tick.off { opacity: 0.3; }
+.tick:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 .name-field { flex: 1 1 0; min-width: 0; }
 .saved-menu { position: relative; flex: 0 0 auto; }
-.saved-toggle { min-height: 48px; padding: 0 14px; font-size: 1rem; white-space: nowrap; }
+.saved-toggle { min-height: 0; padding: 4px 12px; font-size: 0.8rem; border-radius: 999px; white-space: nowrap; }
 .saved-toggle[aria-expanded="true"] { border-color: var(--orange); color: var(--orange-soft); }
 .saved-panel {
   position: absolute;
@@ -589,7 +614,8 @@ h2 {
 /* Oven / Hob / Rest: compact segmented control. */
 .seg {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 4px;
   padding: 3px;
   background: var(--field);
@@ -597,41 +623,48 @@ h2 {
   border-radius: 12px;
 }
 .seg-btn {
-  min-height: 36px;
-  padding: 0 4px;
+  min-height: 40px;
+  padding: 2px 2px;
   border: 0;
   border-radius: 9px;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 .seg-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 1px; }
 .seg-btn[aria-pressed="true"] { background: var(--orange); color: var(--ink); box-shadow: 0 2px 8px rgba(255, 122, 47, 0.25); }
-.stage-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
-.stage-fields:has(.temp-field[hidden]) { grid-template-columns: 1fr; }
+.stage-fields { display: grid; gap: 10px; }
 
-/* Hours + minutes side by side, each with a small suffix. */
-.dur { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.dur input {
-  flex: 1 1 0;
-  width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  font: inherit;
-  font-size: 1.05rem;
-  padding: 8px 10px;
-  background: var(--field);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  font-variant-numeric: tabular-nums;
+/* Time and temp: a − button, the value, and a + button. Big tap targets. */
+.stepper { display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 6px; }
+.step-btn {
+  width: 52px;
+  min-height: 52px;
+  padding: 0;
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
-.dur input:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-.dur em { font-style: normal; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+.stage-time, .stage-temp {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /* Inline "Are you sure?" panel under the cooking top bar. */
 .reset-confirm {
@@ -663,6 +696,7 @@ h2 {
 }
 .tag.m-oven { border-color: var(--orange); color: var(--orange-soft); }
 .tag.m-hob { border-color: var(--danger); color: var(--danger); }
+.tag.m-slow { border-color: var(--warn); color: var(--warn); }
 .tag.m-rest { border-color: var(--ok); color: var(--ok); }
 
 /* Motion: keep the state changes, drop the sliding, pulsing and flashing. */

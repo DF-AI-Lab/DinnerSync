@@ -75,21 +75,90 @@ try {
   assert.equal(await isOpen('#panel-timer'), false);
   assert.equal(await page.locator('#add-card').isVisible(), true);
   await page.click('#tile-dinner');
+  // ---- Add-item card: no keyboard for numbers; keyboard only when a text box is tapped ----
+  await page.waitForTimeout(500); // let the dinner drawer finish sliding open before measuring positions
+  const card = page.locator('#add-card');
+  assert.equal(await card.locator('input[type="number"]').count(), 0, 'no number boxes (no keyboard)');
+  // Saved ▾ is small, on the "Add an item" line, on the right
+  const headBox = await card.locator('h2').boundingBox(), savedBox = await page.locator('#saved-toggle').boundingBox();
+  assert.ok(Math.abs((savedBox.y + savedBox.height / 2) - (headBox.y + headBox.height / 2)) < 12, 'Saved is in line with the heading');
+  assert.ok(savedBox.x > headBox.x + headBox.width, 'Saved is right of the heading');
+  // ✓ sits right of the name box, faded until the box is tapped; tapping it closes the keyboard
+  const nameBox = await page.locator('#item-name').boundingBox(), tickBox = await page.locator('#name-done').boundingBox();
+  assert.ok(tickBox.x >= nameBox.x + nameBox.width - 1 && Math.abs(tickBox.y - nameBox.y) < 12, 'tick right of the name box');
+  assert.match(await page.getAttribute('#name-done', 'class'), /\boff\b/);
+  await page.click('#item-name');
+  assert.doesNotMatch(await page.getAttribute('#name-done', 'class'), /\boff\b/);
+  await page.click('#name-done');
+  assert.notEqual(await page.evaluate(() => document.activeElement?.tagName), 'INPUT', 'tick closes the keyboard');
+  assert.match(await page.getAttribute('#name-done', 'class'), /\boff\b/);
+  // Stage name boxes get a ✓ too
+  assert.equal(await page.locator('.stage-row').first().locator('.stage-tick').count(), 1);
+  // Time and temp: − / + buttons. Defaults 30 min and 200°C; 5 min and 10° a tap
+  const first = page.locator('.stage-row').first();
+  assert.equal(await first.getAttribute('data-minutes'), '30');
+  assert.equal(await first.getAttribute('data-temp'), '200');
+  assert.equal(await first.locator('.stage-time').textContent(), '30 min');
+  assert.equal(await first.locator('.stage-temp').textContent(), '200°C');
+  await first.locator('.time-up').click();
+  assert.equal(await first.getAttribute('data-minutes'), '35');
+  await first.locator('.time-down').click();
+  await first.locator('.temp-up').click();
+  assert.equal(await first.getAttribute('data-temp'), '210');
+  await first.locator('.temp-down').click();
+  // Slow cook: Low / High instead of a temp, 30 min a tap, starts at 4 hr
+  await first.getByRole('button', { name: /Slow cook/ }).click();
+  assert.equal(await first.locator('.temp-field').isVisible(), false);
+  assert.equal(await first.locator('.slow-field').isVisible(), true);
+  assert.equal(await first.getAttribute('data-minutes'), '240');
+  assert.equal(await first.locator('.stage-time').textContent(), '4 hr');
+  await first.locator('.time-up').click();
+  assert.equal(await first.getAttribute('data-minutes'), '270');
+  assert.equal(await first.getAttribute('data-setting'), 'low');
+  await first.getByRole('button', { name: 'High' }).click();
+  assert.equal(await first.getAttribute('data-setting'), 'high');
+  assert.equal(await first.getByRole('button', { name: 'High' }).getAttribute('aria-pressed'), 'true');
+  await page.fill('#item-name', 'Beef stew');
+  await page.click('#add-item');
+  assert.match(await page.textContent('#items'), /Slow cook 4 hr 30 min \(High\)/);
+  assert.notEqual(await page.evaluate(() => document.activeElement?.tagName), 'INPUT', 'no keyboard after Add');
+  // the form is back to one oven stage with the defaults
+  assert.equal(await first.getAttribute('data-method'), 'oven');
+  assert.equal(await first.getAttribute('data-minutes'), '30');
+  await page.locator('#items li', { hasText: 'Beef stew' }).locator('button').last().click();
+  assert.equal(await page.locator('#items li', { hasText: 'Beef stew' }).count(), 0);
+
+  // Steps a stage row to a time / temp with the − / + buttons
+  const setTime = async (row, mins) => {
+    for (let i = 0; i < 100; i++) {
+      const v = Number(await row.getAttribute('data-minutes'));
+      if (v === mins) return;
+      await row.locator(v < mins ? '.time-up' : '.time-down').click();
+    }
+    throw new Error(`could not set time ${mins}`);
+  };
+  const setTemp = async (row, t) => {
+    for (let i = 0; i < 40; i++) {
+      const v = Number(await row.getAttribute('data-temp'));
+      if (v === t) return;
+      await row.locator(v < t ? '.temp-up' : '.temp-down').click();
+    }
+    throw new Error(`could not set temp ${t}`);
+  };
   await page.fill('#item-name', 'Chicken');
-  await page.fill('#item-hours', '1');
-  await page.fill('#item-minutes', '30');
-  await page.fill('#item-temp', '180');
+  await setTime(first, 90);
+  await setTemp(first, 180);
   await page.click('#add-item');
   await page.fill('#item-name', 'Potatoes');
-  await page.fill('#item-hours', '');
-  await page.fill('#item-minutes', '10');
-  await page.locator('.stage-row').first().getByRole('button', { name: /Hob/ }).click();
-  await page.locator('.stage-row').first().locator('.stage-label').fill('Boil potatoes');
+  await first.getByRole('button', { name: /Hob/ }).click();
+  await setTime(first, 10);
+  await first.locator('.stage-label').fill('Boil potatoes');
   await page.click('#add-stage');
   const row2 = page.locator('.stage-row').nth(1);
+  assert.notEqual(await page.evaluate(() => document.activeElement?.tagName), 'INPUT', 'no keyboard after + Then');
   await row2.locator('.stage-label').fill('Roast potatoes');
-  await row2.locator('.stage-minutes').fill('45');
-  await row2.locator('.stage-temp').fill('220');
+  await setTime(row2, 45);
+  await setTemp(row2, 220);
   // stage rows live inside the add-item card
   assert.equal(await page.locator('#add-card .stage-row').count(), 2);
   await page.click('#add-item');
@@ -201,18 +270,20 @@ try {
   assert.equal(await page.locator('#saved-items').count(), 0);
   await pickSaved('Chicken');
   assert.equal(await page.inputValue('#item-name'), 'Chicken');
-  assert.equal(await page.inputValue('#item-hours'), '1');
-  assert.equal(await page.inputValue('#item-minutes'), '30');
-  assert.equal(await page.inputValue('#item-temp'), '180');
+  assert.notEqual(await page.evaluate(() => document.activeElement?.tagName), 'INPUT', 'no keyboard after picking a saved item');
+  assert.equal(await page.locator('.stage-row').first().getAttribute('data-minutes'), '90');
+  assert.equal(await page.locator('.stage-row').first().getAttribute('data-temp'), '180');
+  assert.equal(await page.locator('.stage-row').first().locator('.stage-time').textContent(), '1 hr 30 min');
   // multi-stage saved item fills every stage, and can be edited before adding
   await pickSaved('Potatoes');
   assert.equal(await page.locator('.stage-row').count(), 2);
-  assert.equal(await page.locator('.stage-row').nth(1).locator('.stage-temp').inputValue(), '220');
-  await page.locator('.stage-row').nth(1).locator('.stage-temp').fill('200');
+  assert.equal(await page.locator('.stage-row').nth(1).getAttribute('data-temp'), '220');
+  await page.locator('.stage-row').nth(1).locator('.temp-down').click();
+  await page.locator('.stage-row').nth(1).locator('.temp-down').click();
   await page.click('#add-item');
   await page.reload();
   await pickSaved('Potatoes');
-  assert.equal(await page.locator('.stage-row').nth(1).locator('.stage-temp').inputValue(), '200');
+  assert.equal(await page.locator('.stage-row').nth(1).getAttribute('data-temp'), '200');
   // saved items can be deleted
   await page.click('#saved-toggle');
   await page.locator('#saved-list li', { hasText: 'Chicken' }).locator('.saved-del').click();
