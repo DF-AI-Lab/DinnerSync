@@ -1,15 +1,15 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — v1.1.5 live, all merged to the default branch
+- Current step: Build & Test — v1.1.8 live, all merged to the default branch
 - Last session: 2026-10-16/17 — cooking card polish, phone back keeps cooking, locked-phone alarms (silent loop + ring), logo/version header, timer rings, repeating notifications
-- Next action: Darren tests v1.1.5 on his Z Fold (locked phone: ring + repeating notification + Done button). Then pick from "Ideas for next chat" below.
+- Next action: finish v1. Locked-phone alarm still fails in v1.1.8 (beep fine unlocked). Try trick A (pre-schedule the beeps in Web Audio at cooking start), else v1 says "keep screen on" and the Android app fixes it.
 
 ## Ideas for next chat (Darren, 2026-10-17)
-1. **Check the phone test** of v1.1.5 first: does the ring play when locked? does the notification repeat? does its Done ✓ button stop it?
-2. **Choose the ring tone**: a few built-in tones (classic ring, beeps, chimes, kitchen bell) with ▶ preview; classic ring stays the default.
+1. ~~Check the phone test~~ done 2026-10-17: v1.1.8 beep is perfect unlocked, silent when locked.
+2. **Choose the alarm tone**: a few built-in tones (beeps, chimes, kitchen bell) with ▶ preview; beep-beep-beep stays the default.
 3. **Use your own sound**: pick a sound file from the phone (MP3 etc.), saved in the app, used for the alarm.
-4. **Phone setting tip (no build)**: Settings → Apps → DinnerSync → Notifications → Sound → pick a ringtone.
+4. ~~Phone setting tip~~ dropped: v1.1.8 uses no notifications.
 5. **Real Android app (option 3)**, once all the above works well: uses the phone's own alarm system and ringtone list; alarms work even when the app is swiped closed.
 - Known gap: "X min spare" is lost on reload mid-cook.
 
@@ -46,12 +46,7 @@
 | 5 | Screen stays on while cooking (wake lock) + sound, vibrate and notification | Web apps can't reliably alarm when phone is locked; no server needed | 2026-10-16 |
 | 6 | Oven set to main item's temp (longest cook = main). Others' times scaled: new time = time × their temp ÷ oven temp | Darren: "if it's cooked it's cooked" | 2026-10-16 |
 | 7 | Preheat 15 min (editable) counted in the time check | Oven must be hot before first item | 2026-10-16 |
-| 8 | Keep-alive loop is a faint 30 Hz hum (~-60 dBFS), not perfect silence | Chrome may still pause a tab whose sound is pure silence once the phone locks | 2026-10-17 |
-| 9 | Alarm = the app's own beep-beep-beep looped until Done; no notification, no phone ring | Darren: ring felt like ringing himself; Android spaces notification sounds ~8 s apart | 2026-10-17 |
-| 9 | Alarm = the notification sound repeating every 1 s; no ring tone | Darren: a ring tone felt like ringing himself; 10 s gaps felt like it had stopped | 2026-10-17 |
 | 8 | Not enough time → say so and show earliest ready time | Darren's 'enough time' need | 2026-10-16 |
-| 9 | Alarm = the app's own beep-beep-beep looped until Done; no notification, no phone ring | Darren: ring felt like ringing himself; Android spaces notification sounds ~8 s apart | 2026-10-17 |
-| 9 | Alarm = the notification sound repeating every 1 s; no ring tone | Darren: a ring tone felt like ringing himself; 10 s gaps felt like it had stopped | 2026-10-17 |
 | 9 | Save on the phone (local storage, no account): saved items + last dinner | Darren wants a local db | 2026-10-16 |
 | 10 | Cooking screen shows live countdowns: preheat, main meal (to dinner), next item | Darren | 2026-10-16 |
 | 11 | Look: "Dark kitchen" for now; revisit after it works | Darren: operations first | 2026-10-16 |
@@ -61,6 +56,9 @@
 | 15 | Service worker network-first (online = newest files; offline = saved copy) | Phone showed new page with old styles | 2026-10-16 |
 | 16 | Alarm = phone-style ring through the already-playing keep-alive audio; kitchen timer rings too | A new sound can't start on a locked phone | 2026-10-16 |
 | 17 | Alarm notification repeats every 10s until Done, with a Done ✓ button | Darren | 2026-10-17 |
+| 18 | Keep-alive loop is a faint 30 Hz hum (~-60 dBFS), not perfect silence | Chrome may still pause a tab whose sound is pure silence | 2026-10-17 |
+| 19 | Alarm = the app's own beep-beep-beep looped until Done; no notifications, no phone ring (replaces 16, 17) | Ring felt like ringing himself; Android spaced notification sounds ~8 s apart | 2026-10-17 |
+| 20 | Finish v1 (web) first, then build the real Android app | Locked-phone alarms aren't reliable in a web app | 2026-10-17 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
