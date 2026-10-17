@@ -386,60 +386,8 @@ h2 {
 .cook-steps li.done .dot { background: var(--ok); border-color: var(--ok); }
 .cook-steps li.done .step-body { color: var(--muted); opacity: 0.55; }
 .cook-steps li.current .dot { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 16px var(--glow); }
-.cook-steps li.current .step-body {
-  margin-top: -2px;
-  padding: 12px 14px;
-  background: var(--panel);
-  border: 1px solid var(--orange);
-  border-radius: 16px;
-  box-shadow: 0 0 22px var(--glow);
-  font-weight: 700;
-}
-.cook-steps li.current .dot { top: 12px; }
+.cook-steps li.current .step-body { font-weight: 700; }
 .cook-steps li.upcoming .step-body { color: var(--muted); }
-
-/* The current card: head row, big countdown, then a foot row with the text (bar and lines) on the left and Done on the right, bottom-aligned. */
-.cook-steps .card-head,
-.cook-steps .card-row,
-.cook-steps .card-foot { flex: 1 0 100%; }
-.cook-steps .card-head { display: flex; align-items: center; gap: 8px; }
-.cook-steps .card-head .step-badge { margin-left: auto; }
-.cook-steps .card-head time { margin-right: 6px; }
-.cook-steps .card-row { display: flex; align-items: center; margin-top: 6px; }
-.cook-steps .card-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 10px; }
-.cook-steps .card-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.cook-steps .card-text > p { margin: 0; }
-.cook-steps .card-text > p + p { margin-top: 6px; }
-.cook-steps .card-count {
-  font-family: var(--display);
-  font-size: clamp(2.2rem, 11vw, 2.8rem);
-  font-weight: 800;
-  line-height: 1.05;
-  color: var(--orange);
-  text-shadow: 0 0 18px var(--glow);
-  font-variant-numeric: tabular-nums;
-}
-.cook-steps .card-sub { margin: 0; color: var(--orange-soft); font-size: 1.1rem; }
-.cook-steps .card-done {
-  flex: 0 0 auto;
-  min-height: 40px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--ok);
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.cook-steps .card-done:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-.cook-steps .card-text .card-bar { height: 6px; margin: 0 0 8px; border-radius: 9px; background: var(--panel-2); overflow: hidden; }
-.cook-steps .card-bar i { display: block; height: 100%; background: var(--orange); transition: width 1s linear; }
-.cook-steps .card-until { margin: 0; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
-.cook-steps .card-spare { margin: 0; color: var(--ok); font-size: 0.9rem; font-weight: 600; }
 
 /* Shown on the plan screen while cooking in the background: a full-width orange pill. */
 .back-to-cook {
@@ -458,18 +406,6 @@ h2 {
   -webkit-tap-highlight-color: transparent;
 }
 .back-to-cook:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-.cook-steps .step-badge {
-  flex: none;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--orange);
-  color: var(--ink);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-}
-.cook-steps .step-badge.wait { background: var(--panel-2); color: var(--muted); }
-
 .alarm {
   position: fixed;
   left: 12px;
@@ -642,35 +578,6 @@ h2 {
 .seg-btn[aria-pressed="true"] { background: var(--orange); color: var(--ink); box-shadow: 0 2px 8px rgba(255, 122, 47, 0.25); }
 .stage-fields { display: grid; gap: 10px; }
 
-/* + Then and + Same time sit side by side, the same height. */
-.add-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 12px; }
-.add-row .btn { min-width: 0; padding: 0 6px; white-space: nowrap; font-size: clamp(0.85rem, 4.2vw, 1rem); }
-
-/* Same time: a dashed box round the tracks of one group. Tracks stack one under the other. */
-.together {
-  border: 1px dashed var(--orange);
-  border-radius: 16px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: rgba(255, 122, 47, 0.05);
-}
-.together-head { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--orange-soft); }
-.track {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-.track-head { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.alongside { color: var(--orange-soft); font-size: 0.75rem; font-weight: 800; text-align: center; letter-spacing: 0.06em; text-transform: uppercase; }
-.track-then { min-height: 40px; padding: 0 12px; font-size: 0.9rem; }
-
 /* Time and temp: a − button, the value, and a + button. Big tap targets. */
 .stepper { display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 6px; }
 .step-btn {
@@ -730,8 +637,170 @@ h2 {
 .tag.m-rest { border-color: var(--ok); color: var(--ok); }
 .tag.m-prep { border-color: var(--blue); color: var(--blue); }
 
+/* ---------- add-item: the dish's total, when to start, and the three boxes ---------- */
+.name-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+.name-head > span:first-child { color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.took {
+  background: rgba(255, 122, 47, 0.14);
+  color: var(--orange-soft);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Start now / Ready later, with the stepper for the later time and the plain-words line under it. */
+.when {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+.when-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--field); border-radius: 10px; padding: 3px; }
+.when-btn {
+  min-height: 40px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.when-btn.on { background: var(--orange); color: var(--ink); }
+.when-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.later-box { display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 6px; }
+.later-val { font-family: var(--display); font-size: 1.1rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.when-text { margin: 0; font-size: 0.95rem; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+
+/* The three boxes: Get ready and Finish run one after another; Cook (dashed) runs its lines at the same time. */
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.sec.cook { border: 1px dashed var(--orange); background: rgba(255, 122, 47, 0.06); }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
+.sec-title { font-family: var(--display); font-weight: 800; font-size: 1.05rem; }
+.sec-note { font-size: 0.8rem; color: var(--muted); }
+.sec.cook .sec-note { color: var(--orange-soft); }
+.sec-rows { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sec-down { margin: 0; text-align: center; color: var(--muted); font-size: 0.85rem; font-weight: 700; }
+.btn.sec-add { width: 100%; min-height: 42px; padding: 0 12px; border-style: dashed; font-size: 0.95rem; }
+.sec.cook .btn.sec-add { border-color: var(--orange); color: var(--orange-soft); }
+
+/* A cook line: its stages in a row, one after another. The next stage in a line is marked "then". */
+.line {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.line > .stage-row + .stage-row::before {
+  content: "then";
+  display: block;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.btn.line-then { width: 100%; min-height: 40px; padding: 0 12px; font-size: 0.95rem; }
+
+/* The plan: the dish name above each oven, hob or prep step. */
+.step-dish {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---------- cooking: a timer for each job on the go ---------- */
+.jobs { display: grid; gap: 10px; min-width: 0; text-align: left; }
+.job-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--orange);
+  border-radius: 16px;
+  box-shadow: 0 0 18px rgba(255, 122, 47, 0.2);
+}
+.job-timer.over { border-color: var(--danger); box-shadow: 0 0 18px rgba(255, 107, 107, 0.25); }
+.job-head { display: flex; align-items: center; min-width: 0; }
+.job-dish { color: var(--muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; overflow-wrap: anywhere; }
+.job-text { margin: 0; font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
+.job-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.job-count {
+  font-family: var(--display);
+  font-size: clamp(2rem, 10vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--orange);
+  text-shadow: 0 0 18px var(--glow);
+  font-variant-numeric: tabular-nums;
+}
+.job-timer.over .job-count { color: var(--danger); text-shadow: none; }
+.job-done {
+  flex: none;
+  min-width: 112px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ok);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.job-done:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.job-bar { height: 8px; border-radius: 999px; background: var(--field); overflow: hidden; }
+.job-bar i { display: block; height: 100%; background: var(--orange); border-radius: 999px; transition: width 1s linear; }
+.job-timer.over .job-bar i { background: var(--danger); }
+.job-then { margin: 0; color: var(--orange-soft); font-size: 0.9rem; font-weight: 700; }
+
+/* The next alarm, under the jobs. */
+.next-alarm {
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: left;
+  min-width: 0;
+}
+.next-alarm .label { margin-bottom: 2px; }
+.next-alarm-row { margin: 0; font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
+.next-alarm-time { color: var(--orange-soft); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
 /* Motion: keep the state changes, drop the sliding, pulsing and flashing. */
 @media (prefers-reduced-motion: reduce) {
-  .tile, .drawer, .ring .prog, .cook-steps .card-bar i { transition: none !important; }
+  .tile, .drawer, .ring .prog, .job-bar i { transition: none !important; }
   .timer-digits.flash { animation: none; color: var(--danger); }
 }
