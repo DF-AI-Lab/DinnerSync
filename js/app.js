@@ -1,7 +1,7 @@
 import { buildPlan, stepStatuses, currentCard, spareMinutes, alarmSteps, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
 import { createStore } from './store.js';
 import { createCountdown } from './timer.js';
-import { keepAliveWav } from './ring.js';
+import { keepAliveWav, alarmWav, ALARM } from './ring.js';
 
 const MIN = 60_000;
 const DEFAULT_READY_MIN = 90;
@@ -25,7 +25,7 @@ const state = {
 
 let cook = null;      // {plan, done, lastChecked, timer, spare, spareFor} while cooking; done = ticked step indexes
 let cardKey = null;   // what the cooking list was last built from (see renderCookSteps)
-let notifyTimer = null; // repeats the alarm notification (and its sound) until Done
+let buzzTimer = null; // vibrates with each loop of the alarm until Done
 let wakeLock = null;
 let openDrawer = null; // 'dinner' | 'timer' | null
 const timer = createCountdown();
@@ -466,7 +466,6 @@ function renderTimeline() {
 function bindTimelineScreen() {
   $('back-plan').addEventListener('click', () => showScreen('plan'));
   $('start-cooking').addEventListener('click', () => {
-    requestNotifications();
     const plan = state.plan || currentPlan();
     store.saveCooking({ plan, preheatMinutes: state.preheatMinutes, done: [] });
     beginCooking(plan, Date.now(), []);
@@ -684,49 +683,7 @@ function resumeCooking() {
   beginCooking(plan, Date.now(), done);
 }
 
-// ---------- alarm: sound, vibration, notification, banner ----------
-
-// Done on the notification (sw.js posts this) stops the alarm, as if Done was tapped here.
-navigator.serviceWorker?.addEventListener('message', e => {
-  if (e.data?.type === 'alarm-done' && !$('alarm-banner').hidden) $('alarm-done').click();
-});
-
-function requestNotifications() {
-  try {
-    if ('Notification' in window && Notification.permission === 'default') {
-      const p = Notification.requestPermission();
-      p?.catch?.(() => {});
-    }
-  } catch {
-    // not supported
-  }
-}
-
-function notify(body) {
-  try {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const options = {
-      body,
-      tag: 'dinnersync-alarm',
-      renotify: true,
-      requireInteraction: true,
-      vibrate: [400, 200, 400],
-      icon: 'icons/icon-192.png',
-      actions: [{ action: 'done', title: 'Done ✓' }],
-    };
-    // The page Notification constructor throws if given actions, so the fallback leaves them out.
-    const { actions, ...pageOptions } = options;
-    if (navigator.serviceWorker?.ready) {
-      navigator.serviceWorker.ready
-        .then(reg => reg.showNotification('DinnerSync', options))
-        .catch(() => new Notification('DinnerSync', pageOptions));
-    } else {
-      new Notification('DinnerSync', pageOptions);
-    }
-  } catch {
-    // notifications blocked or unsupported
-  }
-}
+// ---------- alarm: sound, vibration, banner ----------
 
 function buzz() {
   try {
@@ -741,25 +698,21 @@ function raiseAlarm(text, kind = 'cook') {
   $('alarm-text').textContent = text;
   $('alarm-banner').hidden = false;
   buzz();
-  startKeepAlive(); // the hum keeps the app awake while the notification repeats
-  notify(text);
-  clearInterval(notifyTimer);
-  notifyTimer = setInterval(() => notify(text), 1_000); // the notification sound is the alarm; repeats every second until Done
+  // The alarm plays through the already-playing keep-alive element: a locked phone lets that start a sound
+  setSound('alarm');
+  keepAlive.currentTime = 0;
+  keepAlive.play().catch(() => {});
+  clearInterval(buzzTimer);
+  buzzTimer = setInterval(buzz, ALARM.loopSeconds * 1000);
 }
 
 function stopAlarm() {
-  clearInterval(notifyTimer);
-  notifyTimer = null;
-  try {
-    navigator.serviceWorker?.ready
-      .then(reg => reg.getNotifications({ tag: 'dinnersync-alarm' }))
-      .then(ns => ns.forEach(n => n.close()))
-      .catch(() => {});
-  } catch {
-    // no service worker support
-  }
+  clearInterval(buzzTimer);
+  buzzTimer = null;
   $('alarm-banner').hidden = true;
-  stopKeepAlive();
+  setSound('silent'); // back to the hum; it keeps playing only if something still needs the app awake
+  if (needAwake()) keepAlive.play().catch(() => {});
+  else stopKeepAlive();
 }
 
 // ---------- timer panel: countdown with +1/+5/+10 min, Start/Pause, Reset ----------
@@ -839,20 +792,21 @@ document.addEventListener('visibilitychange', () => {
 const keepAlive = $('keep-alive');
 
 const silentUrl = URL.createObjectURL(new Blob([keepAliveWav()], { type: 'audio/wav' }));
+const alarmUrl = URL.createObjectURL(new Blob([alarmWav()], { type: 'audio/wav' }));
 
 // The page must stay awake while cooking or while the kitchen timer runs.
 const needAwake = () => Boolean(cook) || timer.running;
 
-// The one element plays either the silent loop or the ring; data-sound says which.
+// The one element plays either the hum or the alarm; data-sound says which.
 function setSound(kind) {
   if (keepAlive.dataset.sound === kind) return; // same src: keep playing, no reload
-  keepAlive.src = silentUrl;
+  keepAlive.src = kind === 'alarm' ? alarmUrl : silentUrl;
   keepAlive.dataset.sound = kind;
 }
 setSound('silent');
 
 function startKeepAlive() {
-  setSound('silent');
+  if (keepAlive.dataset.sound !== 'alarm') setSound('silent'); // never swap a sounding alarm out
   keepAlive.play().catch(() => {
     // Blocked until a tap (e.g. after reload): try again on the next tap while cooking
     document.addEventListener('pointerdown', retryKeepAlive, { once: true });
@@ -865,6 +819,14 @@ function startKeepAlive() {
     // media session unsupported
   }
 }
+
+// If the phone pauses the alarm (another sound took over), start it again until Done.
+keepAlive.addEventListener('pause', () => {
+  if (keepAlive.dataset.sound !== 'alarm') return;
+  setTimeout(() => {
+    if (!$('alarm-banner').hidden) keepAlive.play().catch(() => {});
+  }, 500);
+});
 
 function retryKeepAlive() {
   if (needAwake() && keepAlive.paused) startKeepAlive();
