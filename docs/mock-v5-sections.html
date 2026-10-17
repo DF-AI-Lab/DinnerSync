@@ -67,12 +67,20 @@ h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7r
 .bar{height:8px;border-radius:999px;background:var(--field);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--orange);border-radius:999px}
 .next-up{font-size:13px;color:var(--muted)}
+.dish-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.took{background:rgba(255,122,47,.14);color:var(--orange-soft);border-radius:999px;padding:4px 10px;font-weight:800;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.when{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px}
+.when-seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--field);border-radius:10px;padding:3px}
+.when-seg button{background:none;border:0;color:var(--muted);border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-family:var(--body)}
+.when-seg button.on{background:var(--orange);color:var(--ink)}
+.when-text{margin:0;font-size:14px;color:var(--muted);text-align:center}
+.when-text b{color:var(--ok)}
 .done-btn{background:var(--ok);color:var(--ink);border:0;border-radius:10px;padding:6px 12px;font-weight:800;cursor:pointer}
 </style>
 
 <div class="wrap">
   <h1>DinnerSync — mockup 5</h1>
-  <p class="intro">Your idea: every dish has 3 sections. Tap − / + and the plan updates. Empty sections are skipped.</p>
+  <p class="intro">Your idea: every dish has 3 sections. Next to the name: how long it takes, and when it's ready if you start now. Want it later? Tap "Ready later". Tap − / + anywhere and everything updates.</p>
 
   <div class="grid">
     <section>
@@ -86,14 +94,14 @@ h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7r
       <p class="sub">Each step says which dish it's for.</p>
       <div class="phone">
         <div class="card">
-          <div class="ready-line"><span class="cap">Dinner at</span><b>6:00pm</b></div>
+          <div class="ready-line"><span class="cap">Dinner at</span><b id="dinner-at"></b></div>
           <ol class="tl" id="tl"></ol>
         </div>
       </div>
     </section>
 
     <section>
-      <p class="label">3 · Cooking (at 5:12pm)</p>
+      <p class="label">3 · Cooking (22 min in)</p>
       <p class="sub">One timer for each job on the go, each with its own alarm.</p>
       <div class="phone">
         <div class="card" id="cook"></div>
@@ -113,7 +121,10 @@ const dish = {
   ],
   finish: [{ text: 'Build pie', method: 'prep', min: 5 }, { text: 'Into the oven', method: 'oven', min: 30, temp: 200 }],
 };
-const DINNER = new Date(2026, 9, 17, 18, 0).getTime(), NOW = new Date(2026, 9, 17, 17, 12).getTime(), MIN = 60000, PREHEAT = 15;
+const MIN = 60000, PREHEAT = 15;
+// Mock clock: the form is filled in at 4:50pm; the cooking screen is shown 22 min into cooking.
+const FORM_NOW = new Date(2026, 9, 17, 16, 50).getTime();
+let DINNER = 0, NOW = 0, laterAt = new Date(2026, 9, 17, 19, 0).getTime(), mode = 'now';
 const TAG = { hob: '🔥 Hob', oven: '♨️ Oven', prep: '🥄 Prep' };
 const $ = id => document.getElementById(id);
 const fmtT = m => m >= 60 ? `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60} min` : ''}` : `${m} min`;
@@ -148,9 +159,36 @@ function section(cls, title, note, jobs, addText) {
   return sec;
 }
 
+// Total time = from the first step (preheat included) to the dish being ready.
+function totalMin() {
+  const saved = DINNER;
+  DINNER = 0;
+  const rows = schedule();
+  DINNER = saved;
+  return Math.round(-Math.min(...rows.map(r => r.at)) / MIN);
+}
+
 function draw() {
   const f = $('form');
-  f.innerHTML = '<span class="cap">Add a dish</span><span class="dish">Mince pie</span>';
+  const total = totalMin();
+  const asap = FORM_NOW + total * MIN;
+  if (mode === 'later' && laterAt < asap) laterAt = Math.ceil(asap / (15 * MIN)) * 15 * MIN;
+  DINNER = mode === 'now' ? asap : laterAt;
+  NOW = DINNER - total * MIN + 22 * MIN;
+  f.innerHTML = `<span class="cap">Add a dish</span>
+    <div class="dish-row"><span class="dish">Mince pie</span><span class="took">⏱ ${fmtT(total)}</span></div>
+    <div class="when">
+      <div class="when-seg"><button type="button" data-mode="now" class="${mode === 'now' ? 'on' : ''}">Start now</button><button type="button" data-mode="later" class="${mode === 'later' ? 'on' : ''}">Ready later</button></div>
+      ${mode === 'now'
+        ? `<p class="when-text">Start now (${clock(FORM_NOW)}pm) → <b>ready at ${clock(asap)}pm</b></p>`
+        : `<div class="stepper"><button type="button" id="later-down" aria-label="15 minutes earlier">−</button><span class="val">Ready at ${clock(laterAt)}pm</span><button type="button" id="later-up" aria-label="15 minutes later">+</button></div>
+           <p class="when-text">Start at <b>${clock(laterAt - total * MIN)}pm</b></p>`}
+    </div>`;
+  f.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = b.dataset.mode; draw(); });
+  if (mode === 'later') {
+    $('later-down').onclick = () => { laterAt = Math.max(asap, laterAt - 15 * MIN); draw(); };
+    $('later-up').onclick = () => { laterAt += 15 * MIN; draw(); };
+  }
   f.append(section('ready', '🥔 Get ready', 'one after another', dish.ready.map(s => [s]), '+ Add a get-ready step'));
   f.insertAdjacentHTML('beforeend', '<div class="down">↓</div>');
   f.append(section('cook', '🔥 Cook', 'all at the same time', dish.cook, '+ Add a line (cooks at the same time)'));
@@ -191,6 +229,7 @@ function drawPlan() {
     tl.append(li);
   }
   tl.insertAdjacentHTML('beforeend', `<li class="ready"><time>${clock(DINNER)}</time><div class="body"><span class="what">🍽 Dinner</span></div></li>`);
+  $('dinner-at').textContent = `${clock(DINNER)}pm`;
   drawCook();
 }
 
