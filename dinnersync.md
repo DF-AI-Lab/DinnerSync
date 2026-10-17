@@ -1,15 +1,9 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — v1.1.11 live. Mockup 5 approved, not built yet.
-- Last session: 2026-10-17 — locked-phone alarm tries (hum keep-alive, own beep; still silent when locked), Cook now + clock, − / + steppers, Slow cook, keyboard ✓, Same time tracks + Prep (v1.1.11)
-- Next action: **build mockup 5** (docs/mock-v5-sections.html, https://claude.ai/artifact/8sgDK1eaVfZNGiaRTemQRo). Tests first, Haiku builds:
-  1. Add-a-dish form in 3 fixed sections: 🥔 Get ready (one after another) → 🔥 Cook (each line runs at the same time, all lines finish together; a line can have "+ then", e.g. Boil potatoes → Mash) → ♨️ Finish (one after another). Empty sections are skipped. Replaces the "+ Same time" / "+ Then" form from v1.1.11.
-  2. Data: reuse group/track (Get ready = group 0 one track, Cook = group 1 one track per line, Finish = group 2 one track); plan.js already lays this out. Old saved items (no section) still load.
-  3. Next to the dish name: ⏱ total time (preheat included), live as steps change.
-  4. Under it: [Start now] / [Ready later]. Start now = "ready at X if you start now" (default). Ready later = − / + dinner time, 15 min a tap, never earlier than the soonest.
-  5. Plan screen: dish name above each step.
-  6. Cooking screen: one countdown per job on the go, each with Done ✓ and its own alarm; then the next alarm below.
+- Current step: Build & Test — v1.2.0 live (mockup 5 built).
+- Last session: 2026-10-17 — mockup 5: dish in 3 sections (Get ready → Cook lines at the same time → Finish), ⏱ total time by the name, Start now / Ready later, dish name on each plan step, a timer per job with its own Done ✓ and alarm, then next alarm.
+- Next action: test v1.2.0 on the phone.
 - Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
 ## Ideas for next chat (Darren, 2026-10-17)
@@ -70,6 +64,7 @@
 | 22 | Add-item card: − / + buttons for time (5 min a tap, 30 for slow cook) and temp (10°); no number keyboard. ✓ beside text boxes closes the keyboard; Saved small on the heading line | Darren: keyboard took half the screen | 2026-10-17 |
 | 23 | Slow cook method: Low/High, starts at 4 hr, not part of the oven temp | Darren | 2026-10-17 |
 | 24 | "+ Same time": stages in one group run side by side (tracks), stacked as cards in a dashed box; all tracks finish together, then the next group. New 🥄 Prep type (no heat) | Darren: mince pie (fry mince ‖ boil+mash, then build, then oven) | 2026-10-17 |
+| 25 | Dish form = 3 fixed sections (Get ready, Cook lines side by side, Finish); Start now / Ready later (15 min a tap); cooking screen = one timer per job on the go + next alarm, big current card removed (replaces 24's form) | Darren's mockup 5 | 2026-10-17 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
@@ -100,6 +95,7 @@
 ## Tickets
 
 ## Build / test progress
+- 2026-10-17: v1.2.0 — mockup 5 built by Haiku (tests first); one test timing fix + draft/soonest fix by me. 78 tests + browser check pass.
 - 2026-10-17: v1.1.5 — notification repeats every 10s, Done ✓ button on it. 55 tests + browser check pass.
 - 2026-10-16: v1.1.1–v1.1.4 — Done at bottom + bar beside it; phone back keeps cooking; silent keep-alive loop; logo/version header (fits Z Fold cover); network-first SW; phone ring alarm through keep-alive; timer rings. All by Haiku first try, tests written first.
 - 2026-10-16: Done moved to bottom of card; tap ✓ to undo a step; done steps no longer beep. 49 tests + browser check pass.

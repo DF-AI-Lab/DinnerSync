@@ -145,17 +145,20 @@ export function buildPlan({ items = [], readyAt, now, preheatMinutes = DEFAULT_P
 
   // rank breaks ties at the same time: preheat, main item, other items, ready.
   const ranked = [];
-  for (const item of planItems) {
-    for (const st of item.stages) {
+  planItems.forEach((item, i) => {
+    item.stages.forEach((st, si) => {
       // A stage label (e.g. "Boil potatoes") replaces the item name in the step text.
       const label = (typeof st.label === 'string' && st.label.trim()) || item.name;
       const text = (METHOD_TEXT[st.method] ?? (name => name))(label, ovenTemp, st.setting);
+      // The layout slot, as stageGroups reads it: no group = its index, no track = 0.
+      const group = Number.isInteger(st.group) ? st.group : si;
+      const track = Number.isInteger(st.track) ? st.track : 0;
       ranked.push({
         rank: item.main ? 1 : 2,
-        step: { type: 'in', name: item.name, label, method: st.method, at: startAt.get(st), text, minutes: st.cookMinutes },
+        step: { type: 'in', name: item.name, item: i, label, method: st.method, at: startAt.get(st), text, minutes: st.cookMinutes, group, track },
       });
-    }
-  }
+    });
+  });
 
   const ovenStarts = ranked.filter(r => r.step.method === 'oven').map(r => r.step.at);
   if (ovenStarts.length) {
@@ -252,4 +255,122 @@ export function currentCard(statuses, now) {
 // Whole minutes between now and a step's start. Never negative.
 export function spareMinutes(step, now) {
   return Math.max(0, Math.round((step.at - now) / MIN));
+}
+
+// ---------- sections: the form's three boxes ----------
+// A dish is built from Get ready (one after another, group 0), Cook (each line is a track
+// in group 1, all at the same time) and Finish (one after another, group 2).
+
+const SECTIONS = ['ready', 'cook', 'finish'];
+
+// { ready: [stage], cook: [[stage, ...], ...], finish: [stage] } -> flat stage list.
+export function fromSections({ ready = [], cook = [], finish = [] } = {}) {
+  const out = [];
+  for (const st of ready) out.push({ ...st, section: 'ready', group: 0, track: 0 });
+  let track = 0;
+  for (const line of cook) {
+    if (!line.length) continue; // empty lines leave no gap in the track numbers
+    for (const st of line) out.push({ ...st, section: 'cook', group: 1, track });
+    track++;
+  }
+  for (const st of finish) out.push({ ...st, section: 'finish', group: 2, track: 0 });
+  return out;
+}
+
+// The inverse: an item's stages back into the three sections. Old items (no sections) are
+// placed by their groups: the first group with several tracks is Cook, the groups before it
+// are Get ready and the ones after it are Finish. With no such group, every stage is one cook line.
+export function toSections(item) {
+  const stages = normalizeItem(item).stages;
+  const out = { ready: [], cook: [], finish: [] };
+  if (stages.every(st => SECTIONS.includes(st.section))) {
+    for (const st of stages.filter(s => s.section === 'ready')) out.ready.push(st);
+    for (const st of stages.filter(s => s.section === 'finish')) out.finish.push(st);
+    const tracks = new Map();
+    for (const st of stages.filter(s => s.section === 'cook')) {
+      const t = Number.isInteger(st.track) ? st.track : 0;
+      if (!tracks.has(t)) tracks.set(t, []);
+      tracks.get(t).push(st);
+    }
+    out.cook = [...tracks.keys()].sort((a, b) => a - b).map(t => tracks.get(t));
+    return out;
+  }
+  const groups = stageGroups(stages);
+  const k = groups.findIndex(tracks => tracks.length > 1);
+  if (k < 0) {
+    out.cook = [stages];
+    return out;
+  }
+  out.ready = groups.slice(0, k).flat(2);
+  out.cook = groups[k];
+  out.finish = groups.slice(k + 1).flat(2);
+  return out;
+}
+
+// Whole minutes from the earliest step (preheat included) to dinner. 0 for no items.
+export function leadMinutes({ items = [], preheatMinutes = DEFAULT_PREHEAT }) {
+  if (!items.length) return 0;
+  const plan = buildPlan({ items, readyAt: 0, now: 0, preheatMinutes });
+  return Math.round(-Math.min(...plan.steps.map(s => s.at)) / MIN);
+}
+
+// ---------- cooking: a timer per job, and alarms at the end of each job ----------
+
+// Oven steps are the 'in' steps with method oven. The preheat ends when the first one starts.
+// Each step on the go: started, not ticked done, and not the dinner step.
+export function jobsOnTheGo(plan, now, doneIndexes = []) {
+  const done = new Set(doneIndexes);
+  const firstOven = plan.steps.find(s => s.type === 'in' && s.method === 'oven');
+  const jobs = [];
+  plan.steps.forEach((step, index) => {
+    if (done.has(index) || step.at > now) return;
+    if (step.type !== 'in' && step.type !== 'preheat') return;
+    const endAt = step.type === 'in' ? step.at + step.minutes * MIN : (firstOven?.at ?? step.at);
+    const duration = endAt - step.at;
+    const leftMs = Math.max(0, endAt - now);
+    const then = step.type === 'in'
+      ? plan.steps.find((s, j) => j > index && s.type === 'in' && s.item === step.item && s.group === step.group && s.track === step.track)?.label ?? null
+      : null;
+    jobs.push({
+      index,
+      step,
+      endAt,
+      leftMs,
+      pct: duration > 0 ? (leftMs / duration) * 100 : 0,
+      over: now >= endAt,
+      then,
+    });
+  });
+  return jobs;
+}
+
+// The 'in' steps whose end falls in (from, to] and that are not ticked done.
+export function endAlarms(plan, from, to, doneIndexes = []) {
+  const done = new Set(doneIndexes);
+  return plan.steps.filter((s, i) => {
+    if (s.type !== 'in' || done.has(i)) return false;
+    const end = s.at + s.minutes * MIN;
+    return end > from && end <= to;
+  });
+}
+
+export function endText(step) {
+  return `${step.label} — time's up`;
+}
+
+// The soonest event after now: a step starting (any step not done), or a job ending.
+// A start wins a tie with an end. Returns {at, text} or null.
+export function nextAlarm(plan, now, doneIndexes = []) {
+  const done = new Set(doneIndexes);
+  let best = null;
+  const consider = (at, text, rank) => {
+    if (!(at > now)) return;
+    if (!best || at < best.at || (at === best.at && rank < best.rank)) best = { at, text, rank };
+  };
+  plan.steps.forEach((s, i) => {
+    if (done.has(i)) return;
+    consider(s.at, s.text, 0);
+    if (s.type === 'in') consider(s.at + s.minutes * MIN, endText(s), 1);
+  });
+  return best ? { at: best.at, text: best.text } : null;
 }

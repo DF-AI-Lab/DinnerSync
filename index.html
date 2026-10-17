@@ -24,7 +24,7 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.1.11</span>
+              <span id="app-version" class="app-version">v1.2.0</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
@@ -115,60 +115,46 @@
         </div>
         <div class="name-row">
           <div class="field name-field">
-            <span>Name</span>
+            <div class="name-head">
+              <span>Name</span>
+              <span id="dish-total" class="took">⏱ 0 min</span>
+            </div>
             <div class="input-row">
               <input id="item-name" type="text" autocomplete="off" aria-label="Item name" placeholder="Chicken">
               <button id="name-done" class="tick off" type="button" aria-label="Done typing">✓</button>
             </div>
           </div>
         </div>
-        <div id="stage-rows" class="stage-list">
-          <div class="stage-row" data-method="oven" data-minutes="30" data-temp="200" data-setting="low" data-group="0" data-track="0">
-            <div class="stage-head">
-              <span class="label stage-num">Stage 1</span>
-              <button class="icon-btn stage-remove" type="button" aria-label="Remove stage" hidden>✕</button>
-            </div>
-            <div class="input-row">
-              <input class="stage-label" type="text" autocomplete="off" aria-label="Stage name" placeholder="e.g. Boil potatoes">
-              <button class="tick stage-tick off" type="button" aria-label="Done typing">✓</button>
-            </div>
-            <div class="seg" role="group" aria-label="Method">
-              <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
-              <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
-              <button class="seg-btn" type="button" data-method="slow" aria-pressed="false">🍲 Slow cook</button>
-              <button class="seg-btn" type="button" data-method="prep" aria-pressed="false">🥄 Prep</button>
-              <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
-            </div>
-            <div class="stage-fields">
-              <div class="field">
-                <span>Time</span>
-                <div class="stepper">
-                  <button class="btn step-btn time-down" type="button" aria-label="Less time">−</button>
-                  <span class="stage-time">30 min</span>
-                  <button class="btn step-btn time-up" type="button" aria-label="More time">+</button>
-                </div>
-              </div>
-              <div class="field temp-field">
-                <span>Temp</span>
-                <div class="stepper">
-                  <button class="btn step-btn temp-down" type="button" aria-label="Less heat">−</button>
-                  <span class="stage-temp">200°C</span>
-                  <button class="btn step-btn temp-up" type="button" aria-label="More heat">+</button>
-                </div>
-              </div>
-              <div class="field slow-field" hidden>
-                <span>Setting</span>
-                <div class="seg" role="group" aria-label="Slow cooker setting">
-                  <button class="seg-btn slow-btn" type="button" data-setting="low" aria-pressed="true">Low</button>
-                  <button class="seg-btn slow-btn" type="button" data-setting="high" aria-pressed="false">High</button>
-                </div>
-              </div>
-            </div>
+        <div class="when">
+          <div class="when-seg" role="group" aria-label="When to start">
+            <button id="when-now" class="when-btn" type="button" aria-pressed="true">Start now</button>
+            <button id="when-later" class="when-btn" type="button" aria-pressed="false">Ready later</button>
           </div>
+          <div id="when-later-box" class="later-box" hidden>
+            <button id="later-down" class="btn step-btn" type="button" aria-label="15 minutes earlier">−</button>
+            <span id="later-val" class="later-val"></span>
+            <button id="later-up" class="btn step-btn" type="button" aria-label="15 minutes later">+</button>
+          </div>
+          <p id="when-text" class="when-text"></p>
         </div>
-        <div class="add-row">
-          <button id="add-stage" class="btn ghost" type="button">+ Then</button>
-          <button id="add-same" class="btn ghost" type="button">+ Same time</button>
+        <div id="stage-rows" class="stage-list">
+          <div class="sec" data-sec="ready">
+            <div class="sec-head"><span class="sec-title">🥔 Get ready</span><span class="sec-note">one after another</span></div>
+            <div class="sec-rows"></div>
+            <button class="btn ghost sec-add" type="button">+ Add a get-ready step</button>
+          </div>
+          <p class="sec-down" aria-hidden="true">↓</p>
+          <div class="sec cook" data-sec="cook">
+            <div class="sec-head"><span class="sec-title">🔥 Cook</span><span class="sec-note">all at the same time</span></div>
+            <div class="sec-rows"></div>
+            <button class="btn ghost sec-add" type="button">+ Add a line (cooks at the same time)</button>
+          </div>
+          <p class="sec-down" aria-hidden="true">↓</p>
+          <div class="sec" data-sec="finish">
+            <div class="sec-head"><span class="sec-title">♨️ Finish</span><span class="sec-note">one after another</span></div>
+            <div class="sec-rows"></div>
+            <button class="btn ghost sec-add" type="button">+ Add a finish step</button>
+          </div>
         </div>
         <p id="item-error" class="error" hidden></p>
         <button id="add-item" class="btn primary block" type="button">Add to tonight</button>
@@ -259,6 +245,15 @@
       </div>
 
       <p id="oven-temp" class="oven"></p>
+
+      <span class="label on-go">On the go</span>
+      <div id="jobs" class="jobs"></div>
+      <p id="jobs-empty" class="muted">Nothing on the go right now.</p>
+
+      <div id="next-alarm" class="next-alarm" hidden>
+        <span class="label">Next alarm</span>
+        <p class="next-alarm-row"><span id="next-alarm-text"></span> <span id="next-alarm-time" class="next-alarm-time"></span></p>
+      </div>
 
       <ol id="cook-steps" class="cook-steps" aria-label="Cooking steps"></ol>
     </section>
