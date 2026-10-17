@@ -13,6 +13,18 @@
 - Tidy the When's dinner panel: remove the old **Ready in / or at** boxes and **Cook now** (they do the same job as Start now / Ready later). The tile still shows the dinner time.
 - Keep the current time under Reset.
 
+## Plan from Miro board "My First Board" (Darren, 2026-10-17) — to grill
+Keeps mockup 5's 3 sections (Get ready → Cook → Finish) but asks questions to get there, so empty sections are skipped.
+1. **Header → Options.**
+2. **Dinner / Timer tiles**: tap collapses them; the timer gets the new ring UI (+1/+5/+10, Start, Reset). Timer: ignore for now.
+3. **Meal name** at the top, used to save the meal.
+4. **Add an item** (e.g. chicken), Saved list on the right.
+5. **"Any prep?"** Yes → Get ready steps (Oven / Hob / Slow cook / Prep / Rest + time). No → skip.
+6. **"Does anything need cooking first?"** Yes → an earlier cook stage before the rest. No → default: everything finishes at the set time.
+7. **Cook**: all lines finish at the same time (+ Add a line).
+8. **Finish**: e.g. put the pie in the oven (+ Add a finish step).
+9. **Add to tonight** button at the bottom.
+
 ## Ideas for next chat (Darren, 2026-10-17)
 1. ~~Check the phone test~~ done 2026-10-17: v1.1.8 beep is perfect unlocked, silent when locked.
 2. **Choose the alarm tone**: a few built-in tones (beeps, chimes, kitchen bell) with ▶ preview; beep-beep-beep stays the default.
