@@ -1,0 +1,261 @@
+<title>DinnerSync Mockup 5</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap">
+<style>
+/* Layout: three phone cards (stack on phones): the dish form in 3 sections, the plan it makes, the cooking screen with a timer per job. App's dark-kitchen palette. */
+:root{
+  --bg:#121012; --panel:#1c191c; --panel-2:#26222a; --field:#0e0c0e; --line:#3a343b;
+  --text:#f3ede6; --muted:#a39a93; --orange:#ff7a2f; --orange-soft:#ffb07a;
+  --ok:#7fd6a0; --ink:#1a0f08; --blue:#8ab4ff; --hob:#ffb38a;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
+.intro{color:var(--muted);margin:0 0 20px;max-width:62ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-soft);font-weight:700;margin:0 0 4px 4px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 10px 4px}
+.phone{background:radial-gradient(ellipse at 50% -10%,rgba(255,122,47,.16),transparent 60%),var(--bg);border:1px solid var(--line);border-radius:28px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.dish{font-family:var(--display);font-weight:800;font-size:1.3rem}
+/* the 3 sections */
+.sec{border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);background:var(--panel-2)}
+.sec.cook{border:1px dashed var(--orange);background:rgba(255,122,47,.06)}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sec-title{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.sec-note{font-size:12px;color:var(--muted)}
+.sec.cook .sec-note{color:var(--orange-soft)}
+.job{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.st{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+.st-name{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+.tag.hob{color:var(--hob);border-color:#7a4a33}.tag.oven{color:var(--orange-soft);border-color:var(--orange)}.tag.prep{color:var(--blue);border-color:#3e5578}
+.stepper{display:grid;grid-template-columns:40px 1fr 40px;gap:6px;align-items:center}
+.stepper button{height:36px;border-radius:10px;background:var(--field);border:1px solid var(--line);color:var(--text);font-size:18px;font-weight:700;cursor:pointer}
+.stepper button:focus-visible,.add:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.val{font-family:var(--display);font-weight:800;font-size:1.05rem;text-align:center;font-variant-numeric:tabular-nums}
+.temp{font-size:12px;color:var(--muted);text-align:center}
+.then{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-align:center;text-transform:uppercase}
+.add{background:none;border:1px dashed var(--line);color:var(--muted);border-radius:10px;padding:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--body)}
+.sec.cook .add.line{border-color:var(--orange);color:var(--orange-soft)}
+.down{text-align:center;color:var(--muted);font-size:13px;font-weight:700}
+.toast{color:var(--ok);font-size:13px;text-align:center;min-height:1.2em;margin:0}
+/* plan */
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tl li{display:grid;grid-template-columns:58px 1fr;gap:10px;align-items:start;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.tl time{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;color:var(--orange-soft);padding-top:2px}
+.tl .body{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tl .dishname{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tl .what{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tl li.preheat{border-left:3px solid var(--orange-soft)}
+.tl li.ready{border-left:3px solid var(--ok)}
+.tl li.ready time,.tl li.ready .what{color:var(--ok);font-weight:800}
+.ready-line{display:flex;justify-content:space-between;align-items:center}
+.ready-line b{font-family:var(--display);font-size:1.4rem;color:var(--orange)}
+/* cooking screen */
+.now{display:flex;justify-content:space-between;align-items:baseline}
+.now b{font-family:var(--display);font-size:1.3rem}
+.timer{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.timer.live{border-color:var(--orange)}
+.timer-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.count{font-family:var(--display);font-weight:800;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:999px;background:var(--field);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--orange);border-radius:999px}
+.next-up{font-size:13px;color:var(--muted)}
+.dish-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.took{background:rgba(255,122,47,.14);color:var(--orange-soft);border-radius:999px;padding:4px 10px;font-weight:800;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.when{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px}
+.when-seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--field);border-radius:10px;padding:3px}
+.when-seg button{background:none;border:0;color:var(--muted);border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-family:var(--body)}
+.when-seg button.on{background:var(--orange);color:var(--ink)}
+.when-text{margin:0;font-size:14px;color:var(--muted);text-align:center}
+.when-text b{color:var(--ok)}
+.done-btn{background:var(--ok);color:var(--ink);border:0;border-radius:10px;padding:6px 12px;font-weight:800;cursor:pointer}
+</style>
+
+<div class="wrap">
+  <h1>DinnerSync — mockup 5</h1>
+  <p class="intro">Your idea: every dish has 3 sections. Next to the name: how long it takes, and when it's ready if you start now. Want it later? Tap "Ready later". Tap − / + anywhere and everything updates.</p>
+
+  <div class="grid">
+    <section>
+      <p class="label">1 · Add a dish</p>
+      <p class="sub">Get ready → Cook (all at once) → Finish.</p>
+      <div class="phone"><div class="card" id="form"></div></div>
+    </section>
+
+    <section>
+      <p class="label">2 · The plan</p>
+      <p class="sub">Each step says which dish it's for.</p>
+      <div class="phone">
+        <div class="card">
+          <div class="ready-line"><span class="cap">Dinner at</span><b id="dinner-at"></b></div>
+          <ol class="tl" id="tl"></ol>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <p class="label">3 · Cooking (22 min in)</p>
+      <p class="sub">One timer for each job on the go, each with its own alarm.</p>
+      <div class="phone">
+        <div class="card" id="cook"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+// The dish: "ready" and "finish" run one after another; each "cook" line runs at the same time, and all lines finish together.
+const dish = {
+  name: 'Mince pie',
+  ready: [{ text: 'Peel potatoes', method: 'prep', min: 10 }],
+  cook: [
+    [{ text: 'Fry mince + packet', method: 'hob', min: 25 }],
+    [{ text: 'Boil potatoes', method: 'hob', min: 15 }, { text: 'Mash', method: 'prep', min: 5 }],
+  ],
+  finish: [{ text: 'Build pie', method: 'prep', min: 5 }, { text: 'Into the oven', method: 'oven', min: 30, temp: 200 }],
+};
+const MIN = 60000, PREHEAT = 15;
+// Mock clock: the form is filled in at 4:50pm; the cooking screen is shown 22 min into cooking.
+const FORM_NOW = new Date(2026, 9, 17, 16, 50).getTime();
+let DINNER = 0, NOW = 0, laterAt = new Date(2026, 9, 17, 19, 0).getTime(), mode = 'now';
+const TAG = { hob: '🔥 Hob', oven: '♨️ Oven', prep: '🥄 Prep' };
+const $ = id => document.getElementById(id);
+const fmtT = m => m >= 60 ? `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60} min` : ''}` : `${m} min`;
+const clock = t => { const d = new Date(t), h = d.getHours(); return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`; };
+const sum = list => list.reduce((s, st) => s + st.min, 0);
+const toast = msg => { $('toast').textContent = msg; };
+
+function stageEl(st) {
+  const box = document.createElement('div');
+  box.innerHTML = `<div class="st"><span class="st-name"></span><span class="tag ${st.method}">${TAG[st.method]}</span></div>
+    <div class="stepper"><button type="button" aria-label="Less time">−</button><span class="val">${fmtT(st.min)}</span><button type="button" aria-label="More time">+</button></div>
+    ${st.temp ? `<div class="temp">${st.temp}°C</div>` : ''}`;
+  box.querySelector('.st-name').textContent = st.text;
+  const [down, up] = box.querySelectorAll('.stepper button');
+  down.onclick = () => { st.min = Math.max(5, st.min - 5); draw(); };
+  up.onclick = () => { st.min = Math.min(600, st.min + 5); draw(); };
+  return box;
+}
+
+function section(cls, title, note, jobs, addText) {
+  const sec = document.createElement('div');
+  sec.className = `sec ${cls}`;
+  sec.innerHTML = `<div class="sec-head"><span class="sec-title">${title}</span><span class="sec-note">${note}</span></div>`;
+  for (const job of jobs) {
+    const card = document.createElement('div');
+    card.className = 'job';
+    job.forEach((st, i) => { if (i) card.insertAdjacentHTML('beforeend', '<div class="then">then</div>'); card.append(stageEl(st)); });
+    if (cls === 'cook') card.insertAdjacentHTML('beforeend', '<button class="add" type="button" data-msg="Adds a step after this one, in this line">+ then</button>');
+    sec.append(card);
+  }
+  sec.insertAdjacentHTML('beforeend', `<button class="add ${cls === 'cook' ? 'line' : ''}" type="button" data-msg="${addText}">${addText}</button>`);
+  return sec;
+}
+
+// Total time = from the first step (preheat included) to the dish being ready.
+function totalMin() {
+  const saved = DINNER;
+  DINNER = 0;
+  const rows = schedule();
+  DINNER = saved;
+  return Math.round(-Math.min(...rows.map(r => r.at)) / MIN);
+}
+
+function draw() {
+  const f = $('form');
+  const total = totalMin();
+  const asap = FORM_NOW + total * MIN;
+  if (mode === 'later' && laterAt < asap) laterAt = Math.ceil(asap / (15 * MIN)) * 15 * MIN;
+  DINNER = mode === 'now' ? asap : laterAt;
+  NOW = DINNER - total * MIN + 22 * MIN;
+  f.innerHTML = `<span class="cap">Add a dish</span>
+    <div class="dish-row"><span class="dish">Mince pie</span><span class="took">⏱ ${fmtT(total)}</span></div>
+    <div class="when">
+      <div class="when-seg"><button type="button" data-mode="now" class="${mode === 'now' ? 'on' : ''}">Start now</button><button type="button" data-mode="later" class="${mode === 'later' ? 'on' : ''}">Ready later</button></div>
+      ${mode === 'now'
+        ? `<p class="when-text">Start now (${clock(FORM_NOW)}pm) → <b>ready at ${clock(asap)}pm</b></p>`
+        : `<div class="stepper"><button type="button" id="later-down" aria-label="15 minutes earlier">−</button><span class="val">Ready at ${clock(laterAt)}pm</span><button type="button" id="later-up" aria-label="15 minutes later">+</button></div>
+           <p class="when-text">Start at <b>${clock(laterAt - total * MIN)}pm</b></p>`}
+    </div>`;
+  f.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = b.dataset.mode; draw(); });
+  if (mode === 'later') {
+    $('later-down').onclick = () => { laterAt = Math.max(asap, laterAt - 15 * MIN); draw(); };
+    $('later-up').onclick = () => { laterAt += 15 * MIN; draw(); };
+  }
+  f.append(section('ready', '🥔 Get ready', 'one after another', dish.ready.map(s => [s]), '+ Add a get-ready step'));
+  f.insertAdjacentHTML('beforeend', '<div class="down">↓</div>');
+  f.append(section('cook', '🔥 Cook', 'all at the same time', dish.cook, '+ Add a line (cooks at the same time)'));
+  f.insertAdjacentHTML('beforeend', '<div class="down">↓</div>');
+  f.append(section('finish', '♨️ Finish', 'one after another', dish.finish.map(s => [s]), '+ Add a finish step'));
+  f.insertAdjacentHTML('beforeend', '<p class="toast" id="toast"></p>');
+  f.querySelectorAll('.add').forEach(b => b.onclick = () => toast(`In the app: ${b.dataset.msg.replace(/^\+ /, '').toLowerCase()}`));
+  drawPlan();
+}
+
+// Work backwards from dinner: finish ends at dinner, cook lines all end where finish starts, get-ready ends where cook starts.
+function schedule() {
+  const rows = [];
+  const finishStart = DINNER - sum(dish.finish) * MIN;
+  let at = finishStart;
+  for (const st of dish.finish) { rows.push({ at, st }); at += st.min * MIN; }
+  const cookLong = Math.max(0, ...dish.cook.map(sum));
+  const cookStart = finishStart - cookLong * MIN;
+  dish.cook.forEach((line, li) => {
+    let t = finishStart - sum(line) * MIN;
+    for (const st of line) { rows.push({ at: t, st, line: li }); t += st.min * MIN; }
+  });
+  let r = cookStart - sum(dish.ready) * MIN;
+  for (const st of dish.ready) { rows.push({ at: r, st }); r += st.min * MIN; }
+  const oven = rows.find(x => x.st.method === 'oven');
+  if (oven) rows.push({ at: oven.at - PREHEAT * MIN, preheat: true });
+  return rows.sort((a, b) => a.at - b.at);
+}
+
+function drawPlan() {
+  const tl = $('tl');
+  tl.replaceChildren();
+  for (const r of schedule()) {
+    const li = document.createElement('li');
+    if (r.preheat) { li.className = 'preheat'; li.innerHTML = `<time>${clock(r.at)}</time><div class="body"><span class="what">Preheat oven to 200°C</span></div>`; tl.append(li); continue; }
+    li.innerHTML = `<time>${clock(r.at)}</time><div class="body"><span class="dishname">${dish.name}</span><span class="what"><span class="tag ${r.st.method}">${TAG[r.st.method]}</span><span></span></span></div>`;
+    li.querySelector('.what span:last-child').textContent = r.st.temp ? `${r.st.text} — ${r.st.temp}°C` : r.st.text;
+    tl.append(li);
+  }
+  tl.insertAdjacentHTML('beforeend', `<li class="ready"><time>${clock(DINNER)}</time><div class="body"><span class="what">🍽 Dinner</span></div></li>`);
+  $('dinner-at').textContent = `${clock(DINNER)}pm`;
+  drawCook();
+}
+
+// Cooking screen at NOW: every job that has started and not finished gets its own countdown.
+function drawCook() {
+  const c = $('cook');
+  const rows = schedule();
+  c.innerHTML = `<div class="now"><span class="cap">Time now</span><b>${clock(NOW)}pm</b></div><span class="cap">On the go</span>`;
+  const live = rows.filter(r => !r.preheat && r.at <= NOW && r.at + r.st.min * MIN > NOW);
+  for (const r of live) {
+    const left = Math.round((r.at + r.st.min * MIN - NOW) / MIN);
+    const nextInLine = r.line != null ? dish.cook[r.line][dish.cook[r.line].indexOf(r.st) + 1] : null;
+    const pct = Math.round(100 * left / r.st.min);
+    const t = document.createElement('div');
+    t.className = 'timer live';
+    t.innerHTML = `<div class="timer-top"><span><span class="dishname cap">${dish.name}</span><br><b></b></span><span class="tag ${r.st.method}">${TAG[r.st.method]}</span></div>
+      <div class="timer-top"><span class="count">${left}:00</span><button class="done-btn" type="button">Done ✓</button></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      ${nextInLine ? `<span class="next-up">then: ${nextInLine.text}</span>` : ''}`;
+    t.querySelector('b').textContent = r.st.text;
+    c.append(t);
+  }
+  if (!live.length) c.insertAdjacentHTML('beforeend', '<p class="next-up">Nothing on the go right now.</p>');
+  const next = rows.find(r => r.at > NOW);
+  if (next) c.insertAdjacentHTML('beforeend', `<span class="cap">Next alarm</span><div class="timer"><div class="timer-top"><b>${next.preheat ? 'Preheat oven to 200°C' : next.st.text}</b><span class="count" style="font-size:1.1rem">${clock(next.at)}</span></div></div>`);
+}
+
+draw();
+</script>

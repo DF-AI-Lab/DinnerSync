@@ -1,9 +1,16 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — v1.1.11 live, all merged to the default branch
-- Last session: 2026-10-16/17 — cooking card polish, phone back keeps cooking, locked-phone alarms (silent loop + ring), logo/version header, timer rings, repeating notifications
-- Next action: finish v1. Locked-phone alarm still fails in v1.1.8 (beep fine unlocked). Try trick A (pre-schedule the beeps in Web Audio at cooking start), else v1 says "keep screen on" and the Android app fixes it.
+- Current step: Build & Test — v1.1.11 live. Mockup 5 approved, not built yet.
+- Last session: 2026-10-17 — locked-phone alarm tries (hum keep-alive, own beep; still silent when locked), Cook now + clock, − / + steppers, Slow cook, keyboard ✓, Same time tracks + Prep (v1.1.11)
+- Next action: **build mockup 5** (docs/mock-v5-sections.html, https://claude.ai/artifact/8sgDK1eaVfZNGiaRTemQRo). Tests first, Haiku builds:
+  1. Add-a-dish form in 3 fixed sections: 🥔 Get ready (one after another) → 🔥 Cook (each line runs at the same time, all lines finish together; a line can have "+ then", e.g. Boil potatoes → Mash) → ♨️ Finish (one after another). Empty sections are skipped. Replaces the "+ Same time" / "+ Then" form from v1.1.11.
+  2. Data: reuse group/track (Get ready = group 0 one track, Cook = group 1 one track per line, Finish = group 2 one track); plan.js already lays this out. Old saved items (no section) still load.
+  3. Next to the dish name: ⏱ total time (preheat included), live as steps change.
+  4. Under it: [Start now] / [Ready later]. Start now = "ready at X if you start now" (default). Ready later = − / + dinner time, 15 min a tap, never earlier than the soonest.
+  5. Plan screen: dish name above each step.
+  6. Cooking screen: one countdown per job on the go, each with Done ✓ and its own alarm; then the next alarm below.
+- Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
 ## Ideas for next chat (Darren, 2026-10-17)
 1. ~~Check the phone test~~ done 2026-10-17: v1.1.8 beep is perfect unlocked, silent when locked.
