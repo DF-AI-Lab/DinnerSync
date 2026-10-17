@@ -190,7 +190,23 @@ function bindTiles() {
   $('tile-timer').addEventListener('click', () => toggleDrawer('timer'));
 }
 
+// Cook now: dinner at the earliest it can be ready if starting right now. Needs at least one item.
+function bindCookNow() {
+  $('cook-now').addEventListener('click', () => {
+    const plan = buildPlan({ items: state.items, readyAt: Date.now(), now: Date.now(), preheatMinutes: state.preheatMinutes });
+    if (plan.earliestReady == null) return;
+    state.readyAt = plan.earliestReady;
+    syncReadyInputs();
+    onReadyChanged();
+  });
+}
+
+function showNow() {
+  $('now-clock').textContent = formatClock(Date.now());
+}
+
 function renderStatus() {
+  $('cook-now').disabled = !state.items.length;
   const box = $('status');
   box.className = 'status';
   box.replaceChildren();
@@ -861,7 +877,10 @@ function init() {
   bindCookScreen();
   bindTiles();
   bindTimer();
+  bindCookNow();
   renderTimer();
+  showNow();
+  setInterval(showNow, 1000);
 
   // The timer is shown live (about 4 times a second); it is cheap to redraw.
   setInterval(renderTimer, 250);

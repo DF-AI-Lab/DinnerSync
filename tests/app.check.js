@@ -34,6 +34,10 @@ try {
   assert.ok(vb.x >= bb.x + bb.width, 'version is right of the title');
   const sw = (await import('node:fs')).readFileSync('sw.js', 'utf8');
   assert.match(sw, new RegExp(`const CACHE = 'dinnersync-${ver.replace(/\./g, '\\.')}'`), 'sw cache matches version');
+  // Current time in the header, under Reset, on every screen
+  assert.match(await page.textContent('#now-clock'), /^\d{1,2}:\d\d(am|pm)$/);
+  const resetBox = await page.locator('#cook-reset').boundingBox(), nowBox = await page.locator('#now-clock').boundingBox();
+  assert.ok(nowBox.y >= resetBox.y + resetBox.height - 1, 'clock is under Reset');
   // Two tiles at the top: When's dinner + Timer. Tap opens a panel, one at a time, tap again closes.
   const isOpen = async id => /\bopen\b/.test(await page.getAttribute(id, 'class'));
   assert.match(await page.textContent('#tile-dinner'), /When's dinner/);
@@ -90,6 +94,17 @@ try {
   assert.equal(await page.locator('#add-card .stage-row').count(), 2);
   await page.click('#add-item');
   assert.equal(await page.locator('#items li').count(), 2);
+  // Cook now: dinner set to the earliest it can be ready if starting right now
+  if (!(await isOpen('#panel-dinner'))) await page.click('#tile-dinner');
+  await page.click('#cook-now');
+  assert.match(await page.textContent('#status'), /Enough time — start (preheating|cooking) at/);
+  const startAt = (await page.textContent('#status')).match(/at (\d{1,2}:\d\d(am|pm))/)[1];
+  // dinner time is rounded up to the whole minute, so the start is this minute or the next
+  const nowAndNext = await page.evaluate(() => [0, 60_000].map(d => {
+    const t = new Date(Date.now() + d), h = t.getHours();
+    return `${h % 12 || 12}:${String(t.getMinutes()).padStart(2, '0')}${h >= 12 ? 'pm' : 'am'}`;
+  }));
+  assert.ok(nowAndNext.includes(startAt), `starts now (${startAt} vs ${nowAndNext})`);
   await page.fill('#ready-hours', '3');
   await page.fill('#ready-minutes', '0');
   await page.click('#show-plan');
