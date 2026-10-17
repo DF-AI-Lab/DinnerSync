@@ -419,6 +419,12 @@ try {
   // 10 + 25 + 5 + 30 = 70 (the preheat fits inside)
   assert.match(await mp.textContent('#dish-total'), /⏱\s*1 hr 10 min/);
   assert.match(await mp.textContent('#when-text'), /Start now \(4:50pm\) → ready at 6:00pm/);
+  // Start now / Ready later live in the When's dinner panel
+  assert.equal(await mp.locator('#panel-dinner #when-now').count(), 1);
+  assert.equal(await mp.locator('#add-card .when').count(), 0);
+  await mp.click('#tile-dinner');
+  await mp.waitForTimeout(500);
+  assert.equal(await mp.locator('#when-later').isVisible(), true);
   // Ready later: − / + dinner time, 15 min a tap, never earlier than the soonest
   await mp.click('#when-later');
   assert.equal(await mp.getAttribute('#when-later', 'aria-pressed'), 'true');
