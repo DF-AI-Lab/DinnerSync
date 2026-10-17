@@ -1,8 +1,11 @@
 // Pure dinner-planning logic. No DOM access.
 //
-// An item is { name, stages: [{ method: 'oven'|'hob'|'rest'|'slow', minutes, temp?, setting? }] }.
+// An item is { name, stages: [{ method: 'oven'|'hob'|'rest'|'slow'|'prep', minutes, temp?, setting?, label?, group?, track? }] }.
 // A slow stage is a slow cooker: setting is 'low' (default) or 'high', and it never uses the oven.
-// Stages run back-to-back in order; the last one finishes at readyAt.
+// Groups run one after another, in increasing group order. Within a group, tracks run side by side
+// and all finish together at the group's end. Stages in the same group and track run in array order.
+// A stage with no group gets group = its index, and no track gets track = 0, so old items run in order.
+// The last group finishes at readyAt.
 // Old items { name, minutes, temp } are a single oven stage.
 
 const MIN = 60_000;
@@ -36,6 +39,7 @@ const METHOD_TEXT = {
   hob: name => `${name} on the hob`,
   rest: name => `${name} out to rest`,
   slow: (name, _temp, setting) => `${name} into the slow cooker — ${setting === 'high' ? 'High' : 'Low'}`,
+  prep: name => name,
 };
 
 // Old single-stage items become one oven stage. Stage items are left alone.
@@ -48,6 +52,45 @@ export function normalizeItem(item) {
 // Scale an item's cook time to the oven temperature (hotter oven = shorter).
 export function adjustedMinutes(item, ovenTemp) {
   return Math.round((item.minutes * item.temp) / ovenTemp);
+}
+
+// Stages grouped for layout: groups in order, each a list of tracks, each track a list of
+// stages in array order. A stage with no group/track gets group = its index and track 0.
+export function stageGroups(stages) {
+  const groups = new Map();
+  stages.forEach((st, i) => {
+    const g = Number.isInteger(st.group) ? st.group : i;
+    const t = Number.isInteger(st.track) ? st.track : 0;
+    if (!groups.has(g)) groups.set(g, new Map());
+    const tracks = groups.get(g);
+    if (!tracks.has(t)) tracks.set(t, []);
+    tracks.get(t).push(st);
+  });
+  const inOrder = m => [...m.keys()].sort((a, b) => a - b).map(k => m.get(k));
+  return inOrder(groups).map(tracks => inOrder(tracks));
+}
+
+// Lay one item's stages out backwards from readyAt. Fills startAt (stage object -> start ms)
+// and returns the item's total minutes: the sum of its group durations.
+// A group lasts as long as its longest track. Every track in a group ends at the group's end.
+function layoutStages(stages, readyAt, startAt) {
+  const groups = stageGroups(stages);
+  const trackMinutes = list => list.reduce((total, st) => total + st.cookMinutes, 0);
+  const groupMinutes = tracks => Math.max(...tracks.map(trackMinutes));
+
+  let end = readyAt;
+  for (let g = groups.length - 1; g >= 0; g--) {
+    const tracks = groups[g];
+    for (const list of tracks) {
+      let at = end - trackMinutes(list) * MIN;
+      for (const st of list) {
+        startAt.set(st, at);
+        at += st.cookMinutes * MIN;
+      }
+    }
+    end -= groupMinutes(tracks) * MIN;
+  }
+  return groups.reduce((total, tracks) => total + groupMinutes(tracks), 0);
 }
 
 const ovenMinutes = item =>
@@ -84,6 +127,7 @@ export function buildPlan({ items = [], readyAt, now, preheatMinutes = DEFAULT_P
   const ovenTemp = ovenStage?.temp ?? null;
 
   // Only oven stages are scaled to the oven temperature.
+  const startAt = new Map(); // stage object -> start time
   const planItems = normalized.map((item, i) => {
     const stages = item.stages.map(st => ({
       ...st,
@@ -94,25 +138,22 @@ export function buildPlan({ items = [], readyAt, now, preheatMinutes = DEFAULT_P
     return {
       ...item,
       stages,
-      cookMinutes: stages.reduce((total, st) => total + st.cookMinutes, 0),
+      cookMinutes: layoutStages(stages, readyAt, startAt),
       main: i === mainIndex,
     };
   });
 
-  // Lay each item out backwards from readyAt so its last stage finishes then.
   // rank breaks ties at the same time: preheat, main item, other items, ready.
   const ranked = [];
   for (const item of planItems) {
-    let at = readyAt - item.cookMinutes * MIN;
     for (const st of item.stages) {
       // A stage label (e.g. "Boil potatoes") replaces the item name in the step text.
       const label = (typeof st.label === 'string' && st.label.trim()) || item.name;
       const text = (METHOD_TEXT[st.method] ?? (name => name))(label, ovenTemp, st.setting);
       ranked.push({
         rank: item.main ? 1 : 2,
-        step: { type: 'in', name: item.name, label, method: st.method, at, text, minutes: st.cookMinutes },
+        step: { type: 'in', name: item.name, label, method: st.method, at: startAt.get(st), text, minutes: st.cookMinutes },
       });
-      at += st.cookMinutes * MIN;
     }
   }
 

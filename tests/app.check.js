@@ -347,6 +347,105 @@ try {
   assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), true);
   assert.equal(await tp.isVisible('#cook-screen'), false);
   await tp.close();
+
+  // ---- Same time: mince pie = fry mince ‖ (boil potatoes → mash), then build, then oven ----
+  const mp = await browser.newPage({ viewport: { width: 360, height: 900 } });
+  mp.on('pageerror', e => errors.push(e.message));
+  await mp.goto('http://localhost:8099/index.html');
+  await mp.evaluate(() => localStorage.clear());
+  await mp.reload();
+  const rows = () => mp.locator('.stage-row');
+  const rowAt = i => rows().nth(i);
+  const setT = async (row, mins) => {
+    for (let i = 0; i < 100; i++) {
+      const v = Number(await row.getAttribute('data-minutes'));
+      if (v === mins) return;
+      await row.locator(v < mins ? '.time-up' : '.time-down').click();
+    }
+    throw new Error(`could not set time ${mins}`);
+  };
+  // the + Same time button sits beside + Then
+  assert.equal(await mp.locator('#add-same').count(), 1);
+  assert.match(await mp.textContent('#add-same'), /Same time/);
+  const thenBox = await mp.locator('#add-stage').boundingBox(), sameBox = await mp.locator('#add-same').boundingBox();
+  assert.ok(Math.abs(thenBox.y - sameBox.y) < 4, '+ Then and + Same time on one line');
+  // a new 🥄 Prep cooking type
+  assert.equal(await rowAt(0).getByRole('button', { name: /Prep/ }).count(), 1);
+  await mp.fill('#item-name', 'Mince pie');
+  await rowAt(0).getByRole('button', { name: /Hob/ }).click();
+  await rowAt(0).locator('.stage-label').fill('Fry mince');
+  await setT(rowAt(0), 25);
+  assert.equal(await mp.locator('.together').count(), 0);
+  // + Same time: a second track in the same group, both shown in one dashed "Same time" box, one card under the other
+  await mp.click('#add-same');
+  assert.equal(await rows().count(), 2);
+  assert.equal(await rowAt(1).getAttribute('data-group'), await rowAt(0).getAttribute('data-group'));
+  assert.equal(await rowAt(0).getAttribute('data-track'), '0');
+  assert.equal(await rowAt(1).getAttribute('data-track'), '1');
+  assert.equal(await mp.locator('.together').count(), 1);
+  assert.equal(await mp.locator('.together .stage-row').count(), 2);
+  assert.match(await mp.textContent('.together'), /Same time/i);
+  assert.match(await mp.textContent('.together'), /at the same time/i);
+  const b0 = await rowAt(0).boundingBox(), b1 = await rowAt(1).boundingBox();
+  assert.ok(b1.y > b0.y + b0.height - 1, 'tracks stack one under the other');
+  await rowAt(1).getByRole('button', { name: /Hob/ }).click();
+  await rowAt(1).locator('.stage-label').fill('Boil potatoes');
+  await setT(rowAt(1), 15);
+  // each track has its own "+ then" to add a stage to that track
+  assert.equal(await mp.locator('.together .track-then').count(), 2);
+  await mp.locator('.together .track-then[data-track="1"]').click();
+  assert.equal(await rows().count(), 3);
+  assert.equal(await rowAt(2).getAttribute('data-track'), '1');
+  assert.equal(await rowAt(2).getAttribute('data-group'), await rowAt(0).getAttribute('data-group'));
+  await rowAt(2).getByRole('button', { name: /Prep/ }).click();
+  assert.equal(await rowAt(2).locator('.temp-field').isVisible(), false);
+  await rowAt(2).locator('.stage-label').fill('Mash');
+  await setT(rowAt(2), 5);
+  // + Then (bottom): a new group after the whole same-time box
+  await mp.click('#add-stage');
+  assert.equal(await rows().count(), 4);
+  assert.equal(Number(await rowAt(3).getAttribute('data-group')), Number(await rowAt(0).getAttribute('data-group')) + 1);
+  assert.equal(await rowAt(3).getAttribute('data-track'), '0');
+  assert.equal(await mp.locator('.together .stage-row').count(), 3);
+  await rowAt(3).getByRole('button', { name: /Prep/ }).click();
+  await rowAt(3).locator('.stage-label').fill('Build pie');
+  await setT(rowAt(3), 5);
+  await mp.click('#add-stage');
+  await setT(rowAt(4), 30);
+  await mp.click('#add-item');
+  assert.match(await mp.textContent('#items'), /Mince pie/);
+  assert.match(await mp.textContent('#items'), /‖/);
+  // the plan: things in the right order, mince and mash finish together
+  await mp.click('#tile-dinner');
+  await mp.waitForTimeout(500);
+  await mp.fill('#ready-hours', '2');
+  await mp.fill('#ready-minutes', '0');
+  await mp.click('#show-plan');
+  await mp.waitForSelector('#plan-steps li');
+  const order = await mp.locator('#plan-steps li').allTextContents();
+  const idx = re => order.findIndex(t => re.test(t));
+  assert.ok(idx(/Preheat/) > idx(/Fry mince/) && idx(/Preheat/) < idx(/Mince pie into the oven/), 'preheat before the oven, after the hob work starts');
+  assert.ok(idx(/Fry mince/) < idx(/Boil potatoes/));
+  assert.ok(idx(/Boil potatoes/) < idx(/Mash/));
+  assert.ok(idx(/Mash/) < idx(/Build pie/));
+  assert.ok(idx(/Build pie/) < idx(/Mince pie into the oven/));
+  // saved item comes back with the same shape
+  await mp.click('#back-plan');
+  await mp.click('#saved-toggle');
+  await mp.locator('#saved-list li', { hasText: 'Mince pie' }).locator('.saved-pick').click();
+  assert.equal(await rows().count(), 5);
+  assert.equal(await mp.locator('.together .stage-row').count(), 3);
+  assert.equal(await rowAt(2).getAttribute('data-track'), '1');
+  assert.equal(await rowAt(2).getAttribute('data-method'), 'prep');
+  // removing stages: a track with no stages left goes; one track left = no same-time box
+  await rowAt(2).locator('.stage-remove').click();
+  assert.equal(await mp.locator('.together').count(), 1);
+  await rowAt(1).locator('.stage-remove').click();
+  assert.equal(await mp.locator('.together').count(), 0);
+  assert.equal(await rows().count(), 3);
+  assert.equal(await rowAt(1).getAttribute('data-group'), String(Number(await rowAt(0).getAttribute('data-group')) + 1));
+  assert.equal(await mp.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'no side scroll');
+  await mp.close();
   assert.deepEqual(errors, []);
   console.log('app.check: OK');
 } finally {

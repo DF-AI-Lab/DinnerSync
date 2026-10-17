@@ -1,7 +1,7 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — v1.1.10 live, all merged to the default branch
+- Current step: Build & Test — v1.1.11 live, all merged to the default branch
 - Last session: 2026-10-16/17 — cooking card polish, phone back keeps cooking, locked-phone alarms (silent loop + ring), logo/version header, timer rings, repeating notifications
 - Next action: finish v1. Locked-phone alarm still fails in v1.1.8 (beep fine unlocked). Try trick A (pre-schedule the beeps in Web Audio at cooking start), else v1 says "keep screen on" and the Android app fixes it.
 
@@ -62,6 +62,7 @@
 | 21 | Cook now button (dinner = earliest ready from now) in the dinner panel; current time under Reset on every screen | Darren | 2026-10-17 |
 | 22 | Add-item card: − / + buttons for time (5 min a tap, 30 for slow cook) and temp (10°); no number keyboard. ✓ beside text boxes closes the keyboard; Saved small on the heading line | Darren: keyboard took half the screen | 2026-10-17 |
 | 23 | Slow cook method: Low/High, starts at 4 hr, not part of the oven temp | Darren | 2026-10-17 |
+| 24 | "+ Same time": stages in one group run side by side (tracks), stacked as cards in a dashed box; all tracks finish together, then the next group. New 🥄 Prep type (no heat) | Darren: mince pie (fry mince ‖ boil+mash, then build, then oven) | 2026-10-17 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)

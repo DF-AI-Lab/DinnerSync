@@ -42,14 +42,16 @@ export function createStore(storage) {
     }
   }
 
-  // Saved items keep their stages. minutes/temp mirror the first oven stage
-  // so older copies of the app can still read the list.
+  // Saved items keep their stages, with their group and track. minutes/temp mirror the first
+  // oven stage so older copies of the app can still read the list.
   function cleanItem(item) {
     const n = normalizeItem(item);
-    const stages = n.stages.map(({ method, minutes, temp, label }) => {
+    const stages = n.stages.map(({ method, minutes, temp, label, group, track }) => {
       const out = method === 'oven' ? { method, minutes, temp } : { method, minutes };
       const text = typeof label === 'string' ? label.trim() : '';
       if (text) out.label = text;
+      if (Number.isInteger(group)) out.group = group;
+      if (Number.isInteger(track)) out.track = track;
       return out;
     });
     const oven = stages.find(s => s.method === 'oven');
