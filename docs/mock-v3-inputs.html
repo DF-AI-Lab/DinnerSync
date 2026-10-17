@@ -29,7 +29,8 @@ input.f:focus{outline:2px solid var(--orange);outline-offset:1px}
 .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
 .btn.go{background:var(--orange);color:var(--ink);border-color:var(--orange)}
 .tick{width:48px;height:46px;flex:none;border-radius:12px;background:var(--ok);color:var(--ink);border:0;font-size:22px;font-weight:800;cursor:pointer}
-.tick[hidden]{display:none}
+.tick.off{opacity:.3}
+.btn.small{padding:5px 12px;font-size:13px;border-radius:999px}
 .toast{background:rgba(127,214,160,.12);border:1px solid var(--ok);color:var(--ok);border-radius:12px;padding:8px 12px;font-weight:600;font-size:14px}
 .menu{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column}
 .menu button{background:none;border:0;color:var(--text);text-align:left;padding:10px 12px;font-size:15px;cursor:pointer;border-bottom:1px solid var(--line)}
@@ -59,14 +60,16 @@ input.f:focus{outline:2px solid var(--orange);outline-offset:1px}
     <!-- Idea 1 -->
     <section>
       <p class="label">Idea 1 · Keyboard only when you tap</p>
-      <p class="sub">Pick a saved item: no keyboard. Tap the name box: keyboard + ✓. Tap ✓: keyboard goes away.</p>
+      <p class="sub">Saved ▾ is now small, top right. Tap the name box: keyboard opens and the ✓ lights up. Tap ✓: keyboard goes away.</p>
       <div class="phone" id="p1">
         <div class="card">
-          <span class="cap">Add an item</span>
+          <div class="row" style="justify-content:space-between">
+            <span class="cap">Add an item</span>
+            <button class="btn small" id="saved1" type="button">Saved ▾</button>
+          </div>
           <div class="row">
             <input class="f" id="name1" placeholder="Chicken" autocomplete="off">
-            <button class="tick" id="tick1" type="button" aria-label="Done typing" hidden>✓</button>
-            <button class="btn" id="saved1" type="button">Saved ▾</button>
+            <button class="tick" id="tick1" type="button" aria-label="Done typing">✓</button>
           </div>
           <div class="menu" id="menu1" hidden>
             <button type="button">Roast chicken</button>
@@ -138,7 +141,8 @@ input.f:focus{outline:2px solid var(--orange);outline-offset:1px}
 const $ = id => document.getElementById(id);
 // ---- Idea 1: keyboard (shown as a slide-up panel) only while the name box is tapped ----
 const kb = $('kb1'), name1 = $('name1'), tick = $('tick1');
-const kbUp = up => { kb.classList.toggle('up', up); tick.hidden = !up; };
+const kbUp = up => { kb.classList.toggle('up', up); tick.classList.toggle('off', !up); };
+kbUp(false);
 name1.addEventListener('focus', () => kbUp(true));
 name1.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== name1) kbUp(false); }, 0));
 tick.addEventListener('pointerdown', e => e.preventDefault()); // keep focus until the click lands
