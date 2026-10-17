@@ -6,6 +6,11 @@
 - Next action: test v1.2.0 on the phone.
 - Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
+## Next build (Darren, 2026-10-17)
+- Move **Start now / Ready later** out of the When's dinner panel, back next to the dish name (always showing, as in mockup 5: docs/mock-v5-sections.html).
+- Tidy the When's dinner panel: remove the old **Ready in / or at** boxes and **Cook now** (they do the same job as Start now / Ready later). The tile still shows the dinner time.
+- Keep the current time under Reset.
+
 ## Ideas for next chat (Darren, 2026-10-17)
 1. ~~Check the phone test~~ done 2026-10-17: v1.1.8 beep is perfect unlocked, silent when locked.
 2. **Choose the alarm tone**: a few built-in tones (beeps, chimes, kitchen bell) with ▶ preview; beep-beep-beep stays the default.
