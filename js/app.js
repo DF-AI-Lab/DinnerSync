@@ -1,7 +1,7 @@
 import { buildPlan, stepStatuses, currentCard, spareMinutes, alarmSteps, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
 import { createStore } from './store.js';
 import { createCountdown } from './timer.js';
-import { ringWav, RING, keepAliveWav } from './ring.js';
+import { keepAliveWav } from './ring.js';
 
 const MIN = 60_000;
 const DEFAULT_READY_MIN = 90;
@@ -25,9 +25,7 @@ const state = {
 
 let cook = null;      // {plan, done, lastChecked, timer, spare, spareFor} while cooking; done = ticked step indexes
 let cardKey = null;   // what the cooking list was last built from (see renderCookSteps)
-let alarmTimer = null;
 let notifyTimer = null; // repeats the alarm notification (and its sound) until Done
-let audioCtx = null;
 let wakeLock = null;
 let openDrawer = null; // 'dinner' | 'timer' | null
 const timer = createCountdown();
@@ -469,7 +467,6 @@ function bindTimelineScreen() {
   $('back-plan').addEventListener('click', () => showScreen('plan'));
   $('start-cooking').addEventListener('click', () => {
     requestNotifications();
-    unlockAudio();
     const plan = state.plan || currentPlan();
     store.saveCooking({ plan, preheatMinutes: state.preheatMinutes, done: [] });
     beginCooking(plan, Date.now(), []);
@@ -689,39 +686,6 @@ function resumeCooking() {
 
 // ---------- alarm: sound, vibration, notification, banner ----------
 
-function unlockAudio() {
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (AC && !audioCtx) audioCtx = new AC();
-    if (audioCtx?.state === 'suspended') audioCtx.resume();
-  } catch {
-    // no audio support
-  }
-}
-
-function beepOnce() {
-  if (!audioCtx) return;
-  try {
-    const t0 = audioCtx.currentTime;
-    for (let i = 0; i < 3; i++) {
-      const start = t0 + i * 0.35;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.4, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
-      osc.start(start);
-      osc.stop(start + 0.27);
-    }
-  } catch {
-    // ignore audio errors
-  }
-}
-
 // Done on the notification (sw.js posts this) stops the alarm, as if Done was tapped here.
 navigator.serviceWorker?.addEventListener('message', e => {
   if (e.data?.type === 'alarm-done' && !$('alarm-banner').hidden) $('alarm-done').click();
@@ -777,36 +741,13 @@ function raiseAlarm(text, kind = 'cook') {
   $('alarm-text').textContent = text;
   $('alarm-banner').hidden = false;
   buzz();
-  unlockAudio();
-  playRing();
+  startKeepAlive(); // the hum keeps the app awake while the notification repeats
   notify(text);
   clearInterval(notifyTimer);
-  notifyTimer = setInterval(() => notify(text), 10_000); // repeats until Done
-}
-
-// Loops the phone-style ring through the keep-alive element until Done. If the browser blocks it, fall back to the beeps.
-function playRing() {
-  const beeps = () => {
-    if ($('alarm-banner').hidden) return; // already stopped with Done
-    beepOnce();
-    clearInterval(alarmTimer);
-    alarmTimer = setInterval(beepOnce, 2500);
-  };
-  try {
-    setSound('ring');
-    keepAlive.currentTime = 0;
-    keepAlive.volume = 1;
-    clearInterval(alarmTimer);
-    alarmTimer = setInterval(buzz, RING.loopSeconds * 1000); // vibrate with each loop
-    keepAlive.play().catch(beeps);
-  } catch {
-    beeps();
-  }
+  notifyTimer = setInterval(() => notify(text), 1_000); // the notification sound is the alarm; repeats every second until Done
 }
 
 function stopAlarm() {
-  clearInterval(alarmTimer);
-  alarmTimer = null;
   clearInterval(notifyTimer);
   notifyTimer = null;
   try {
@@ -817,15 +758,8 @@ function stopAlarm() {
   } catch {
     // no service worker support
   }
-  stopRing();
   $('alarm-banner').hidden = true;
-}
-
-// Back to the silent loop; it keeps playing only if something still needs the page awake.
-function stopRing() {
-  setSound('silent');
-  if (needAwake()) keepAlive.play().catch(() => {});
-  else keepAlive.pause();
+  stopKeepAlive();
 }
 
 // ---------- timer panel: countdown with +1/+5/+10 min, Start/Pause, Reset ----------
@@ -856,7 +790,6 @@ function bindTimer() {
     });
   }
   $('timer-start').addEventListener('click', () => {
-    unlockAudio();
     if (timer.running) {
       timer.pause(Date.now());
       stopKeepAlive();
@@ -900,14 +833,12 @@ document.addEventListener('visibilitychange', () => {
   requestWakeLock();
   if (needAwake() && keepAlive.paused) startKeepAlive();
 });
-document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 // ---------- keep-alive: a near-silent loop while cooking or timing, so Android keeps the page (and its alarms) running ----------
 
 const keepAlive = $('keep-alive');
 
 const silentUrl = URL.createObjectURL(new Blob([keepAliveWav()], { type: 'audio/wav' }));
-const ringUrl = URL.createObjectURL(new Blob([ringWav()], { type: 'audio/wav' }));
 
 // The page must stay awake while cooking or while the kitchen timer runs.
 const needAwake = () => Boolean(cook) || timer.running;
@@ -915,13 +846,13 @@ const needAwake = () => Boolean(cook) || timer.running;
 // The one element plays either the silent loop or the ring; data-sound says which.
 function setSound(kind) {
   if (keepAlive.dataset.sound === kind) return; // same src: keep playing, no reload
-  keepAlive.src = kind === 'ring' ? ringUrl : silentUrl;
+  keepAlive.src = silentUrl;
   keepAlive.dataset.sound = kind;
 }
 setSound('silent');
 
 function startKeepAlive() {
-  if (keepAlive.dataset.sound !== 'ring') setSound('silent'); // never swap a ringing src out
+  setSound('silent');
   keepAlive.play().catch(() => {
     // Blocked until a tap (e.g. after reload): try again on the next tap while cooking
     document.addEventListener('pointerdown', retryKeepAlive, { once: true });

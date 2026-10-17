@@ -244,16 +244,17 @@ try {
   await tp.clock.runFor(62_000);
   await tp.waitForSelector('#alarm-banner:not([hidden])');
   assert.match(await tp.textContent('#alarm-text'), /Timer/i);
-  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'ring');
+  // No ring tone: the hum keeps playing (keeps the app awake), the notification is the sound
+  assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'silent');
   assert.equal(await tp.locator('#keep-alive').evaluate(a => a.paused), false);
-  // The notification repeats (makes a sound again each time) until Done
-  await tp.clock.runFor(25_000);
+  // The notification repeats every second until Done
+  await tp.clock.runFor(10_000);
   const notes = await tp.evaluate(() => window.__notes);
-  assert.ok(notes.length >= 3, `notification repeats (got ${notes.length})`);
+  assert.ok(notes.length >= 10, `notification repeats every second (got ${notes.length})`);
   assert.equal(notes.at(-1).renotify, true);
   assert.equal(notes.at(-1).requireInteraction, true);
   assert.ok(notes.at(-1).actions?.some(a => a.action === 'done'), 'notification has a Done button');
-  // Done stops the ring; nothing else running, so the silent loop stops too
+  // Done stops the alarm; nothing else running, so the hum stops too
   await tp.click('#alarm-done');
   await tp.waitForSelector('#alarm-banner', { state: 'hidden' });
   assert.equal(await tp.getAttribute('#keep-alive', 'data-sound'), 'silent');
