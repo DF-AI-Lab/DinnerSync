@@ -1,9 +1,17 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — mock v2 built, tests passing, on branch claude/clever-wright-ozar7s
-- Last session: 2026-10-16 — built all of mock v2 (tiles, timer, egg-style cooking card, small Reset)
-- Next action: merge to the default branch so it goes live, then try it on Darren's phone
+- Current step: Build & Test — v1.1.5 live, all merged to the default branch
+- Last session: 2026-10-16/17 — cooking card polish, phone back keeps cooking, locked-phone alarms (silent loop + ring), logo/version header, timer rings, repeating notifications
+- Next action: Darren tests v1.1.5 on his Z Fold (locked phone: ring + repeating notification + Done button). Then pick from "Ideas for next chat" below.
+
+## Ideas for next chat (Darren, 2026-10-17)
+1. **Check the phone test** of v1.1.5 first: does the ring play when locked? does the notification repeat? does its Done ✓ button stop it?
+2. **Choose the ring tone**: a few built-in tones (classic ring, beeps, chimes, kitchen bell) with ▶ preview; classic ring stays the default.
+3. **Use your own sound**: pick a sound file from the phone (MP3 etc.), saved in the app, used for the alarm.
+4. **Phone setting tip (no build)**: Settings → Apps → DinnerSync → Notifications → Sound → pick a ringtone.
+5. **Real Android app (option 3)**, once all the above works well: uses the phone's own alarm system and ringtone list; alarms work even when the app is swiped closed.
+- Known gap: "X min spare" is lost on reload mid-cook.
 
 ## Principles / constraints
 - Tagline: "everything finishes together"
@@ -48,6 +56,11 @@
 | 10 | Cooking screen shows live countdowns: preheat, main meal (to dinner), next item | Darren | 2026-10-16 |
 | 11 | Look: "Dark kitchen" for now; revisit after it works | Darren: operations first | 2026-10-16 |
 | 12 | Silent sound loops while cooking so alarms still fire when the phone is locked (not if the app is swiped closed) | Cheapest fix for locked-phone alarms | 2026-10-16 |
+| 13 | Phone back button on the cook screen goes to the plan; cooking, timers and alarms carry on; orange bar to return | Darren | 2026-10-16 |
+| 14 | Logo (home button) left of title, version right of title; version = offline cache name, bump both together | See which version the phone runs | 2026-10-16 |
+| 15 | Service worker network-first (online = newest files; offline = saved copy) | Phone showed new page with old styles | 2026-10-16 |
+| 16 | Alarm = phone-style ring through the already-playing keep-alive audio; kitchen timer rings too | A new sound can't start on a locked phone | 2026-10-16 |
+| 17 | Alarm notification repeats every 10s until Done, with a Done ✓ button | Darren | 2026-10-17 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
@@ -78,6 +91,8 @@
 ## Tickets
 
 ## Build / test progress
+- 2026-10-17: v1.1.5 — notification repeats every 10s, Done ✓ button on it. 55 tests + browser check pass.
+- 2026-10-16: v1.1.1–v1.1.4 — Done at bottom + bar beside it; phone back keeps cooking; silent keep-alive loop; logo/version header (fits Z Fold cover); network-first SW; phone ring alarm through keep-alive; timer rings. All by Haiku first try, tests written first.
 - 2026-10-16: Done moved to bottom of card; tap ✓ to undo a step; done steps no longer beep. 49 tests + browser check pass.
 - 2026-10-16: Mock v2 built by Haiku first try (tests written first). 46 unit tests + browser check pass. Small CSS polish after (spacing, ring glow, wrap on narrow phones). Known gaps: "X min spare" is lost on reload mid-cook; timer beeps once at 0, not on repeat.
 - 2026-10-16: Added stages (hob/oven/rest + labels), hr/min inputs, saved dropdown with ×, step progress list, Reset with confirm. 32 tests pass. Live on GitHub Pages.
@@ -85,6 +100,7 @@
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-17: Ideas for next chat saved (tone picker, own sound, real Android app)
 - 2026-10-16: Mock v2 agreed (tiles, timer, egg-style cooking screen); saved to docs/mock-v2.html
 - 2026-10-16: Project file created from brain dump; icon added
 - 2026-10-16: Dark look chosen; V1 built and tests passing
