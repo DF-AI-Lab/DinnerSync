@@ -143,8 +143,8 @@ test('same-time tracks finish together, then the next group starts', () => {
   assert.equal(when('Mince pie'), at(17, 30)); // the unlabelled oven stage uses the item name
   assert.equal(plan.items[0].cookMinutes, 60); // 25 (longest track) + 5 + 30
   assert.equal(plan.ovenTemp, 200);
-  assert.equal(plan.steps[0].type, 'preheat');
-  assert.equal(plan.steps[0].at, at(17, 15));
+  // preheat is 15 min before the oven stage, so it comes after the hob work has started
+  assert.equal(plan.steps.find(s => s.type === 'preheat').at, at(17, 15));
   // steps come out in time order
   const ats = plan.steps.map(s => s.at);
   assert.deepEqual(ats, [...ats].sort((a, b) => a - b));

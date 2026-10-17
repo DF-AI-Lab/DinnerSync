@@ -1,11 +1,11 @@
-import { buildPlan, stepStatuses, currentCard, spareMinutes, alarmSteps, normalizeItem, toMinutes, splitMinutes, formatDuration } from './plan.js';
+import { buildPlan, stepStatuses, currentCard, spareMinutes, alarmSteps, normalizeItem, toMinutes, splitMinutes, formatDuration, stageGroups } from './plan.js';
 import { createStore } from './store.js';
 import { createCountdown } from './timer.js';
 import { keepAliveWav, alarmWav, ALARM } from './ring.js';
 
 const MIN = 60_000;
 const DEFAULT_READY_MIN = 90;
-const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow cook', rest: '⏸ Rest' };
+const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow cook', rest: '⏸ Rest', prep: '🥄 Prep' };
 const STAGE_DEFAULTS = { minutes: 30, temp: 200, setting: 'low' };
 const RESUME_GRACE_MS = 2 * 60 * MIN;
 const RING_LEN = 2 * Math.PI * 52; // circumference of the timer ring (r=52)
@@ -106,6 +106,8 @@ function cleanStage(st) {
     out.temp = temp;
   }
   if (st.method === 'slow') out.setting = st.setting === 'high' ? 'high' : 'low';
+  if (Number.isInteger(st.group) && st.group >= 0) out.group = st.group;
+  if (Number.isInteger(st.track) && st.track >= 0) out.track = st.track;
   if (label) out.label = label;
   return out;
 }
@@ -120,18 +122,27 @@ function cleanItem(x) {
   return { name: x.name.trim(), stages };
 }
 
-// "Boil potatoes: Hob 10 min → Roast potatoes: Oven 45 min 220°C (55 min at 180°C) → Rest 15 min"
+// One stage as text: "Boil potatoes: Hob 10 min", "Roast: Oven 45 min 220°C (55 min at 180°C)".
+function stageText(st, ovenTemp) {
+  const prefix = st.label ? `${st.label}: ` : '';
+  if (st.method === 'oven') {
+    const scaled = st.cookMinutes !== undefined && st.cookMinutes !== st.minutes;
+    const scaledText = scaled ? ` (${formatDuration(st.cookMinutes)} at ${ovenTemp}°C)` : '';
+    return `${prefix}Oven ${formatDuration(st.minutes)} ${st.temp}°C${scaledText}`;
+  }
+  if (st.method === 'hob') return `${prefix}Hob ${formatDuration(st.minutes)}`;
+  if (st.method === 'slow') return `${prefix}Slow cook ${formatDuration(st.minutes)} (${st.setting === 'high' ? 'High' : 'Low'})`;
+  if (st.method === 'prep') return `${prefix}Prep ${formatDuration(st.minutes)}`;
+  return `${prefix}Rest ${formatDuration(st.minutes)}`;
+}
+
+// "Boil potatoes: Hob 10 min → Roast potatoes: Oven 45 min 220°C → Rest 15 min".
+// Tracks that run side by side go in brackets, joined by ‖, one group after another:
+// "[Fry mince: Hob 25 min ‖ Boil potatoes: Hob 15 min → Mash: Prep 5 min] → Build pie: Prep 5 min".
 function describeStages(stages, ovenTemp) {
-  return stages.map(st => {
-    const prefix = st.label ? `${st.label}: ` : '';
-    if (st.method === 'oven') {
-      const scaled = st.cookMinutes !== undefined && st.cookMinutes !== st.minutes;
-      const scaledText = scaled ? ` (${formatDuration(st.cookMinutes)} at ${ovenTemp}°C)` : '';
-      return `${prefix}Oven ${formatDuration(st.minutes)} ${st.temp}°C${scaledText}`;
-    }
-    if (st.method === 'hob') return `${prefix}Hob ${formatDuration(st.minutes)}`;
-    if (st.method === 'slow') return `${prefix}Slow cook ${formatDuration(st.minutes)} (${st.setting === 'high' ? 'High' : 'Low'})`;
-    return `${prefix}Rest ${formatDuration(st.minutes)}`;
+  return stageGroups(stages).map(tracks => {
+    const texts = tracks.map(list => list.map(st => stageText(st, ovenTemp)).join(' → '));
+    return texts.length > 1 ? `[${texts.join(' ‖ ')}]` : texts[0];
   }).join(' → ');
 }
 
@@ -350,7 +361,13 @@ function bindPlanScreen() {
   });
 
   $('add-stage').addEventListener('click', () => {
-    addStageRow('oven');
+    addStageRow(lastGroup() + 1, 0);
+  });
+
+  $('add-same').addEventListener('click', () => {
+    const group = lastGroup();
+    const track = Math.max(...stageRows().filter(r => Number(r.dataset.group) === group).map(r => Number(r.dataset.track))) + 1;
+    addStageRow(group, track);
   });
 
   $('preheat').addEventListener('input', () => {
@@ -389,7 +406,59 @@ function readStageRows() {
     minutes: Number(row.dataset.minutes),
     temp: row.dataset.temp,
     setting: row.dataset.setting,
+    group: Number(row.dataset.group),
+    track: Number(row.dataset.track),
   }));
+}
+
+function lastGroup() {
+  return Math.max(...stageRows().map(row => Number(row.dataset.group)));
+}
+
+// Make the rows' groups and tracks run 0..n-1 each, so no gaps are left after a removal.
+function renumberStages() {
+  const rows = stageRows();
+  const groups = [...new Set(rows.map(r => Number(r.dataset.group)))].sort((a, b) => a - b);
+  for (const g of groups) {
+    const inGroup = rows.filter(r => Number(r.dataset.group) === g);
+    const tracks = [...new Set(inGroup.map(r => Number(r.dataset.track)))].sort((a, b) => a - b);
+    for (const row of inGroup) row.dataset.track = String(tracks.indexOf(Number(row.dataset.track)));
+  }
+  for (const row of rows) row.dataset.group = String(groups.indexOf(Number(row.dataset.group)));
+}
+
+// Re-arrange the rows by group, then track, then their order in the form. Rows are moved,
+// never re-created, so their values and listeners survive. A group with several tracks goes in
+// a dashed "Same time" box, one track under the other.
+function layoutStages() {
+  const host = $('stage-rows');
+  const entries = stageRows().map((row, i) => ({ row, i, g: Number(row.dataset.group), t: Number(row.dataset.track) }))
+    .sort((a, b) => a.g - b.g || a.t - b.t || a.i - b.i);
+  const groups = [];
+  for (const { row, g, t } of entries) {
+    let group = groups[groups.length - 1];
+    if (!group || group.g !== g) groups.push(group = { g, tracks: [] });
+    let track = group.tracks[group.tracks.length - 1];
+    if (!track || track.t !== t) group.tracks.push(track = { t, rows: [] });
+    track.rows.push(row);
+  }
+
+  host.replaceChildren(); // drops the old wrappers; the rows are still held above
+  for (const group of groups) {
+    if (group.tracks.length === 1) {
+      host.append(...group.tracks[0].rows);
+      continue;
+    }
+    const box = el('div', { class: 'together' }, el('div', { class: 'together-head' }, '‖ Same time — finish together'));
+    group.tracks.forEach((track, n) => {
+      if (n) box.append(el('div', { class: 'alongside' }, '‖ at the same time'));
+      const then = el('button', { class: 'btn ghost track-then', type: 'button', 'data-track': String(track.t) }, '+ then');
+      then.addEventListener('click', () => addStageRow(group.g, track.t));
+      box.append(el('div', { class: 'track', 'data-track': String(track.t) },
+        el('div', { class: 'track-head' }, `Track ${track.t + 1}`), ...track.rows, then));
+    });
+    host.append(box);
+  }
 }
 
 // Show a stage row from its data attributes: the method, the setting, the time and the temp.
@@ -490,6 +559,8 @@ function bindStageRow(row) {
   bindTick(row.querySelector('.stage-label'), row.querySelector('.stage-tick'));
   row.querySelector('.stage-remove').addEventListener('click', () => {
     row.remove();
+    renumberStages();
+    layoutStages();
     numberRows();
   });
 }
@@ -503,9 +574,12 @@ function appendStageRow(method) {
   return row;
 }
 
-// A new stage after "+ Then". Nothing is focused, so the keyboard stays shut.
-function addStageRow(method) {
-  appendStageRow(method);
+// A new stage in a group and track. Nothing is focused, so the keyboard stays shut.
+function addStageRow(group, track) {
+  const row = appendStageRow('oven');
+  row.dataset.group = String(group);
+  row.dataset.track = String(track);
+  layoutStages();
   numberRows();
 }
 
@@ -519,9 +593,13 @@ function fillDraft(item) {
     row.dataset.minutes = String(st.minutes);
     row.dataset.temp = String(st.temp ?? STAGE_DEFAULTS.temp);
     row.dataset.setting = st.setting === 'high' ? 'high' : 'low';
+    row.dataset.group = String(Number.isInteger(st.group) ? st.group : i);
+    row.dataset.track = String(Number.isInteger(st.track) ? st.track : 0);
     row.querySelector('.stage-label').value = st.label || '';
     paintStage(row);
   });
+  renumberStages();
+  layoutStages();
   numberRows();
   $('item-error').hidden = true;
 }
@@ -537,8 +615,11 @@ function resetDraft() {
     minutes: String(STAGE_DEFAULTS.minutes),
     temp: String(STAGE_DEFAULTS.temp),
     setting: STAGE_DEFAULTS.setting,
+    group: '0',
+    track: '0',
   });
   paintStage(first);
+  layoutStages();
   numberRows();
 }
 

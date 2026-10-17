@@ -424,7 +424,7 @@ try {
   await mp.waitForSelector('#plan-steps li');
   const order = await mp.locator('#plan-steps li').allTextContents();
   const idx = re => order.findIndex(t => re.test(t));
-  assert.ok(idx(/Preheat/) < idx(/Fry mince/), 'preheat first');
+  assert.ok(idx(/Preheat/) > idx(/Fry mince/) && idx(/Preheat/) < idx(/Mince pie into the oven/), 'preheat before the oven, after the hob work starts');
   assert.ok(idx(/Fry mince/) < idx(/Boil potatoes/));
   assert.ok(idx(/Boil potatoes/) < idx(/Mash/));
   assert.ok(idx(/Mash/) < idx(/Build pie/));

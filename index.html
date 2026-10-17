@@ -24,7 +24,7 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.1.10</span>
+              <span id="app-version" class="app-version">v1.1.11</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
@@ -123,7 +123,7 @@
           </div>
         </div>
         <div id="stage-rows" class="stage-list">
-          <div class="stage-row" data-method="oven" data-minutes="30" data-temp="200" data-setting="low">
+          <div class="stage-row" data-method="oven" data-minutes="30" data-temp="200" data-setting="low" data-group="0" data-track="0">
             <div class="stage-head">
               <span class="label stage-num">Stage 1</span>
               <button class="icon-btn stage-remove" type="button" aria-label="Remove stage" hidden>✕</button>
@@ -136,6 +136,7 @@
               <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
               <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
               <button class="seg-btn" type="button" data-method="slow" aria-pressed="false">🍲 Slow cook</button>
+              <button class="seg-btn" type="button" data-method="prep" aria-pressed="false">🥄 Prep</button>
               <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
             </div>
             <div class="stage-fields">
@@ -165,13 +166,16 @@
             </div>
           </div>
         </div>
-        <button id="add-stage" class="btn ghost block" type="button">+ Then</button>
+        <div class="add-row">
+          <button id="add-stage" class="btn ghost" type="button">+ Then</button>
+          <button id="add-same" class="btn ghost" type="button">+ Same time</button>
+        </div>
         <p id="item-error" class="error" hidden></p>
         <button id="add-item" class="btn primary block" type="button">Add to tonight</button>
       </div>
 
       <template id="stage-template">
-        <div class="stage-row" data-method="oven" data-minutes="30" data-temp="200" data-setting="low">
+        <div class="stage-row" data-method="oven" data-minutes="30" data-temp="200" data-setting="low" data-group="0" data-track="0">
           <div class="stage-head">
             <span class="label stage-num"></span>
             <button class="icon-btn stage-remove" type="button" aria-label="Remove stage">✕</button>
@@ -184,6 +188,7 @@
             <button class="seg-btn" type="button" data-method="oven" aria-pressed="true">♨️ Oven</button>
             <button class="seg-btn" type="button" data-method="hob" aria-pressed="false">🔥 Hob</button>
             <button class="seg-btn" type="button" data-method="slow" aria-pressed="false">🍲 Slow cook</button>
+            <button class="seg-btn" type="button" data-method="prep" aria-pressed="false">🥄 Prep</button>
             <button class="seg-btn" type="button" data-method="rest" aria-pressed="false">⏸ Rest</button>
           </div>
           <div class="stage-fields">
