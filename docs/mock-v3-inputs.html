@@ -16,7 +16,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15
 h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
 .intro{color:var(--muted);margin:0 0 20px;max-width:60ch}
 .wrap{max-width:1000px;margin:0 auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:24px;align-items:start}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:24px;align-items:start;max-width:700px;margin:0 auto}
 .label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-soft);font-weight:700;margin:0 0 4px 4px}
 .sub{color:var(--muted);font-size:13px;margin:0 0 10px 4px;min-height:2.6em}
 .phone{background:radial-gradient(ellipse at 50% -10%,rgba(255,122,47,.16),transparent 60%),var(--bg);border:1px solid var(--line);border-radius:28px;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:560px;position:relative;overflow:hidden}
@@ -48,13 +48,21 @@ input.f:focus{outline:2px solid var(--orange);outline-offset:1px}
 .chip.on{background:var(--orange);color:var(--ink);border-color:var(--orange)}
 .unit{color:var(--muted);font-size:14px;font-weight:600}
 .pick{font-size:12px;color:var(--muted);text-align:center}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--field);border:1px solid var(--line);border-radius:14px;padding:4px}
+.seg.two{grid-template-columns:1fr 1fr}
+.seg button{background:none;border:0;color:var(--muted);border-radius:10px;padding:8px 2px;font-weight:700;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--body)}
+.seg button i{font-style:normal;font-size:16px}
+.seg button.on{background:var(--orange);color:var(--ink)}
+.seg button:focus-visible{outline:3px solid var(--orange);outline-offset:1px}
+#temp-box,#slow-box{display:flex;flex-direction:column;gap:10px}
+#temp-box[hidden],#slow-box[hidden]{display:none}
 .tag{display:inline-block;background:rgba(255,122,47,.14);color:var(--orange-soft);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;align-self:flex-start}
 @media (prefers-reduced-motion:reduce){.kb{transition:none}}
 </style>
 
 <div class="wrap">
   <h1>DinnerSync — mockup 3</h1>
-  <p class="intro">Tap around: these work. Idea 1 is the keyboard fix. Ideas 2A and 2B are two ways to set time and temp with no keyboard. Pick 2A or 2B (or a mix).</p>
+  <p class="intro">Tap around: these work. Left: the keyboard fix. Right: the stage card with + / − for time and temp, and Slow cook added.</p>
 
   <div class="grid">
     <!-- Idea 1 -->
@@ -87,50 +95,47 @@ input.f:focus{outline:2px solid var(--orange);outline-offset:1px}
       </div>
     </section>
 
-    <!-- Idea 2A -->
+    <!-- Stage card with 2A built in -->
     <section>
-      <p class="label">Idea 2A · + and − buttons</p>
-      <p class="sub">Tap − / + to change. Time goes up 5 min a tap. Temp goes up 10° a tap.</p>
+      <p class="label">Idea 2A in the app · Stage card</p>
+      <p class="sub">No keyboard for numbers. Slow cook added. Tap the cooking type: the boxes below change to suit it.</p>
       <div class="phone">
         <div class="card">
+          <span class="cap">Stage 1</span>
+          <div class="row">
+            <input class="f" id="stage-label" placeholder="e.g. Roast chicken" autocomplete="off">
+            <button class="tick off" type="button" aria-label="Done typing">✓</button>
+          </div>
+          <div class="seg" id="seg">
+            <button type="button" data-m="oven" class="on"><i>♨️</i>Oven</button>
+            <button type="button" data-m="hob"><i>🔥</i>Hob</button>
+            <button type="button" data-m="slow"><i>🍲</i>Slow cook</button>
+            <button type="button" data-m="rest"><i>⏸</i>Rest</button>
+          </div>
           <span class="cap">Time</span>
           <div class="step">
-            <button class="btn" type="button" data-t="-5" aria-label="5 minutes less">−</button>
+            <button class="btn" type="button" data-t="-1" aria-label="Less time">−</button>
             <div class="big" id="t2a">45 min</div>
-            <button class="btn" type="button" data-t="5" aria-label="5 minutes more">+</button>
+            <button class="btn" type="button" data-t="1" aria-label="More time">+</button>
           </div>
-          <span class="cap">Temp</span>
-          <div class="step">
-            <button class="btn" type="button" data-c="-10" aria-label="10 degrees less">−</button>
-            <div class="big" id="c2a">200°C</div>
-            <button class="btn" type="button" data-c="10" aria-label="10 degrees more">+</button>
+          <p class="pick" id="t-hint">5 min a tap · hold to go faster</p>
+          <div id="temp-box">
+            <span class="cap">Temp</span>
+            <div class="step">
+              <button class="btn" type="button" data-c="-10" aria-label="10 degrees less">−</button>
+              <div class="big" id="c2a">200°C</div>
+              <button class="btn" type="button" data-c="10" aria-label="10 degrees more">+</button>
+            </div>
           </div>
-          <p class="pick">Hold a button to go faster</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Idea 2B -->
-    <section>
-      <p class="label">Idea 2B · Quick-pick chips</p>
-      <p class="sub">One tap on a common number. Small − / + to fine-tune.</p>
-      <div class="phone">
-        <div class="card">
-          <span class="cap">Time</span>
-          <div class="chips" id="tchips"></div>
-          <div class="row" style="justify-content:space-between">
-            <button class="btn" type="button" data-bt="-5">− 5</button>
-            <div class="big" id="t2b">45 min</div>
-            <button class="btn" type="button" data-bt="5">+ 5</button>
+          <div id="slow-box" hidden>
+            <span class="cap">Setting</span>
+            <div class="seg two" id="slowset">
+              <button type="button" data-s="low" class="on">Low</button>
+              <button type="button" data-s="high">High</button>
+            </div>
           </div>
-          <span class="cap">Temp</span>
-          <div class="chips" id="cchips"></div>
-          <div class="row" style="justify-content:space-between">
-            <button class="btn" type="button" data-bc="-10">− 10</button>
-            <div class="big" id="c2b">200°C</div>
-            <button class="btn" type="button" data-bc="10">+ 10</button>
-          </div>
-          <span class="tag">My pick for speed</span>
+          <p class="pick" id="no-temp" hidden></p>
+          <button class="btn" type="button">+ Then (another stage)</button>
         </div>
       </div>
     </section>
@@ -164,33 +169,39 @@ $('add1').addEventListener('click', () => {
 const fmtT = m => m >= 60 ? `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60}` : ''}${m % 60 ? ' min' : ''}` : `${m} min`;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-// ---- Idea 2A: steppers, hold to repeat ----
-let t2a = 45, c2a = 200;
-const draw2a = () => { $('t2a').textContent = fmtT(t2a); $('c2a').textContent = `${c2a}°C`; };
+// ---- Stage card: steppers (hold to repeat), cooking type changes what shows ----
+let mins = 45, temp = 200, method = 'oven';
+// Slow cook goes in bigger steps: 30 min a tap
+const stepFor = () => method === 'slow' ? 30 : 5;
+const draw = () => {
+  $('t2a').textContent = fmtT(mins); $('c2a').textContent = `${temp}°C`;
+  $('temp-box').hidden = method !== 'oven';
+  $('slow-box').hidden = method !== 'slow';
+  $('no-temp').hidden = method === 'oven' || method === 'slow';
+  $('no-temp').textContent = method === 'hob' ? 'Hob: no temp needed' : 'Rest: just the time';
+  $('t-hint').textContent = `${stepFor()} min a tap · hold to go faster`;
+};
 document.querySelectorAll('[data-t],[data-c]').forEach(b => {
   let timer;
   const bump = () => {
-    if (b.dataset.t) t2a = clamp(t2a + +b.dataset.t, 5, 600);
-    else c2a = clamp(c2a + +b.dataset.c, 50, 260);
-    draw2a();
+    if (b.dataset.t) mins = clamp(mins + stepFor() * +b.dataset.t, 5, 720);
+    else temp = clamp(temp + +b.dataset.c, 50, 260);
+    draw();
   };
   b.addEventListener('pointerdown', () => { bump(); timer = setInterval(bump, 180); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearInterval(timer)));
 });
-
-// ---- Idea 2B: chips + fine-tune ----
-let t2b = 45, c2b = 200;
-const T = [10, 15, 20, 30, 45, 60, 90, 120], C = [160, 180, 190, 200, 220];
-function draw2b() {
-  $('t2b').textContent = fmtT(t2b); $('c2b').textContent = `${c2b}°C`;
-  $('tchips').replaceChildren(...T.map(m => chip(fmtT(m), m === t2b, () => { t2b = m; draw2b(); })));
-  $('cchips').replaceChildren(...C.map(c => chip(`${c}°`, c === c2b, () => { c2b = c; draw2b(); })));
-}
-function chip(text, on, fn) {
-  const b = document.createElement('button');
-  b.type = 'button'; b.className = 'chip' + (on ? ' on' : ''); b.textContent = text; b.onclick = fn; return b;
-}
-document.querySelectorAll('[data-bt]').forEach(b => b.onclick = () => { t2b = clamp(t2b + +b.dataset.bt, 5, 600); draw2b(); });
-document.querySelectorAll('[data-bc]').forEach(b => b.onclick = () => { c2b = clamp(c2b + +b.dataset.bc, 50, 260); draw2b(); });
-draw2a(); draw2b();
+$('seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  method = b.dataset.m;
+  $('seg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  if (method === 'slow' && mins < 120) mins = 240; // slow cook starts at 4 hr
+  if (method !== 'slow' && mins > 180) mins = 45;
+  draw();
+});
+$('slowset').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $('slowset').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+});
+draw();
 </script>
