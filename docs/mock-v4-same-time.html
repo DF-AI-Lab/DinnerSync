@@ -1,0 +1,187 @@
+<title>DinnerSync Mockup 4</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap">
+<style>
+/* Layout: two phone cards side by side (stack on phones): the stage form, and the timeline it makes. App's dark-kitchen palette. */
+:root{
+  --bg:#121012; --panel:#1c191c; --panel-2:#26222a; --field:#0e0c0e; --line:#3a343b;
+  --text:#f3ede6; --muted:#a39a93; --orange:#ff7a2f; --orange-soft:#ffb07a; --glow:rgba(255,122,47,.45);
+  --ok:#7fd6a0; --ink:#1a0f08; --blue:#8ab4ff;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-family:var(--display);font-weight:800;color:var(--orange);font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
+.intro{color:var(--muted);margin:0 0 20px;max-width:60ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-soft);font-weight:700;margin:0 0 4px 4px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 10px 4px}
+.phone{background:radial-gradient(ellipse at 50% -10%,rgba(255,122,47,.16),transparent 60%),var(--bg);border:1px solid var(--line);border-radius:28px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.name{font-family:var(--display);font-weight:800;font-size:1.3rem}
+/* one stage */
+.stage{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.stage-top{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0}
+.stage-title{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{flex:none;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;color:var(--muted)}
+.tag.hob{color:#ffb38a;border-color:#7a4a33}.tag.oven{color:var(--orange-soft);border-color:var(--orange)}.tag.prep{color:var(--blue);border-color:#3e5578}
+.step{display:grid;grid-template-columns:44px 1fr 44px;gap:6px;align-items:center}
+.step button{height:40px;border-radius:10px;background:var(--field);border:1px solid var(--line);color:var(--text);font-size:20px;font-weight:700;cursor:pointer}
+.step button:focus-visible,.btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.val{font-family:var(--display);font-weight:800;font-size:1.2rem;text-align:center;font-variant-numeric:tabular-nums}
+.temp{color:var(--muted);font-size:13px;text-align:center;margin-top:-2px}
+/* "same time" group: two lanes side by side with a join bar */
+.together{border:1px dashed var(--orange);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:8px;background:rgba(255,122,47,.05)}
+.together-head{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--orange-soft)}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lane{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lane .stage{padding:8px}
+.lane .step{grid-template-columns:34px 1fr 34px}
+.lane .step button{height:36px;font-size:18px}
+.lane .val{font-size:1rem}
+.then{color:var(--muted);font-size:12px;font-weight:700;text-align:center;letter-spacing:.06em}
+.finish{font-size:12px;color:var(--ok);text-align:center;font-weight:600}
+.wait{font-size:12px;color:var(--muted);text-align:center}
+.arrow{color:var(--muted);text-align:center;font-size:13px;font-weight:700}
+.add-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:12px 8px;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--body)}
+.btn.same{border-color:var(--orange);color:var(--orange-soft)}
+.toast{color:var(--ok);font-size:13px;text-align:center;min-height:1.2em;margin:0}
+/* timeline */
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.tl li{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.tl li:last-child{border-bottom:0}
+.tl time{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;color:var(--orange-soft)}
+.tl .what{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;min-width:0}
+.tl .par{color:var(--orange-soft);font-weight:800}
+.tl .ready time,.tl .ready .what{color:var(--ok);font-weight:800}
+.ready-line{display:flex;justify-content:space-between;align-items:center}
+.ready-line b{font-family:var(--display);font-size:1.4rem;color:var(--orange)}
+.note{color:var(--muted);font-size:13px;margin:0}
+</style>
+
+<div class="wrap">
+  <h1>DinnerSync — mockup 4</h1>
+  <p class="intro">Mince pie example. Tap − / + on any stage and watch the times on the right change. The mince and the mash always finish together, ready to build the pie.</p>
+
+  <div class="grid">
+    <section>
+      <p class="label">Add an item · with "Same time"</p>
+      <p class="sub">The dashed box holds the stages that cook side by side.</p>
+      <div class="phone">
+        <div class="card" id="form">
+          <span class="cap">Add an item</span>
+          <span class="name">Mince pie</span>
+          <!-- filled by script -->
+          <div id="stages"></div>
+          <div class="add-row">
+            <button class="btn" type="button" id="add-then">+ Then</button>
+            <button class="btn same" type="button" id="add-same">+ Same time</button>
+          </div>
+          <p class="toast" id="toast"></p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <p class="label">The timeline it makes</p>
+      <p class="sub">‖ marks the things on the go at the same time.</p>
+      <div class="phone">
+        <div class="card">
+          <div class="ready-line"><span class="cap">Dinner at</span><b>6:00pm</b></div>
+          <ol class="tl" id="tl"></ol>
+          <p class="note">Oven preheat (15 min) would show at the top, as now.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+// The pie as the app would store it: groups run one after another; a group's lanes run side by side and finish together.
+const pie = [
+  { lanes: [
+    [{ text: 'Fry mince + packet', method: 'hob', min: 25 }],
+    [{ text: 'Boil potatoes', method: 'hob', min: 15 }, { text: 'Mash', method: 'prep', min: 5 }],
+  ] },
+  { lanes: [[{ text: 'Build pie', method: 'prep', min: 5 }]] },
+  { lanes: [[{ text: 'Into the oven', method: 'oven', min: 30, temp: 200 }]] },
+];
+const DINNER = new Date(2026, 9, 17, 18, 0).getTime(), MIN = 60000;
+const TAG = { hob: '🔥 Hob', oven: '♨️ Oven', prep: '🥄 Prep' };
+const $ = id => document.getElementById(id);
+const fmtT = m => m >= 60 ? `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60} min` : ''}` : `${m} min`;
+const clock = t => { const d = new Date(t), h = d.getHours(); return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`; };
+const laneMin = lane => lane.reduce((s, st) => s + st.min, 0);
+const groupMin = g => Math.max(...g.lanes.map(laneMin));
+
+function stageEl(st) {
+  const box = document.createElement('div');
+  box.className = 'stage';
+  box.innerHTML = `<div class="stage-top"><span class="stage-title"></span><span class="tag ${st.method}">${TAG[st.method]}</span></div>
+    <div class="step"><button type="button" aria-label="Less time">−</button><span class="val"></span><button type="button" aria-label="More time">+</button></div>`;
+  box.querySelector('.stage-title').textContent = st.text;
+  box.querySelector('.val').textContent = fmtT(st.min);
+  if (st.temp) box.insertAdjacentHTML('beforeend', `<div class="temp">${st.temp}°C</div>`);
+  const [down, up] = box.querySelectorAll('.step button');
+  down.onclick = () => { st.min = Math.max(5, st.min - 5); draw(); };
+  up.onclick = () => { st.min = Math.min(600, st.min + 5); draw(); };
+  return box;
+}
+
+function draw() {
+  const host = $('stages');
+  host.replaceChildren();
+  pie.forEach((g, gi) => {
+    if (gi) host.insertAdjacentHTML('beforeend', '<div class="arrow">↓ then</div>');
+    if (g.lanes.length === 1) { g.lanes[0].forEach(st => host.append(stageEl(st))); return; }
+    const box = document.createElement('div');
+    box.className = 'together';
+    box.innerHTML = '<div class="together-head">‖ Same time — finish together</div><div class="lanes"></div>';
+    const lanes = box.querySelector('.lanes');
+    const longest = groupMin(g);
+    for (const lane of g.lanes) {
+      const col = document.createElement('div');
+      col.className = 'lane';
+      lane.forEach((st, i) => { if (i) col.insertAdjacentHTML('beforeend', '<div class="then">then</div>'); col.append(stageEl(st)); });
+      const spare = longest - laneMin(lane);
+      col.insertAdjacentHTML('beforeend', spare ? `<div class="wait">starts ${spare} min later</div>` : '<div class="finish">longest — sets the time</div>');
+      lanes.append(col);
+    }
+    host.append(box);
+  });
+  drawTimeline();
+}
+
+// Work backwards from dinner: each group ends where the next begins; each lane ends at its group's end.
+function drawTimeline() {
+  const rows = [];
+  let end = DINNER;
+  for (let gi = pie.length - 1; gi >= 0; gi--) {
+    const g = pie[gi], start = end - groupMin(g) * MIN;
+    for (const lane of g.lanes) {
+      let at = end - laneMin(lane) * MIN;
+      for (const st of lane) { rows.push({ at, st, par: g.lanes.length > 1 }); at += st.min * MIN; }
+    }
+    end = start;
+  }
+  rows.sort((a, b) => a.at - b.at);
+  const tl = $('tl');
+  tl.replaceChildren();
+  for (const r of rows) {
+    const li = document.createElement('li');
+    li.innerHTML = `<time>${clock(r.at)}</time><span class="what">${r.par ? '<span class="par">‖</span>' : ''}<span></span><span class="tag ${r.st.method}">${TAG[r.st.method]}</span></span>`;
+    li.querySelector('.what span:not(.par):not(.tag)').textContent = r.st.temp ? `${r.st.text} — ${r.st.temp}°C` : r.st.text;
+    tl.append(li);
+  }
+  tl.insertAdjacentHTML('beforeend', `<li class="ready"><time>${clock(DINNER)}</time><span class="what">🍽 Dinner</span></li>`);
+}
+
+$('add-then').onclick = () => { $('toast').textContent = 'In the app: adds a stage after the last one'; };
+$('add-same').onclick = () => { $('toast').textContent = 'In the app: adds a stage that runs alongside the last one'; };
+draw();
+</script>
