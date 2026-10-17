@@ -76,6 +76,7 @@ try {
   assert.equal(await page.locator('#add-card').isVisible(), true);
   await page.click('#tile-dinner');
   // ---- Add-item card: no keyboard for numbers; keyboard only when a text box is tapped ----
+  await page.waitForTimeout(500); // let the dinner drawer finish sliding open before measuring positions
   const card = page.locator('#add-card');
   assert.equal(await card.locator('input[type="number"]').count(), 0, 'no number boxes (no keyboard)');
   // Saved ▾ is small, on the "Add an item" line, on the right

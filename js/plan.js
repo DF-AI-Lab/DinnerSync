@@ -1,6 +1,7 @@
 // Pure dinner-planning logic. No DOM access.
 //
-// An item is { name, stages: [{ method: 'oven'|'hob'|'rest', minutes, temp? }] }.
+// An item is { name, stages: [{ method: 'oven'|'hob'|'rest'|'slow', minutes, temp?, setting? }] }.
+// A slow stage is a slow cooker: setting is 'low' (default) or 'high', and it never uses the oven.
 // Stages run back-to-back in order; the last one finishes at readyAt.
 // Old items { name, minutes, temp } are a single oven stage.
 
@@ -34,6 +35,7 @@ const METHOD_TEXT = {
   oven: (name, temp) => `${name} into the oven — ${temp}°C`,
   hob: name => `${name} on the hob`,
   rest: name => `${name} out to rest`,
+  slow: (name, _temp, setting) => `${name} into the slow cooker — ${setting === 'high' ? 'High' : 'Low'}`,
 };
 
 // Old single-stage items become one oven stage. Stage items are left alone.
@@ -105,7 +107,7 @@ export function buildPlan({ items = [], readyAt, now, preheatMinutes = DEFAULT_P
     for (const st of item.stages) {
       // A stage label (e.g. "Boil potatoes") replaces the item name in the step text.
       const label = (typeof st.label === 'string' && st.label.trim()) || item.name;
-      const text = (METHOD_TEXT[st.method] ?? (name => name))(label, ovenTemp);
+      const text = (METHOD_TEXT[st.method] ?? (name => name))(label, ovenTemp, st.setting);
       ranked.push({
         rank: item.main ? 1 : 2,
         step: { type: 'in', name: item.name, label, method: st.method, at, text, minutes: st.cookMinutes },
