@@ -1,9 +1,9 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — v1.2.0 live (mockup 5 built).
+- Current step: Build & Test — v1.2.1 live (mockup 5 built; Start now / Ready later moved into the When's dinner panel).
 - Last session: 2026-10-17 — mockup 5: dish in 3 sections (Get ready → Cook lines at the same time → Finish), ⏱ total time by the name, Start now / Ready later, dish name on each plan step, a timer per job with its own Done ✓ and alarm, then next alarm.
-- Next action: test v1.2.0 on the phone.
+- Next action: the "Next build" list below (rebuild the form to match mockup 5, ask what fails on the phone). Phone check: close and reopen the app; header must say v1.2.1 (phone once showed the new page with old styles).
 - Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
 ## Next build (Darren, 2026-10-17)
