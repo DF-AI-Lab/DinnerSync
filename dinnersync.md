@@ -7,6 +7,8 @@
 - Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
 ## Next build (Darren, 2026-10-17)
+- **v1.2.1 doesn't look like mockup 5 (Darren: "looks nothing like the mock").** Rebuild the add-a-dish form to MATCH docs/mock-v5-sections.html: compact step cards (name + type tag on one line, − time + under), the dish name + ⏱ total at the top, Start now / Ready later right under it. Screenshot the app next to the mock at 400px and compare before merging.
+- Darren also said "nothing works" on his phone: tests and a browser run here pass with no errors, so first ask exactly what fails (and check the phone shows v1.2.1 after a close/reopen).
 - Move **Start now / Ready later** out of the When's dinner panel, back next to the dish name (always showing, as in mockup 5: docs/mock-v5-sections.html).
 - Tidy the When's dinner panel: remove the old **Ready in / or at** boxes and **Cook now** (they do the same job as Start now / Ready later). The tile still shows the dinner time.
 - Keep the current time under Reset.
