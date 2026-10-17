@@ -24,7 +24,7 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.2.0</span>
+              <span id="app-version" class="app-version">v1.2.1</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
@@ -62,6 +62,18 @@
       <div id="panel-dinner" class="drawer" aria-labelledby="tile-dinner">
         <div class="drawer-inner">
           <div class="panel">
+            <div class="when">
+              <div class="when-seg" role="group" aria-label="When to start">
+                <button id="when-now" class="when-btn" type="button" aria-pressed="true">Start now</button>
+                <button id="when-later" class="when-btn" type="button" aria-pressed="false">Ready later</button>
+              </div>
+              <div id="when-later-box" class="later-box" hidden>
+                <button id="later-down" class="btn step-btn" type="button" aria-label="15 minutes earlier">−</button>
+                <span id="later-val" class="later-val"></span>
+                <button id="later-up" class="btn step-btn" type="button" aria-label="15 minutes later">+</button>
+              </div>
+              <p id="when-text" class="when-text"></p>
+            </div>
             <div class="ready-line">
               <span class="muted">Ready in</span>
               <input id="ready-hours" class="ready-input" type="number" inputmode="numeric" min="0" aria-label="Ready in hours" value="1"><em>hr</em>
@@ -124,18 +136,6 @@
               <button id="name-done" class="tick off" type="button" aria-label="Done typing">✓</button>
             </div>
           </div>
-        </div>
-        <div class="when">
-          <div class="when-seg" role="group" aria-label="When to start">
-            <button id="when-now" class="when-btn" type="button" aria-pressed="true">Start now</button>
-            <button id="when-later" class="when-btn" type="button" aria-pressed="false">Ready later</button>
-          </div>
-          <div id="when-later-box" class="later-box" hidden>
-            <button id="later-down" class="btn step-btn" type="button" aria-label="15 minutes earlier">−</button>
-            <span id="later-val" class="later-val"></span>
-            <button id="later-up" class="btn step-btn" type="button" aria-label="15 minutes later">+</button>
-          </div>
-          <p id="when-text" class="when-text"></p>
         </div>
         <div id="stage-rows" class="stage-list">
           <div class="sec" data-sec="ready">
