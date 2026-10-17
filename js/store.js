@@ -46,10 +46,11 @@ export function createStore(storage) {
   // first oven stage so older copies of the app can still read the list.
   function cleanItem(item) {
     const n = normalizeItem(item);
-    const stages = n.stages.map(({ method, minutes, temp, label, section, group, track }) => {
+    const stages = n.stages.map(({ method, minutes, temp, setting, label, section, group, track }) => {
       const out = method === 'oven' ? { method, minutes, temp } : { method, minutes };
       const text = typeof label === 'string' ? label.trim() : '';
       if (text) out.label = text;
+      if (method === 'slow') out.setting = setting === 'high' ? 'high' : 'low';
       if (['ready', 'cook', 'finish'].includes(section)) out.section = section;
       if (Number.isInteger(group)) out.group = group;
       if (Number.isInteger(track)) out.track = track;

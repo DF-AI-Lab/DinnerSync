@@ -42,3 +42,9 @@ test('broken or missing storage does not crash', () => {
   const junk = memStorage(); junk.setItem('dinnersync.items', '{not json');
   assert.deepEqual(createStore(junk).getSavedItems(), []);
 });
+
+test('saved slow-cook stages keep High / Low', () => {
+  const s = createStore(memStorage());
+  s.saveItem({ name: 'Stew', stages: [{ method: 'slow', minutes: 240, setting: 'high' }] });
+  assert.equal(s.getSavedItems()[0].stages[0].setting, 'high');
+});

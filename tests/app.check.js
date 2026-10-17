@@ -479,7 +479,7 @@ try {
   assert.equal(await jobs.count(), 1);
   assert.match(await jobs.first().locator('.job-text').textContent(), /Fry mince/);
   // 17:05: boil starts too; two timers side by side in time, each with its own Done
-  await mp.clock.runFor(5 * 60_000);
+  await mp.clock.runFor(5 * 60_000 - 1_000);
   await mp.waitForSelector('#alarm-banner:not([hidden])');
   assert.match(await mp.textContent('#alarm-text'), /Boil potatoes/);
   await mp.click('#alarm-done');

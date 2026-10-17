@@ -386,7 +386,7 @@ function bindPlanScreen() {
       return;
     }
     err.hidden = true;
-    syncWhen(); // Start now: the dinner time is the soonest again
+    syncWhen(false); // Start now: the dinner time is the soonest for tonight's items
     state.plan = currentPlan();
     renderTimeline();
     showScreen('timeline');
@@ -395,18 +395,20 @@ function bindPlanScreen() {
 
 // ---------- when: start now, or ready later ----------
 
-// Tonight's items plus the draft (named 'Draft' while the name is empty): the whole lead time,
-// and the earliest dinner time if cooking starts now.
-function whenInfo() {
-  const lead = leadMinutes({ items: [...state.items, draftItem()], preheatMinutes: state.preheatMinutes });
+// Tonight's items plus the draft: the whole lead time, and the earliest dinner time if cooking
+// starts now. The draft counts once it has a name, or when nothing is added yet; Show plan leaves it out.
+function whenInfo(withDraft = true) {
+  const draft = withDraft && ($('item-name').value.trim() || !state.items.length);
+  const items = draft ? [...state.items, draftItem()] : state.items;
+  const lead = leadMinutes({ items, preheatMinutes: state.preheatMinutes });
   const soon = Math.ceil((Date.now() + lead * MIN) / MIN) * MIN;
   return { lead, soon };
 }
 
 // Keep the dinner time in step with the form and tonight's items.
 // Start now: ready at the soonest. Ready later: never before the soonest (bumped up if it has to be).
-function syncWhen() {
-  const { soon } = whenInfo();
+function syncWhen(withDraft = true) {
+  const { soon } = whenInfo(withDraft);
   if (state.readyMode === 'now') state.readyAt = soon;
   else if (state.readyAt < soon) state.readyAt = up15(soon);
   paintWhen();
@@ -667,6 +669,7 @@ function resetDraft() {
 
 function bindStageForm() {
   bindTick($('item-name'), $('name-done'));
+  $('item-name').addEventListener('input', () => syncWhen()); // a named draft counts towards the soonest
   // Adding never focuses a box, so the keyboard stays shut.
   sectionEl('ready').querySelector('.sec-add').addEventListener('click', () => {
     sectionRows('ready').append(makeRow(newStep('prep')));

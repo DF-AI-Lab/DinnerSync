@@ -750,7 +750,7 @@ h2 {
   box-shadow: 0 0 18px rgba(255, 122, 47, 0.2);
 }
 .job-timer.over { border-color: var(--danger); box-shadow: 0 0 18px rgba(255, 107, 107, 0.25); }
-.job-head { display: flex; align-items: center; min-width: 0; }
+.job-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .job-dish { color: var(--muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; overflow-wrap: anywhere; }
 .job-text { margin: 0; font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
 .job-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
