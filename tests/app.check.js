@@ -153,9 +153,10 @@ try {
   await first.getByRole('button', { name: /Hob/ }).click();
   await setTime(first, 10);
   await first.locator('.stage-label').fill('Boil potatoes');
-  await page.click('#add-stage');
+  // "+ then" in the cook line adds the next stage to that line
+  await page.locator('.sec[data-sec="cook"] .line-then').first().click();
   const row2 = page.locator('.stage-row').nth(1);
-  assert.notEqual(await page.evaluate(() => document.activeElement?.tagName), 'INPUT', 'no keyboard after + Then');
+  assert.notEqual(await page.evaluate(() => document.activeElement?.tagName), 'INPUT', 'no keyboard after + then');
   await row2.locator('.stage-label').fill('Roast potatoes');
   await setTime(row2, 45);
   await setTemp(row2, 220);
@@ -198,39 +199,13 @@ try {
   assert.equal(await page.locator('#cook-done').count(), 0);
   const steps = page.locator('#cook-steps li');
   assert.ok(await steps.count() >= 4);
-  assert.match(await steps.nth(0).getAttribute('class'), /current/);
-  // Current card grows: countdown + small Done next to it + badge
-  const cur = page.locator('#cook-steps li.current');
-  assert.equal(await cur.count(), 1);
-  assert.match(await cur.locator('.card-count').textContent(), /^\d+:\d\d(:\d\d)?$/);
-  assert.equal(await cur.locator('.card-done').count(), 1);
-  assert.equal(await cur.locator('.step-badge').textContent(), 'NEXT'); // preheat not due yet
-  assert.equal(await page.locator('#cook-steps .card-done').count(), 1, 'Done only in the current card');
-  const radius = await cur.locator('.card-done').evaluate(n => getComputedStyle(n).borderTopLeftRadius);
-  assert.equal(radius, '6px');
-  const firstAt = await steps.nth(1).locator('time').textContent();
-  // Done early: step ticked, next card says how much spare, times don't shift
-  await cur.locator('.card-done').click();
-  assert.match(await steps.nth(0).getAttribute('class'), /done/);
-  assert.match(await steps.nth(1).getAttribute('class'), /current/);
-  assert.match(await page.locator('#cook-steps li.current .card-spare').textContent(), /Done early, \d+ min spare before this/);
-  assert.equal(await steps.nth(1).locator('time').textContent(), firstAt);
-  // Done sits in the bottom row of the card, beside the "Done early" line, below the countdown
-  const curCard = page.locator('#cook-steps li.current');
-  assert.equal(await curCard.locator('.card-foot .card-done').count(), 1);
-  assert.equal(await curCard.locator('.card-foot .card-spare').count(), 1);
-  const doneBox = await curCard.locator('.card-done').boundingBox();
-  const countBox = await curCard.locator('.card-count').boundingBox();
-  assert.ok(doneBox.y > countBox.y + countBox.height - 1, 'Done is below the countdown');
-  // Done sits at the very bottom, level with the "Done early" line
-  const spareBox = await curCard.locator('.card-spare').boundingBox();
-  assert.ok(Math.abs((doneBox.y + doneBox.height) - (spareBox.y + spareBox.height)) <= 6, 'Done bottom lines up with the spare line');
-  // Tap a ticked circle to undo that step: it becomes current again
-  await steps.nth(0).locator('.dot').click();
-  assert.match(await steps.nth(0).getAttribute('class'), /current/);
-  assert.doesNotMatch(await steps.nth(1).getAttribute('class'), /done|current/);
-  await page.locator('#cook-steps li.current .card-done').click();
-  assert.match(await steps.nth(0).getAttribute('class'), /done/);
+  // Dinner is 3 hours away: nothing on the go yet, the next alarm is the preheat
+  assert.equal(await page.locator('#jobs .job-timer').count(), 0);
+  assert.equal(await page.locator('#jobs-empty').isVisible(), true);
+  assert.match(await page.textContent('#next-alarm'), /Preheat/);
+  assert.match(await page.textContent('#next-alarm'), /\d{1,2}:\d\d(am|pm)/);
+  assert.equal(await page.locator('#cook-steps .card-done').count(), 0, 'no big current card any more');
+  const stepCount = await steps.count();
   // Phone back button: leave the cooking screen but keep cooking in the background
   await page.goBack();
   await page.waitForSelector('#plan-screen:not([hidden])');
@@ -238,10 +213,10 @@ try {
   assert.equal(await page.locator('#back-to-cook').isVisible(), true);
   assert.match(await page.textContent('#back-to-cook'), /Cooking/);
   assert.match(await page.textContent('#back-to-cook'), /\d+:\d\d/);
-  // Tap the bar to go back: same steps, still ticked
+  // Tap the bar to go back: same steps
   await page.click('#back-to-cook');
   await page.waitForSelector('#cook-screen:not([hidden])');
-  assert.match(await steps.nth(0).getAttribute('class'), /done/);
+  assert.equal(await steps.count(), stepCount);
   assert.equal(await page.locator('#back-to-cook').isVisible(), false);
   // The logo is a home button: goes to the plan, cooking carries on
   await page.click('#home');
@@ -348,14 +323,15 @@ try {
   assert.equal(await tp.isVisible('#cook-screen'), false);
   await tp.close();
 
-  // ---- Same time: mince pie = fry mince ‖ (boil potatoes → mash), then build, then oven ----
+  // ---- Mockup 5: a dish in 3 sections (mince pie), total time, Start now / Ready later, a timer per job ----
   const mp = await browser.newPage({ viewport: { width: 360, height: 900 } });
   mp.on('pageerror', e => errors.push(e.message));
+  await mp.clock.install({ time: new Date(2026, 9, 17, 16, 49) });
+  await mp.clock.pauseAt(new Date(2026, 9, 17, 16, 50));
   await mp.goto('http://localhost:8099/index.html');
   await mp.evaluate(() => localStorage.clear());
   await mp.reload();
-  const rows = () => mp.locator('.stage-row');
-  const rowAt = i => rows().nth(i);
+  const sec = name => mp.locator(`#stage-rows .sec[data-sec="${name}"]`);
   const setT = async (row, mins) => {
     for (let i = 0; i < 100; i++) {
       const v = Number(await row.getAttribute('data-minutes'));
@@ -364,88 +340,216 @@ try {
     }
     throw new Error(`could not set time ${mins}`);
   };
-  // the + Same time button sits beside + Then
-  assert.equal(await mp.locator('#add-same').count(), 1);
-  assert.match(await mp.textContent('#add-same'), /Same time/);
-  const thenBox = await mp.locator('#add-stage').boundingBox(), sameBox = await mp.locator('#add-same').boundingBox();
-  assert.ok(Math.abs(thenBox.y - sameBox.y) < 4, '+ Then and + Same time on one line');
-  // a new 🥄 Prep cooking type
-  assert.equal(await rowAt(0).getByRole('button', { name: /Prep/ }).count(), 1);
-  await mp.fill('#item-name', 'Mince pie');
-  await rowAt(0).getByRole('button', { name: /Hob/ }).click();
-  await rowAt(0).locator('.stage-label').fill('Fry mince');
-  await setT(rowAt(0), 25);
+  // 3 fixed sections in order: Get ready → Cook → Finish. The old + Then / + Same time buttons are gone.
+  assert.deepEqual(await mp.locator('#stage-rows .sec').evaluateAll(n => n.map(x => x.dataset.sec)), ['ready', 'cook', 'finish']);
+  assert.match(await sec('ready').textContent(), /Get ready/);
+  assert.match(await sec('ready').textContent(), /one after another/i);
+  assert.match(await sec('cook').textContent(), /Cook/);
+  assert.match(await sec('cook').textContent(), /at the same time/i);
+  assert.match(await sec('finish').textContent(), /Finish/);
+  assert.match(await sec('finish').textContent(), /one after another/i);
+  assert.equal(await mp.locator('#add-stage').count(), 0);
+  assert.equal(await mp.locator('#add-same').count(), 0);
   assert.equal(await mp.locator('.together').count(), 0);
-  // + Same time: a second track in the same group, both shown in one dashed "Same time" box, one card under the other
-  await mp.click('#add-same');
-  assert.equal(await rows().count(), 2);
-  assert.equal(await rowAt(1).getAttribute('data-group'), await rowAt(0).getAttribute('data-group'));
-  assert.equal(await rowAt(0).getAttribute('data-track'), '0');
-  assert.equal(await rowAt(1).getAttribute('data-track'), '1');
-  assert.equal(await mp.locator('.together').count(), 1);
-  assert.equal(await mp.locator('.together .stage-row').count(), 2);
-  assert.match(await mp.textContent('.together'), /Same time/i);
-  assert.match(await mp.textContent('.together'), /at the same time/i);
-  const b0 = await rowAt(0).boundingBox(), b1 = await rowAt(1).boundingBox();
-  assert.ok(b1.y > b0.y + b0.height - 1, 'tracks stack one under the other');
-  await rowAt(1).getByRole('button', { name: /Hob/ }).click();
-  await rowAt(1).locator('.stage-label').fill('Boil potatoes');
-  await setT(rowAt(1), 15);
-  // each track has its own "+ then" to add a stage to that track
-  assert.equal(await mp.locator('.together .track-then').count(), 2);
-  await mp.locator('.together .track-then[data-track="1"]').click();
-  assert.equal(await rows().count(), 3);
-  assert.equal(await rowAt(2).getAttribute('data-track'), '1');
-  assert.equal(await rowAt(2).getAttribute('data-group'), await rowAt(0).getAttribute('data-group'));
-  await rowAt(2).getByRole('button', { name: /Prep/ }).click();
-  assert.equal(await rowAt(2).locator('.temp-field').isVisible(), false);
-  await rowAt(2).locator('.stage-label').fill('Mash');
-  await setT(rowAt(2), 5);
-  // + Then (bottom): a new group after the whole same-time box
-  await mp.click('#add-stage');
-  assert.equal(await rows().count(), 4);
-  assert.equal(Number(await rowAt(3).getAttribute('data-group')), Number(await rowAt(0).getAttribute('data-group')) + 1);
-  assert.equal(await rowAt(3).getAttribute('data-track'), '0');
-  assert.equal(await mp.locator('.together .stage-row').count(), 3);
-  await rowAt(3).getByRole('button', { name: /Prep/ }).click();
-  await rowAt(3).locator('.stage-label').fill('Build pie');
-  await setT(rowAt(3), 5);
-  await mp.click('#add-stage');
-  await setT(rowAt(4), 30);
+  const secR = await sec('ready').boundingBox(), cb = await sec('cook').boundingBox(), fb = await sec('finish').boundingBox();
+  assert.ok(secR.y + secR.height <= cb.y + 1 && cb.y + cb.height <= fb.y + 1, 'sections stack top to bottom');
+  // a new dish: one oven stage in the first cook line, Get ready and Finish empty
+  assert.equal(await sec('ready').locator('.stage-row').count(), 0);
+  assert.equal(await sec('cook').locator('.line').count(), 1);
+  assert.equal(await sec('cook').locator('.stage-row').count(), 1);
+  assert.equal(await sec('finish').locator('.stage-row').count(), 0);
+  const c0 = sec('cook').locator('.stage-row').first();
+  assert.deepEqual([await c0.getAttribute('data-sec'), await c0.getAttribute('data-group'), await c0.getAttribute('data-track')], ['cook', '1', '0']);
+  // ⏱ total time by the dish name: oven 30 min + 15 min preheat
+  assert.equal(await mp.locator('#dish-total').isVisible(), true);
+  assert.match(await mp.textContent('#dish-total'), /⏱\s*45 min/);
+  // Start now is the default: ready at X if you start now
+  assert.equal(await mp.getAttribute('#when-now', 'aria-pressed'), 'true');
+  assert.equal(await mp.getAttribute('#when-later', 'aria-pressed'), 'false');
+  assert.match(await mp.textContent('#when-text'), /Start now \(4:50pm\) → ready at 5:35pm/);
+
+  await mp.fill('#item-name', 'Mince pie');
+  // Get ready: a new step is prep, 10 min
+  await sec('ready').locator('.sec-add').click();
+  const r0 = sec('ready').locator('.stage-row').first();
+  assert.deepEqual([await r0.getAttribute('data-method'), await r0.getAttribute('data-minutes'), await r0.getAttribute('data-group')], ['prep', '10', '0']);
+  assert.notEqual(await mp.evaluate(() => document.activeElement?.tagName), 'INPUT', 'no keyboard after adding a step');
+  await r0.locator('.stage-label').fill('Peel potatoes');
+  // Cook line 1: fry mince
+  await c0.getByRole('button', { name: /Hob/ }).click();
+  await c0.locator('.stage-label').fill('Fry mince');
+  await setT(c0, 25);
+  // total time is live: 10 + 25, no oven so no preheat
+  assert.match(await mp.textContent('#dish-total'), /⏱\s*35 min/);
+  // + Add a line: a second cook line, same group, next track, under the first
+  await sec('cook').locator('.sec-add').click();
+  assert.equal(await sec('cook').locator('.line').count(), 2);
+  const line2 = sec('cook').locator('.line').nth(1);
+  const c1 = line2.locator('.stage-row').first();
+  assert.deepEqual([await c1.getAttribute('data-group'), await c1.getAttribute('data-track')], ['1', '1']);
+  const l1b = await sec('cook').locator('.line').first().boundingBox(), l2b = await line2.boundingBox();
+  assert.ok(l2b.y >= l1b.y + l1b.height - 1, 'cook lines stack one under the other');
+  await c1.getByRole('button', { name: /Hob/ }).click();
+  await c1.locator('.stage-label').fill('Boil potatoes');
+  await setT(c1, 15);
+  // each line has its own "+ then"
+  assert.equal(await sec('cook').locator('.line-then').count(), 2);
+  await line2.locator('.line-then').click();
+  assert.equal(await line2.locator('.stage-row').count(), 2);
+  const c2 = line2.locator('.stage-row').nth(1);
+  assert.equal(await c2.getAttribute('data-track'), '1');
+  await c2.getByRole('button', { name: /Prep/ }).click();
+  assert.equal(await c2.locator('.temp-field').isVisible(), false);
+  await c2.locator('.stage-label').fill('Mash');
+  await setT(c2, 5);
+  // the longest line sets the cook time: still 10 + 25
+  assert.match(await mp.textContent('#dish-total'), /⏱\s*35 min/);
+  // Finish: build pie, then the oven
+  await sec('finish').locator('.sec-add').click();
+  const f0 = sec('finish').locator('.stage-row').first();
+  assert.equal(await f0.getAttribute('data-group'), '2');
+  await f0.getByRole('button', { name: /Prep/ }).click();
+  await f0.locator('.stage-label').fill('Build pie');
+  await setT(f0, 5);
+  await sec('finish').locator('.sec-add').click();
+  const f1 = sec('finish').locator('.stage-row').nth(1);
+  assert.equal(await f1.getAttribute('data-method'), 'oven');
+  await f1.locator('.stage-label').fill('Into the oven');
+  await setT(f1, 30);
+  // 10 + 25 + 5 + 30 = 70 (the preheat fits inside)
+  assert.match(await mp.textContent('#dish-total'), /⏱\s*1 hr 10 min/);
+  assert.match(await mp.textContent('#when-text'), /Start now \(4:50pm\) → ready at 6:00pm/);
+  // Ready later: − / + dinner time, 15 min a tap, never earlier than the soonest
+  await mp.click('#when-later');
+  assert.equal(await mp.getAttribute('#when-later', 'aria-pressed'), 'true');
+  assert.match(await mp.textContent('#later-val'), /Ready at 6:00pm/);
+  await mp.click('#later-up');
+  assert.match(await mp.textContent('#later-val'), /Ready at 6:15pm/);
+  assert.match(await mp.textContent('#when-text'), /Start at 5:05pm/);
+  assert.match(await mp.textContent('#tile-dinner-time'), /6:15pm/);
+  await mp.click('#later-down');
+  await mp.click('#later-down');
+  assert.match(await mp.textContent('#later-val'), /Ready at 6:00pm/);
+  await mp.click('#when-now');
+  assert.equal(await mp.locator('#later-val').isVisible(), false);
+  assert.match(await mp.textContent('#when-text'), /ready at 6:00pm/);
   await mp.click('#add-item');
   assert.match(await mp.textContent('#items'), /Mince pie/);
   assert.match(await mp.textContent('#items'), /‖/);
-  // the plan: things in the right order, mince and mash finish together
-  await mp.click('#tile-dinner');
-  await mp.waitForTimeout(500);
-  await mp.fill('#ready-hours', '2');
-  await mp.fill('#ready-minutes', '0');
+  assert.equal(await mp.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'no side scroll');
+  // The plan: the dish name above each step, things in the right order
   await mp.click('#show-plan');
   await mp.waitForSelector('#plan-steps li');
+  assert.equal(await mp.locator('#plan-steps .step-dish').count(), 6);
+  assert.deepEqual([...new Set(await mp.locator('#plan-steps .step-dish').allTextContents())], ['Mince pie']);
   const order = await mp.locator('#plan-steps li').allTextContents();
   const idx = re => order.findIndex(t => re.test(t));
-  assert.ok(idx(/Preheat/) > idx(/Fry mince/) && idx(/Preheat/) < idx(/Mince pie into the oven/), 'preheat before the oven, after the hob work starts');
+  assert.ok(idx(/Peel potatoes/) < idx(/Fry mince/));
   assert.ok(idx(/Fry mince/) < idx(/Boil potatoes/));
-  assert.ok(idx(/Boil potatoes/) < idx(/Mash/));
+  assert.ok(idx(/Boil potatoes/) < idx(/Preheat/));
+  assert.ok(idx(/Preheat/) < idx(/Mash/));
   assert.ok(idx(/Mash/) < idx(/Build pie/));
-  assert.ok(idx(/Build pie/) < idx(/Mince pie into the oven/));
-  // saved item comes back with the same shape
-  await mp.click('#back-plan');
-  await mp.click('#saved-toggle');
-  await mp.locator('#saved-list li', { hasText: 'Mince pie' }).locator('.saved-pick').click();
-  assert.equal(await rows().count(), 5);
-  assert.equal(await mp.locator('.together .stage-row').count(), 3);
-  assert.equal(await rowAt(2).getAttribute('data-track'), '1');
-  assert.equal(await rowAt(2).getAttribute('data-method'), 'prep');
-  // removing stages: a track with no stages left goes; one track left = no same-time box
-  await rowAt(2).locator('.stage-remove').click();
-  assert.equal(await mp.locator('.together').count(), 1);
-  await rowAt(1).locator('.stage-remove').click();
-  assert.equal(await mp.locator('.together').count(), 0);
-  assert.equal(await rows().count(), 3);
-  assert.equal(await rowAt(1).getAttribute('data-group'), String(Number(await rowAt(0).getAttribute('data-group')) + 1));
-  assert.equal(await mp.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'no side scroll');
+  assert.ok(idx(/Build pie/) < idx(/Into the oven/));
+  assert.match(await mp.textContent('#timeline-ready'), /6:00pm/);
+  // Cooking: one countdown per job on the go, each with Done ✓, then the next alarm below
+  await mp.click('#start-cooking');
+  await mp.waitForSelector('#cook-screen:not([hidden])');
+  const jobs = mp.locator('#jobs .job-timer');
+  assert.equal(await jobs.count(), 1);
+  assert.equal(await jobs.first().locator('.job-dish').textContent(), 'Mince pie');
+  assert.match(await jobs.first().locator('.job-text').textContent(), /Peel potatoes/);
+  assert.equal(await jobs.first().locator('.job-count').textContent(), '10:00');
+  assert.equal(await jobs.first().locator('.job-done').count(), 1);
+  assert.equal(await jobs.first().locator('.job-bar').count(), 1);
+  assert.equal(await mp.locator('#jobs-empty').isVisible(), false);
+  assert.match(await mp.textContent('#next-alarm'), /Fry mince/);
+  assert.match(await mp.textContent('#next-alarm'), /5:00pm/);
+  const jb = await mp.locator('#jobs').boundingBox(), nb = await mp.locator('#next-alarm').boundingBox();
+  assert.ok(nb.y >= jb.y + jb.height - 1, 'next alarm is below the timers');
+  // its own alarm when its time is up; the job stays until Done
+  await mp.clock.runFor(10 * 60_000 + 1_000);
+  await mp.waitForSelector('#alarm-banner:not([hidden])');
+  assert.match(await mp.textContent('#alarm-text'), /Peel potatoes — time's up/);
+  assert.match(await mp.textContent('#alarm-text'), /Fry mince/);
+  assert.equal(await jobs.count(), 2);
+  assert.match(await jobs.first().getAttribute('class'), /\bover\b/);
+  // alarm Done ticks the job whose time was up
+  await mp.click('#alarm-done');
+  await mp.waitForSelector('#alarm-banner', { state: 'hidden' });
+  assert.equal(await jobs.count(), 1);
+  assert.match(await jobs.first().locator('.job-text').textContent(), /Fry mince/);
+  // 17:05: boil starts too; two timers side by side in time, each with its own Done
+  await mp.clock.runFor(5 * 60_000);
+  await mp.waitForSelector('#alarm-banner:not([hidden])');
+  assert.match(await mp.textContent('#alarm-text'), /Boil potatoes/);
+  await mp.click('#alarm-done');
+  assert.equal(await jobs.count(), 2);
+  assert.equal(await mp.locator('#cook-screen').isVisible(), true, 'a start alarm does not end cooking');
+  const boil = jobs.filter({ hasText: 'Boil potatoes' });
+  assert.match(await boil.locator('.job-then').textContent(), /then: Mash/);
+  assert.match(await boil.locator('.job-count').textContent(), /^15:00$/);
+  assert.match(await jobs.filter({ hasText: 'Fry mince' }).locator('.job-count').textContent(), /^20:00$/);
+  assert.match(await mp.textContent('#next-alarm'), /Preheat/);
+  // Done ✓ on one job: only that one goes, and it's ticked in the step list
+  await boil.locator('.job-done').click();
+  assert.equal(await jobs.count(), 1);
+  assert.match(await jobs.first().locator('.job-text').textContent(), /Fry mince/);
+  const boilLi = mp.locator('#cook-steps li', { hasText: 'Boil potatoes' });
+  assert.match(await boilLi.getAttribute('class'), /\bdone\b/);
+  // tap its ✓ in the list to undo: the timer comes back
+  await boilLi.locator('.dot').click();
+  assert.equal(await jobs.count(), 2);
+  const savedJson = await mp.evaluate(() => localStorage.getItem('dinnersync.items'));
   await mp.close();
+
+  // ---- Saved dishes come back in their sections; old saved items still load ----
+  const sv = await browser.newPage({ viewport: { width: 360, height: 900 } });
+  sv.on('pageerror', e => errors.push(e.message));
+  await sv.goto('http://localhost:8099/index.html');
+  await sv.evaluate(json => localStorage.setItem('dinnersync.items', json), savedJson);
+  await sv.reload();
+  const ssec = name => sv.locator(`#stage-rows .sec[data-sec="${name}"]`);
+  const pick = async name => {
+    await sv.click('#saved-toggle');
+    await sv.locator('#saved-list li', { hasText: name }).locator('.saved-pick').click();
+  };
+  await pick('Mince pie');
+  assert.equal(await ssec('ready').locator('.stage-row').count(), 1);
+  assert.equal(await ssec('cook').locator('.line').count(), 2);
+  assert.equal(await ssec('cook').locator('.line').nth(1).locator('.stage-row').count(), 2);
+  assert.equal(await ssec('cook').locator('.line').nth(1).locator('.stage-row').nth(1).getAttribute('data-method'), 'prep');
+  assert.equal(await ssec('finish').locator('.stage-row').count(), 2);
+  assert.match(await sv.textContent('#dish-total'), /⏱\s*1 hr 10 min/);
+  // removing: a cook line with no stages left goes; an empty section stays, ready for a new step
+  const l2 = ssec('cook').locator('.line').nth(1);
+  await l2.locator('.stage-row').nth(1).locator('.stage-remove').click();
+  await l2.locator('.stage-row').first().locator('.stage-remove').click();
+  assert.equal(await ssec('cook').locator('.line').count(), 1);
+  await ssec('ready').locator('.stage-row').first().locator('.stage-remove').click();
+  assert.equal(await ssec('ready').locator('.stage-row').count(), 0);
+  assert.equal(await ssec('ready').locator('.sec-add').isVisible(), true);
+  // an old v1.1.11 same-time item: before the same-time group = Get ready, the group = Cook, after = Finish
+  await sv.evaluate(() => {
+    const items = JSON.parse(localStorage.getItem('dinnersync.items') || '[]');
+    items.push({ name: 'Old pie', stages: [
+      { method: 'prep', minutes: 10, label: 'Peel', group: 0, track: 0 },
+      { method: 'hob', minutes: 25, label: 'Fry', group: 1, track: 0 },
+      { method: 'hob', minutes: 15, label: 'Boil', group: 1, track: 1 },
+      { method: 'oven', minutes: 30, temp: 200, group: 2, track: 0 },
+    ] });
+    items.push({ name: 'Old chicken', minutes: 90, temp: 180 });
+    localStorage.setItem('dinnersync.items', JSON.stringify(items));
+  });
+  await sv.reload();
+  await pick('Old pie');
+  assert.equal(await ssec('ready').locator('.stage-row').count(), 1);
+  assert.equal(await ssec('cook').locator('.line').count(), 2);
+  assert.equal(await ssec('finish').locator('.stage-row').count(), 1);
+  await pick('Old chicken');
+  assert.equal(await ssec('cook').locator('.stage-row').count(), 1);
+  assert.equal(await ssec('cook').locator('.stage-row').first().getAttribute('data-minutes'), '90');
+  assert.equal(await ssec('ready').locator('.stage-row').count() + await ssec('finish').locator('.stage-row').count(), 0);
+  await sv.close();
   assert.deepEqual(errors, []);
   console.log('app.check: OK');
 } finally {
