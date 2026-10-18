@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DinnerSync</title>
+  <meta name="description" content="Everything finishes together.">
+  <meta name="theme-color" content="#121012">
+  <meta name="color-scheme" content="dark">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="top-row">
+        <div class="brand-group">
+          <button id="home" class="home" type="button" aria-label="Home"><img src="assets/logo.png" alt=""></button>
+          <div class="brand-text">
+            <div class="brand-line">
+              <h1 class="brand">DinnerSync</h1>
+              <span id="app-version" class="app-version">v1.3.4 demo</span>
+            </div>
+            <p class="tagline">everything finishes together</p>
+          </div>
+        </div>
+        <div class="top-side">
+          <button id="cook-reset" class="btn ghost reset-top" type="button">Reset</button>
+          <span id="now-clock" class="now-clock" aria-label="Time now"></span>
+        </div>
+      </div>
+    </header>
+
+      <div id="reset-confirm" class="reset-confirm" role="alertdialog" aria-labelledby="reset-question" hidden>
+        <p id="reset-question">Reset tonight? This clears tonight's items.</p>
+        <div class="reset-actions">
+          <button id="reset-yes" class="btn" type="button">Yes, reset</button>
+          <button id="reset-no" class="btn ghost" type="button">No</button>
+        </div>
+      </div>
+
+
+    <!-- Screen 1: plan the evening -->
+    <section id="plan-screen" class="screen">
+      <button id="back-to-cook" class="back-to-cook" type="button" hidden></button>
+      <!-- The Simple timer and When's dinner tiles: hidden for now, switched on by SHOW_LEGACY_TOOLS in js/app.js -->
+      <div id="legacy-tools" hidden>
+      <div class="tiles">
+        <button id="tile-dinner" class="tile" type="button" aria-expanded="false" aria-controls="panel-dinner">
+          <small>🍽 When's dinner</small>
+          <b id="tile-dinner-time">--:--</b>
+        </button>
+        <button id="tile-timer" class="tile" type="button" aria-expanded="false" aria-controls="panel-timer">
+          <small>⏳ Timer</small>
+          <b id="tile-timer-time">0:00</b>
+        </button>
+      </div>
+
+      <div id="panel-dinner" class="drawer" aria-labelledby="tile-dinner">
+        <div class="drawer-inner">
+          <div class="panel">
+            <div class="when">
+              <div class="when-seg" role="group" aria-label="When to start">
+                <button id="when-now" class="when-btn" type="button" aria-pressed="true">Start now</button>
+                <button id="when-later" class="when-btn" type="button" aria-pressed="false">Ready later</button>
+              </div>
+              <div id="when-later-box" class="later-box" hidden>
+                <button id="later-down" class="btn step-btn" type="button" aria-label="15 minutes earlier">−</button>
+                <span id="later-val" class="later-val"></span>
+                <button id="later-up" class="btn step-btn" type="button" aria-label="15 minutes later">+</button>
+              </div>
+              <p id="when-text" class="when-text"></p>
+            </div>
+            <div class="ready-line">
+              <span class="muted">Ready in</span>
+              <input id="ready-hours" class="ready-input" type="number" inputmode="numeric" min="0" aria-label="Ready in hours" value="1"><em>hr</em>
+              <input id="ready-minutes" class="ready-input" type="number" inputmode="numeric" min="0" aria-label="Ready in minutes" value="30"><em>min</em>
+              <span class="muted">or at</span>
+              <input id="ready-at" class="ready-input ready-time" type="time" aria-label="Dinner time">
+            </div>
+            <p id="ready-clock" class="ready-clock"></p>
+            <button id="cook-now" class="btn block" type="button" disabled>🔥 Cook now</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-timer" class="drawer" aria-labelledby="tile-timer">
+        <div class="drawer-inner">
+          <div class="panel">
+            <div class="ring">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="track" cx="60" cy="60" r="52"></circle>
+                <circle id="timer-ring" class="prog" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="ring-text">
+                <small>Remaining</small>
+                <span id="timer-display" class="timer-digits">0:00</span>
+              </div>
+            </div>
+            <div class="quick">
+              <button type="button" data-add="60">+1 min</button>
+              <button type="button" data-add="300">+5 min</button>
+              <button type="button" data-add="600">+10 min</button>
+            </div>
+            <div class="timer-btns">
+              <button id="timer-start" class="btn primary" type="button">Start</button>
+              <button id="timer-reset" class="btn" type="button">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div id="plan-rest">
+        <div id="setup" class="setup"></div>
+        <p id="plan-error" class="error" hidden></p>
+      </div>
+    </section>
+
+    <!-- Screen 2: timeline -->
+    <section id="timeline-screen" class="screen" hidden>
+      <div class="row">
+        <button id="back-plan" class="btn ghost" type="button">← Back</button>
+      </div>
+      <h2 class="page-title">Your timer sequence</h2>
+      <p id="timeline-ready" class="muted"></p>
+      <p id="timeline-oven" class="muted"></p>
+      <label id="prep-first" class="b-switch on">
+        <input type="checkbox" id="prep-first-box" checked>
+        <span><b>Do all the prep first</b><span id="prep-first-hint" class="b-hint"></span></span>
+      </label>
+      <div id="oven-clash" class="status warn" hidden></div>
+      <div id="timeline-note" class="status warn" hidden></div>
+      <ol id="plan-steps" class="steps"></ol>
+      <button id="start-cooking" class="btn primary big block" type="button">Start cooking</button>
+    </section>
+
+    <!-- Screen 3: cooking -->
+    <section id="cook-screen" class="screen cook" hidden>
+      <div class="dinner">
+        <span class="label">Dinner in</span>
+        <span id="dinner-in" class="num med">--:--</span>
+      </div>
+
+      <p id="oven-temp" class="oven"></p>
+
+      <span class="label on-go">On the go</span>
+      <div id="jobs" class="jobs"></div>
+      <p id="jobs-empty" class="muted">Nothing on the go right now.</p>
+
+      <div id="next-alarm" class="next-alarm" hidden>
+        <span class="label">Next alarm</span>
+        <p class="next-alarm-row"><span id="next-alarm-text"></span> <span id="next-alarm-time" class="next-alarm-time"></span></p>
+      </div>
+
+      <ol id="cook-steps" class="cook-steps" aria-label="Cooking steps"></ol>
+    </section>
+  </main>
+
+  <div id="alarm-banner" class="alarm" role="alertdialog" aria-live="assertive" hidden>
+    <p id="alarm-text"></p>
+    <button id="alarm-done" class="btn big block done" type="button">Done ✓</button>
+  </div>
+
+  <audio id="keep-alive" loop preload="auto" hidden></audio>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
