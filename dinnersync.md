@@ -29,7 +29,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 2. **Choose the alarm tone**: a few built-in tones (beeps, chimes, kitchen bell) with ▶ preview; beep-beep-beep stays the default.
 3. **Use your own sound**: pick a sound file from the phone (MP3 etc.), saved in the app, used for the alarm.
 4. ~~Phone setting tip~~ dropped: v1.1.8 uses no notifications.
-5. **Real Android app (option 3)**, once all the above works well: uses the phone's own alarm system and ringtone list; alarms work even when the app is swiped closed.
+5. **Real Android app (option 3)**, once all the above works well: uses the phone's own alarm system and ringtone list; alarms work even when the app is swiped closed. **Job #1: alarms that ring reliably when the phone is locked** (the installed web app can't; Darren hit this 2026-10-18).
 - Known gap: "X min spare" is lost on reload mid-cook.
 
 ## Principles / constraints
@@ -130,6 +130,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: Demo has a ⚙️ settings gear with Backup: save/load a JSON file of meals and items (load replaces exactly, with a confirm). Same file will carry data to the Android app. Android job #1 noted: locked-phone alarms.
 - 2026-10-18: v1.3.0 built from the mockup 6 list
 - 2026-10-18: Mockup 6 agreed (meals, items with named steps, built dishes, shared peel, prep first); saved to docs/mock-v6-meals.html; Next build rewritten
 - 2026-10-17: Ideas for next chat saved (tone picker, own sound, real Android app)
