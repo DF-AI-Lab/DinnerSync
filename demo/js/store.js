@@ -168,7 +168,35 @@ export function createStore(storage) {
     remove(KEYS.cooking);
   }
 
+  // Backup file: saved items and meals, plus the preheat setting. Loading merges by name.
+  function exportData() {
+    return {
+      app: 'DinnerSync',
+      version: 1,
+      savedAt: new Date().toISOString(),
+      items: getLibraryItems(),
+      meals: getLibraryMeals(),
+      settings: getSettings(),
+    };
+  }
+
+  function importData(data) {
+    if (!isMap(data) || data.app !== 'DinnerSync') return null;
+    const items = isMap(data.items) ? data.items : {};
+    const meals = isMap(data.meals) ? data.meals : {};
+    const goodItems = Object.entries(items).filter(([n, v]) => n.trim() && Array.isArray(v));
+    const goodMeals = Object.entries(meals).filter(([n, v]) => n.trim() && isMap(v));
+    write(KEYS.libItems, { ...getLibraryItems(), ...Object.fromEntries(goodItems) });
+    write(KEYS.libMeals, { ...getLibraryMeals(), ...Object.fromEntries(goodMeals) });
+    if (isMap(data.settings) && Number.isFinite(data.settings.preheatMinutes)) {
+      saveSettings({ preheatMinutes: data.settings.preheatMinutes });
+    }
+    return { items: goodItems.length, meals: goodMeals.length };
+  }
+
   return {
+    exportData,
+    importData,
     getSavedItems,
     saveItem,
     removeItem,

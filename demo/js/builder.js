@@ -206,6 +206,12 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
         <button type="button" class="b-go" data-act="go">Start timers</button>
         <div class="b-addrow"><button type="button" class="b-save" data-act="savemeal">Save as a meal</button></div>
         <p class="b-toast" role="status">${esc(S.toast)}</p>
+      </div>
+      <div class="b-card">
+        <span class="b-cap">Backup</span>
+        <p class="b-hint">Save your meals and items to a file. Load it to restore, or to move to another phone.</p>
+        <div class="b-addrow"><button type="button" class="b-save" data-act="backup">Save backup file</button><button type="button" class="b-save" data-act="restore">Load backup file</button></div>
+        <input type="file" id="backup-file" accept=".json,application/json" hidden>
       </div>`;
 
     root.innerHTML = h;
@@ -261,6 +267,8 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       S.preheat = Math.min(60, Math.max(0, S.preheat + Number(d)));
       store.saveSettings({ preheatMinutes: S.preheat });
     } else if (act === 'savemeal') saveMeal();
+    else if (act === 'backup') backup();
+    else if (act === 'restore') { root.querySelector('#backup-file').click(); return; }
     else if (act === 'go') {
       if (!total()) S.toast = 'Add an item with some steps first.';
       else { save(); draw(); onStart(); return; }
@@ -268,6 +276,28 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     if (['min', 'temp', 'slowset', 'rmst', 'addst', 'addchk', 'chk', 'rmchk'].includes(act)) autosave(o);
     refresh();
   });
+
+  function backup() {
+    const blob = new Blob([JSON.stringify(store.exportData(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `dinnersync-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    S.toast = 'Backup saved. Check your Downloads.';
+  }
+
+  async function restore(file) {
+    try {
+      const done = store.importData(JSON.parse(await file.text()));
+      S.toast = done ? `Loaded ${done.meals} meals and ${done.items} items.` : "That isn't a DinnerSync backup file.";
+    } catch {
+      S.toast = "Couldn't read that file.";
+    }
+    draw();
+  }
 
   function saveMeal() {
     const name = S.meal.name.trim();
@@ -279,6 +309,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
 
   root.addEventListener('change', e => {
     const t = e.target;
+    if (t.id === 'backup-file') { if (t.files[0]) restore(t.files[0]); return; }
     if (t.id === 'meal-pick' && t.value) loadMeal(t.value);
     else if (t.classList.contains('b-item-pick') && t.value) addItem(listOf(t.dataset.list), t.value);
     else if (t.id === 'meal-name') { S.meal.name = t.value.trim(); save(); return; }
