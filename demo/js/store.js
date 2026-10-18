@@ -167,7 +167,7 @@ export function createStore(storage) {
     remove(KEYS.cooking);
   }
 
-  // Backup file: saved items and meals, plus the preheat setting. Loading replaces what is here.
+  // Backup file: saved items and meals, plus the preheat setting. Loading adds to what is here (same name: the file wins).
   function exportData() {
     return {
       app: 'DinnerSync',
@@ -193,8 +193,8 @@ export function createStore(storage) {
   function importData(data) {
     const backup = readBackup(data);
     if (!backup) return null;
-    write(KEYS.libItems, backup.items);
-    write(KEYS.libMeals, backup.meals);
+    write(KEYS.libItems, { ...getLibraryItems(), ...backup.items });
+    write(KEYS.libMeals, { ...getLibraryMeals(), ...backup.meals });
     if (backup.preheat != null) saveSettings({ preheatMinutes: backup.preheat });
     return { items: Object.keys(backup.items).length, meals: Object.keys(backup.meals).length };
   }

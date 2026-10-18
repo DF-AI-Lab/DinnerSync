@@ -571,9 +571,9 @@ function bindCookScreen() {
       if (!backup) { $('settings-msg').textContent = "That isn't a DinnerSync backup file."; return; }
       const meals = Object.keys(backup.meals).length;
       const items = Object.keys(backup.items).length;
-      if (!confirm(`Replace everything saved on this phone with ${meals} meals and ${items} items from the file?`)) return;
+      if (!confirm(`Add ${meals} meals and ${items} items from the file? Anything with the same name gets updated; the rest stays.`)) return;
       store.importData(data);
-      $('settings-msg').textContent = `Restored ${meals} meals and ${items} items.`;
+      $('settings-msg').textContent = `Added ${meals} meals and ${items} items.`;
       builder.redraw();
       renderSaved();
     } catch {
