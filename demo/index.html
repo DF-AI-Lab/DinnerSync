@@ -25,7 +25,7 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.3.22 demo</span>
+              <span id="app-version" class="app-version">v1.3.23 demo</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
@@ -42,6 +42,22 @@
 
     <div id="settings" class="settings" hidden>
       <span class="label">Settings</span>
+      <b class="settings-h">Hob and oven</b>
+      <div class="set-block"><span class="set-lab">Hob type</span>
+        <div class="b-seg" role="group" aria-label="Hob type">
+          <button type="button" data-set="hobType" data-v="electric">Electric</button>
+          <button type="button" data-set="hobType" data-v="gas">Gas</button>
+        </div></div>
+      <div class="set-block"><span class="set-lab">Hob dial goes up to</span>
+        <div class="b-stepper"><button type="button" data-step="hobMax" data-d="-1" aria-label="Dial lower">−</button><span class="b-val" id="set-hobMax"></span><button type="button" data-step="hobMax" data-d="1" aria-label="Dial higher">+</button></div></div>
+      <div class="set-block"><span class="set-lab">Oven type</span>
+        <div class="b-seg three" role="group" aria-label="Oven type">
+          <button type="button" data-set="ovenType" data-v="fan">Fan</button>
+          <button type="button" data-set="ovenType" data-v="conventional">Conventional</button>
+          <button type="button" data-set="ovenType" data-v="gas">Gas</button>
+        </div></div>
+      <div class="set-block"><span class="set-lab">Oven preheat</span>
+        <div class="b-stepper"><button type="button" data-step="preheatMinutes" data-d="-1" aria-label="5 minutes less preheat">−</button><span class="b-val" id="set-preheatMinutes"></span><button type="button" data-step="preheatMinutes" data-d="1" aria-label="5 minutes more preheat">+</button></div></div>
       <b class="settings-h">Backup</b>
       <p class="muted">Save your meals and items to a file. Loading a file adds its meals and items to what's on this phone. Same name: the file's version wins.</p>
       <div class="settings-row">
