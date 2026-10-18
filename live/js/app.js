@@ -264,6 +264,7 @@ function bindTimelineScreen() {
     // Start now: plan again from this moment, so nothing has already slipped by.
     const plan = builder.state().mode === 'now' ? currentPlan() : state.plan || currentPlan();
     store.saveCooking({ plan, done: [] });
+    askNotify(); // a tap is needed to ask for permission
     beginCooking(plan, Date.now(), []);
   });
 }
@@ -272,7 +273,7 @@ function bindTimelineScreen() {
 
 function beginCooking(plan, since, done) {
   stopTimer();
-  cook = { plan, done, lastChecked: since, timer: null, rang: [], rangReady: false };
+  cook = { plan, done, lastChecked: since, timer: null, rang: [], rangReady: false, headed: {} };
   jobsKey = null;
   stepsKey = null;
   showScreen('cook');
@@ -300,7 +301,14 @@ function tick() {
   if (!cook) return;
   const now = Date.now();
   const only = currentIndex();
-  const starts = alarmSteps(cook.plan, cook.lastChecked, now, cook.done, only);
+  // Heads-up: a step is next and about to start. Shown once, for the current step only.
+  const next = cook.plan.steps[only];
+  if (headsUpMs() && next && (next.type === 'in' || next.type === 'preheat') && cook.headed[only] === undefined && next.at > now && next.at - now <= headsUpMs()) {
+    cook.headed[only] = 'show';
+    raiseHeadsUp(next);
+  }
+  // "On it" means already started: that step's on-time alarm stays quiet.
+  const starts = alarmSteps(cook.plan, cook.lastChecked, now, cook.done, only).filter(s => cook.headed[cook.plan.steps.indexOf(s)] !== 'onit');
   const ends = endAlarms(cook.plan, cook.lastChecked, now, cook.done, only);
   cook.lastChecked = now;
   if (starts.length || ends.length) {
@@ -312,6 +320,103 @@ function tick() {
     raiseAlarm([...ends.map(endText), ...starts.map(s => s.say ?? s.text)].join(' · '));
   }
   renderCook(now);
+}
+
+// ---------- heads-up and phone notifications ----------
+
+const NOTE_EVERY_MS = 10_000; // the alarm notification repeats this often until Stop or Done
+let noteTimer = null;
+let audioCtx = null;
+
+const headsUpMs = () => { const v = store.getSettings().headsUp; return v === 'off' ? 0 : Number(v) * 1000; };
+const notifyOK = () => store.getSettings().notifications === 'on' && 'Notification' in window && Notification.permission === 'granted';
+
+// Asking needs a tap, so it runs from Start cooking and from the settings switch.
+function askNotify() {
+  if (store.getSettings().notifications !== 'on' || !('Notification' in window) || Notification.permission !== 'default') return;
+  Notification.requestPermission().then(renderNotifyState).catch(() => {});
+}
+
+function renderNotifyState() {
+  const box = $('notify-state');
+  if (!box) return;
+  box.textContent = !('Notification' in window) ? "This browser can't show notifications."
+    : store.getSettings().notifications !== 'on' ? ''
+      : Notification.permission === 'denied' ? 'Blocked. Turn notifications on for this app in your phone settings.'
+        : Notification.permission === 'default' ? 'Your phone will ask "Allow notifications?". Say yes.' : '';
+}
+
+// Only when the app is out of sight: with it open, the banner and sound already do the job.
+function notify(title, body, tag, actions) {
+  if (!notifyOK() || document.visibilityState === 'visible') return;
+  navigator.serviceWorker?.ready
+    .then(reg => reg.showNotification(title, { body, tag, renotify: true, requireInteraction: true, vibrate: [400, 200, 400], icon: './icons/icon-192.png', actions }))
+    .catch(() => {});
+}
+
+function closeNotes() {
+  navigator.serviceWorker?.ready.then(reg => reg.getNotifications().then(list => list.forEach(n => n.close()))).catch(() => {});
+}
+
+function notifyAlarm() {
+  notify($('alarm-text').textContent, 'Tap Stop alarm or Done', 'ds-alarm', [{ action: 'stop', title: 'Stop alarm' }, { action: 'done', title: 'Done ✓' }]);
+}
+
+// A soft two-note chime for the heads-up. It may stay silent if the phone has not allowed sound yet.
+function chime() {
+  try {
+    audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume?.();
+    const t = audioCtx.currentTime;
+    [660, 880].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const at = t + i * 0.2;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.25, at + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.35);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(at);
+      osc.stop(at + 0.4);
+    });
+  } catch {
+    // no sound available
+  }
+}
+
+function raiseHeadsUp(step) {
+  chime();
+  try { navigator.vibrate?.(200); } catch { /* ignore */ }
+  const label = headsUpMs() >= 60_000 ? '1 min' : '30 sec';
+  notify(`Coming up in ${label}`, step.say ?? step.text, 'ds-heads', [{ action: 'onit', title: 'On it' }, { action: 'ignore', title: 'Ignore' }]);
+}
+
+// On it: already started, so no on-time alarm. Ignore: just dismiss; the alarm still rings on time.
+function setHeads(index, state) {
+  if (!cook || index < 0) return;
+  cook.headed[index] = state;
+  closeNotes();
+  renderCook(Date.now());
+}
+
+// The yellow strip inside the current card while its heads-up is showing.
+function renderHeadsUp(now) {
+  const index = currentIndex();
+  const step = cook.plan.steps[index];
+  const li = $('cook-steps').querySelector('li.current');
+  let box = li?.querySelector('.cs-heads');
+  if (!li || !step || cook.headed[index] !== 'show' || step.at <= now) { box?.remove(); return; }
+  if (!box) {
+    box = el('div', { class: 'cs-heads' },
+      el('div', { class: 'cs-heads-top' }, el('span', {}, 'Coming up'), el('b', { class: 'cs-heads-count' }, '')),
+      el('p', {}, `${step.say ?? step.text} · starts at ${formatClock(step.at)}`),
+      el('div', { class: 'cs-heads-btns' },
+        el('button', { class: 'btn step-done', type: 'button', 'data-heads': 'onit' }, 'On it'),
+        el('button', { class: 'btn step-edit', type: 'button', 'data-heads': 'ignored' }, 'Ignore')));
+    li.querySelector('.step-body').append(box);
+  }
+  box.querySelector('.cs-heads-count').textContent = formatCountdown(step.at - now);
 }
 
 // The alarm's Done (cook): every job that rang is ticked off. The dinner alarm ends cooking.
@@ -449,8 +554,6 @@ function startStepEdit(node) {
     body.replaceChildren(el('time', {}, formatClock(step.at)), input, bar);
   }
   input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(node); });
-  input.focus();
-  input.select();
 }
 
 function saveStepEdit(node) {
@@ -489,6 +592,7 @@ function renderCook(now) {
   renderJobs(now);
   renderCookSteps(now);
   renderNextAlarm(now);
+  renderHeadsUp(now);
 }
 
 function stopCooking() {
@@ -574,6 +678,8 @@ function bindCookScreen() {
   // Done on the current step ticks it off; Undo (or the ✓) puts it back on the running plan.
   $('cook-steps').addEventListener('click', e => {
     if (!cook) return;
+    const heads = e.target.closest('[data-heads]');
+    if (heads) { setHeads(currentIndex(), heads.dataset.heads); return; }
     const doneBtn = e.target.closest('[data-done]');
     const li = e.target.closest('li.done');
     if (e.target.closest('[data-edit-step]')) { startStepEdit(e.target.closest('li')); return; }
@@ -596,12 +702,15 @@ function bindCookScreen() {
     box.hidden = !box.hidden;
     $('settings-btn').setAttribute('aria-expanded', String(!box.hidden));
     $('settings-msg').textContent = '';
-    if (!box.hidden) { renderSaved(); renderSettingsControls(); }
+    if (!box.hidden) { renderSaved(); renderSettingsControls(); renderNotifyState(); }
   });
   $('settings').addEventListener('click', e => {
     const seg = e.target.closest('[data-set]');
     const stp = e.target.closest('[data-step]');
-    if (seg) store.saveSettings({ [seg.dataset.set]: seg.dataset.v });
+    if (seg) {
+      store.saveSettings({ [seg.dataset.set]: seg.dataset.v });
+      if (seg.dataset.set === 'notifications') { askNotify(); renderNotifyState(); }
+    }
     else if (stp) {
       const key = stp.dataset.step;
       const [lo, hi, by] = SETTING_RANGE[key];
@@ -648,18 +757,22 @@ function bindCookScreen() {
     $('reset-confirm').hidden = true;
     resetTonight();
   });
-  $('alarm-done').addEventListener('click', () => {
-    if (alarmKind === 'timer') {
-      // Timer alarm: Done silences it and clears the timer
-      stopAlarm();
-      timer.reset();
-      timerAlerted = false;
-      renderTimer();
-      stopKeepAlive();
-    } else {
-      cookAlarmDone();
-    }
-  });
+  $('alarm-done').addEventListener('click', alarmDone);
+  // Stop alarm: silence it. The step stays on the list, not ticked off.
+  $('alarm-stop').addEventListener('click', stopAlarm);
+}
+
+function alarmDone() {
+  if (alarmKind === 'timer') {
+    // Timer alarm: Done silences it and clears the timer
+    stopAlarm();
+    timer.reset();
+    timerAlerted = false;
+    renderTimer();
+    stopKeepAlive();
+  } else {
+    cookAlarmDone();
+  }
 }
 
 function resumeCooking() {
@@ -705,11 +818,17 @@ function raiseAlarm(text, kind = 'cook') {
   keepAlive.play().catch(() => {});
   clearInterval(buzzTimer);
   buzzTimer = setInterval(buzz, ALARM.loopSeconds * 1000);
+  notifyAlarm();
+  clearInterval(noteTimer);
+  noteTimer = setInterval(notifyAlarm, NOTE_EVERY_MS);
 }
 
 function stopAlarm() {
   clearInterval(buzzTimer);
   buzzTimer = null;
+  clearInterval(noteTimer);
+  noteTimer = null;
+  closeNotes();
   $('alarm-banner').hidden = true;
   setSound('silent'); // back to the hum; it keeps playing only if something still needs the app awake
   if (needAwake()) keepAlive.play().catch(() => {});
@@ -870,6 +989,14 @@ init();
 try {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
+    // A button on a notification (Done, Stop alarm, On it, Ignore) arrives here.
+    navigator.serviceWorker.addEventListener('message', e => {
+      const type = e.data?.type;
+      if (type === 'alarm-done') alarmDone();
+      else if (type === 'alarm-stop') stopAlarm();
+      else if (type === 'heads-onit') setHeads(cook ? currentIndex() : -1, 'onit');
+      else if (type === 'heads-ignore') setHeads(cook ? currentIndex() : -1, 'ignored');
+    });
   }
 } catch {
   // service workers unavailable
