@@ -3,7 +3,7 @@
 
 import { normalizeItem } from './plan.js';
 
-const PREFIX = 'dinnersync.';
+const PREFIX = 'dinnersync.demo.'; // demo has its own data, live keeps 'dinnersync.' (swap back on release)
 const KEYS = {
   items: PREFIX + 'items',
   lastDinner: PREFIX + 'lastDinner',

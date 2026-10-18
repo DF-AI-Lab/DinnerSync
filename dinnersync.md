@@ -34,6 +34,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
    - Plan: (1) tests + short spec written in the web chat; (2) a new chat builds the app against them; (3) back here to review; (4) GitHub builds the APK, Darren downloads it on his phone (allow "install unknown apps" once, tap Install). New APK installs over the old one, data kept.
    - Tests cover timing logic only; the locked-phone ring must be tested on the real phone.
    - Still to decide: alarm sound (phone's alarm tone vs our beep; leaning phone's tone), replace the web app or sit alongside it (leaning alongside while testing).
+   - **Release to /live: set `PREFIX` in `store.js` back to `'dinnersync.'`** (demo uses `'dinnersync.demo.'` so demo and live don't share data).
 - Known gap: "X min spare" is lost on reload mid-cook.
 
 ## Principles / constraints
