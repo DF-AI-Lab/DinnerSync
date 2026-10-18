@@ -1,0 +1,897 @@
+:root {
+  --bg: #121012;
+  --panel: #1c191c;
+  --panel-2: #26222a;
+  --field: #0e0c0e;
+  --line: #3a343b;
+  --text: #f3ede6;
+  --muted: #a39a93;
+  --orange: #ff7a2f;
+  --orange-soft: #ffb07a;
+  --glow: rgba(255, 122, 47, 0.45);
+  --ok: #7fd6a0;
+  --warn: #ffc04d;
+  --danger: #ff6b6b;
+  --blue: #8ab4ff;
+  --ink: #1a0f08;
+  --display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html, body { margin: 0; }
+
+body {
+  background: radial-gradient(ellipse at 50% -10%, rgba(255, 122, 47, 0.18), transparent 60%), var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 1rem;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(40px, env(safe-area-inset-bottom));
+}
+
+.top { padding: 8px 0 18px; }
+.top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+/* Small Reset in the top right. .btn.reset-top beats .btn's 48px minimum. */
+/* Reset with the time now under it. */
+.top-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.now-clock { color: var(--muted); font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.btn.reset-top { flex: none; min-height: 0; margin-top: 6px; padding: 4px 12px; font-size: 0.8rem; border-radius: 999px; }
+/* Logo home button on the left; its height follows the title + tagline block. */
+.brand-group { display: flex; align-items: stretch; gap: 10px; min-width: 0; }
+.home { position: relative; flex: none; width: 60px; padding: 0; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.home img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+.home:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.brand-text { min-width: 0; }
+.brand-line { display: flex; align-items: baseline; gap: 8px; }
+.brand { font-family: var(--display); font-weight: 800; font-size: 2rem; margin: 0; color: var(--orange); text-shadow: 0 0 22px var(--glow); }
+.app-version { color: var(--muted); font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tagline { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
+/* Narrow phones (Z Fold cover screen, 320-360px): shrink the header so the title block ends before Reset. Wide screens keep the sizes above. */
+@media (max-width: 420px) {
+  .btn.reset-top { padding: 4px 8px; }
+  .now-clock { font-size: 0.72rem; }
+  .brand-group { gap: 8px; }
+  .home { width: 48px; }
+  .brand-line { gap: 5px; }
+  .brand { font-size: clamp(1.2rem, 6.4vw, 1.5rem); }
+  .app-version { font-size: 0.62rem; }
+  .tagline { font-size: clamp(0.66rem, 3.3vw, 0.85rem); white-space: nowrap; }
+}
+
+h2 {
+  font-size: 0.95rem;
+  margin: 0 0 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.page-title { font-family: var(--display); font-size: 1.8rem; color: var(--text); text-transform: none; letter-spacing: 0; margin: 8px 0 4px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.muted { color: var(--muted); margin: 0 0 8px; font-size: 1rem; }
+.error { color: var(--danger); font-weight: 700; margin: 10px 0; }
+
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > span { color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.field input {
+  width: 100%;
+  min-height: 48px;
+  font: inherit;
+  font-size: 1.125rem;
+  padding: 10px 12px;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.field input:focus-visible,
+.btn:focus-visible,
+.icon-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+.ready-row, .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ready-row .dur input { font-size: 1.125rem; }
+.grid2 .wide { grid-column: 1 / -1; }
+#cook-now { margin-top: 12px; }
+.ready-clock { margin: 0; font-family: var(--display); font-size: 1.3rem; color: var(--orange-soft); font-variant-numeric: tabular-nums; }
+
+/* ---------- plan screen: two tiles that open drawers ---------- */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.25s ease, border-color 0.25s, box-shadow 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tile small { color: var(--muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.tile b { font-family: var(--display); font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile.on { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange), 0 8px 30px -10px var(--glow); transform: translateY(-2px); }
+.tile:active { transform: scale(0.97); }
+.tile:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* Drawer: slides open by animating grid-template-rows from 0fr to 1fr. */
+.drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s, visibility 0.35s;
+}
+.drawer.open { grid-template-rows: 1fr; opacity: 1; visibility: visible; }
+.drawer-inner { overflow: hidden; min-height: 0; }
+.drawer-inner > .panel { margin-bottom: 12px; }
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+/* "Ready in [h] hr [m] min or at [time]" on one line. */
+.ready-line { display: flex; flex-wrap: wrap; min-width: 0; align-items: center; gap: 8px; }
+.ready-line em { font-style: normal; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.ready-input {
+  width: 64px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 8px 10px;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ready-input.ready-time { width: auto; min-width: 104px; flex: 1 1 104px; }
+.ready-line { gap: 6px; }
+.ready-line .muted, .ready-line em { white-space: nowrap; font-size: 0.85rem; }
+.ready-line .ready-input:not(.ready-time) { width: 46px; padding: 8px 4px; text-align: center; }
+.ready-line .ready-time { padding: 8px 6px; }
+.ready-input:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* Timer: glowing ring that empties, big digits in the middle. */
+.ring { position: relative; width: min(260px, 100%); aspect-ratio: 1; margin: 4px auto 0; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; filter: drop-shadow(0 0 8px var(--glow)); }
+.ring circle { fill: none; stroke-width: 10; }
+.ring .track { stroke: var(--panel-2); }
+.ring .prog { stroke: var(--orange); stroke-linecap: round; transition: stroke-dashoffset 0.25s linear; }
+.ring-text { position: absolute; inset: 0; display: grid; place-content: center; gap: 2px; text-align: center; }
+.ring-text small { color: var(--muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.timer-digits {
+  font-family: var(--display);
+  font-size: clamp(2.6rem, 14vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--orange);
+  text-shadow: 0 0 22px var(--glow);
+  font-variant-numeric: tabular-nums;
+}
+.timer-digits.flash { animation: digit-flash 0.5s steps(2, end) infinite; }
+@keyframes digit-flash { 50% { opacity: 0.2; } }
+.quick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.quick button {
+  min-height: 40px;
+  padding: 8px 14px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.timer-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.timer-btns .btn { width: 100%; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn.primary { background: var(--orange); color: var(--ink); border-color: transparent; box-shadow: 0 8px 28px var(--glow); }
+.btn.ghost { background: transparent; }
+.btn.big { min-height: 60px; font-size: 1.25rem; }
+.btn.block { width: 100%; margin-top: 12px; }
+.btn.done { background: var(--ok); color: var(--ink); border-color: transparent; }
+
+.row { display: flex; justify-content: space-between; align-items: center; }
+
+.items { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--panel-2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.item-info { min-width: 0; }
+.item-name { font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
+.item-detail { color: var(--muted); font-size: 0.95rem; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+.icon-btn {
+  flex: none;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.status p { margin: 0; }
+.status.ok { background: rgba(127, 214, 160, 0.12); border: 1px solid rgba(127, 214, 160, 0.5); color: var(--ok); }
+.status.warn { background: rgba(255, 192, 77, 0.12); border: 1px solid rgba(255, 192, 77, 0.5); color: var(--warn); }
+.status .btn { min-height: 48px; }
+
+.steps { list-style: none; padding: 0; margin: 12px 0 20px; display: grid; gap: 10px; }
+.steps li {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 12px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 1.1rem;
+}
+.steps time { font-family: var(--display); color: var(--orange); font-weight: 800; font-variant-numeric: tabular-nums; }
+.step-preheat { border-left-color: var(--orange-soft) !important; }
+.step-ready { border-left-color: var(--ok) !important; }
+
+.num { font-family: var(--display); font-weight: 800; color: var(--orange); font-variant-numeric: tabular-nums; text-shadow: 0 0 28px var(--glow); margin: 0; line-height: 1; }
+.med { font-size: clamp(2.2rem, 11vw, 3.4rem); }
+.label { display: block; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+
+.cook { display: flex; flex-direction: column; align-items: stretch; gap: 22px; text-align: center; padding-top: 8px; }
+.dinner { display: flex; flex-direction: column; align-items: center; }
+.oven { color: var(--orange-soft); font-size: 1.3rem; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+
+/* ---------- cooking screen: step progress as a vertical timeline ---------- */
+.cook-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  text-align: left;
+  min-width: 0;
+}
+.cook-steps li {
+  position: relative;
+  min-width: 0;
+  padding: 0 0 12px 40px;
+}
+.cook-steps li::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+.cook-steps li:last-child::before { bottom: auto; height: 12px; }
+.cook-steps .dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+/* A done step's dot is a button (tap to undo): look the same as the span. */
+.cook-steps button.dot {
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cook-steps button.dot:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.cook-steps .step-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.cook-steps time { font-family: var(--display); font-weight: 800; color: var(--orange); font-variant-numeric: tabular-nums; }
+.cook-steps li.done .dot { background: var(--ok); border-color: var(--ok); }
+.cook-steps li.done .step-body { color: var(--muted); opacity: 0.55; }
+.cook-steps li.current .dot { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 16px var(--glow); }
+.cook-steps li.current .step-body { font-weight: 700; }
+.cook-steps li.upcoming .step-body { color: var(--muted); }
+
+/* Shown on the plan screen while cooking in the background: a full-width orange pill. */
+.back-to-cook {
+  display: block;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--orange);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--orange-soft);
+  font: inherit;
+  font-weight: 800;
+  box-shadow: 0 0 22px var(--glow);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.back-to-cook:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.alarm {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  max-width: 496px;
+  margin: 0 auto;
+  z-index: 10;
+  border-radius: 22px;
+  padding: 18px;
+  text-align: center;
+  animation: flash 0.5s steps(2, end) infinite alternate;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+.alarm p { font-family: var(--display); font-size: 1.6rem; font-weight: 800; margin: 0 0 14px; color: var(--ink); }
+
+@keyframes flash {
+  from { background: var(--orange); }
+  to { background: #3a1400; }
+}
+.alarm p { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .alarm { animation: none; background: var(--orange); }
+}
+
+/* ---------- add-item: name input with the saved-items menu beside it ---------- */
+.head-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.head-row h2 { margin: 0; }
+.name-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; min-width: 0; }
+/* A text box with its ✓ beside it. */
+.input-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.input-row > input { flex: 1 1 0; width: auto; min-width: 0; }
+/* ✓ next to a text box: faded until the box is focused; tapping it closes the keyboard. */
+.tick {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ok);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tick.off { opacity: 0.3; }
+.tick:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.name-field { flex: 1 1 0; min-width: 0; }
+.saved-menu { position: relative; flex: 0 0 auto; }
+.saved-toggle { min-height: 0; padding: 4px 12px; font-size: 0.8rem; border-radius: 999px; white-space: nowrap; }
+.saved-toggle[aria-expanded="true"] { border-color: var(--orange); color: var(--orange-soft); }
+.saved-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  width: 240px;
+  max-width: calc(100vw - 32px);
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+.saved-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.saved-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  background: var(--panel);
+  border-radius: 12px;
+}
+.saved-pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.saved-del {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.saved-del:hover, .saved-del:focus-visible { color: var(--danger); }
+.saved-empty { margin: 4px 8px; font-size: 0.95rem; }
+.saved-toggle:focus-visible,
+.saved-pick:focus-visible,
+.saved-del:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* ---------- stages: add-item form ---------- */
+/* The add-item card holds the stage rows, so they are lighter than cards of their own. */
+.stage-list { display: grid; gap: 10px; margin-bottom: 12px; }
+.stage-row {
+  background: transparent;
+  border: 0;
+  padding: 4px 0;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.stage-head { display: flex; justify-content: space-between; align-items: center; min-height: 36px; }
+.stage-head .label { margin: 0; }
+.stage-remove { min-width: 36px; min-height: 36px; font-size: 1rem; }
+.stage-label {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  font-size: 1rem;
+  padding: 8px 12px;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.stage-label::placeholder { color: var(--muted); opacity: 0.7; }
+.stage-label:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* Oven / Hob / Rest: compact segmented control. */
+.seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 3px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.seg-btn {
+  min-height: 40px;
+  padding: 2px 2px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.seg-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 1px; }
+.seg-btn[aria-pressed="true"] { background: var(--orange); color: var(--ink); box-shadow: 0 2px 8px rgba(255, 122, 47, 0.25); }
+.stage-fields { display: grid; gap: 10px; }
+
+/* Time and temp: a − button, the value, and a + button. Big tap targets. */
+.stepper { display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 6px; }
+.step-btn {
+  width: 52px;
+  min-height: 52px;
+  padding: 0;
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.stage-time, .stage-temp {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Inline "Are you sure?" panel under the cooking top bar. */
+.reset-confirm {
+  background: var(--panel);
+  border: 1px solid rgba(255, 192, 77, 0.5);
+  border-left: 5px solid var(--warn);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.reset-confirm p { margin: 0 0 8px; color: var(--text); font-weight: 700; font-size: 1rem; }
+.reset-actions { display: flex; gap: 10px; }
+.reset-actions .btn { flex: 1; min-height: 44px; }
+#reset-yes { background: var(--warn); color: var(--ink); border-color: transparent; }
+
+/* ---------- stages: method tags on the timeline, cooking screen and list ---------- */
+.tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.tag.m-oven { border-color: var(--orange); color: var(--orange-soft); }
+.tag.m-hob { border-color: var(--danger); color: var(--danger); }
+.tag.m-slow { border-color: var(--warn); color: var(--warn); }
+.tag.m-rest { border-color: var(--ok); color: var(--ok); }
+.tag.m-prep { border-color: var(--blue); color: var(--blue); }
+
+/* ---------- add-item: the dish's total, when to start, and the three boxes ---------- */
+.name-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+.name-head > span:first-child { color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.took {
+  background: rgba(255, 122, 47, 0.14);
+  color: var(--orange-soft);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Start now / Ready later, with the stepper for the later time and the plain-words line under it. */
+.when {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+.when-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--field); border-radius: 10px; padding: 3px; }
+.when-btn {
+  min-height: 40px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.when-btn.on { background: var(--orange); color: var(--ink); }
+.when-btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.later-box { display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 6px; }
+.later-val { font-family: var(--display); font-size: 1.1rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.when-text { margin: 0; font-size: 0.95rem; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+
+/* The three boxes: Get ready and Finish run one after another; Cook (dashed) runs its lines at the same time. */
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.sec.cook { border: 1px dashed var(--orange); background: rgba(255, 122, 47, 0.06); }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
+.sec-title { font-family: var(--display); font-weight: 800; font-size: 1.05rem; }
+.sec-note { font-size: 0.8rem; color: var(--muted); }
+.sec.cook .sec-note { color: var(--orange-soft); }
+.sec-rows { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sec-down { margin: 0; text-align: center; color: var(--muted); font-size: 0.85rem; font-weight: 700; }
+.btn.sec-add { width: 100%; min-height: 42px; padding: 0 12px; border-style: dashed; font-size: 0.95rem; }
+.sec.cook .btn.sec-add { border-color: var(--orange); color: var(--orange-soft); }
+
+/* A cook line: its stages in a row, one after another. The next stage in a line is marked "then". */
+.line {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.line > .stage-row + .stage-row::before {
+  content: "then";
+  display: block;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.btn.line-then { width: 100%; min-height: 40px; padding: 0 12px; font-size: 0.95rem; }
+
+/* The plan: the dish name above each oven, hob or prep step. */
+.step-dish {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---------- cooking: a timer for each job on the go ---------- */
+.jobs { display: grid; gap: 10px; min-width: 0; text-align: left; }
+.job-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--orange);
+  border-radius: 16px;
+  box-shadow: 0 0 18px rgba(255, 122, 47, 0.2);
+}
+.job-timer.over { border-color: var(--danger); box-shadow: 0 0 18px rgba(255, 107, 107, 0.25); }
+.job-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.job-dish { color: var(--muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; overflow-wrap: anywhere; }
+.job-text { margin: 0; font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
+.job-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.job-count {
+  font-family: var(--display);
+  font-size: clamp(2rem, 10vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--orange);
+  text-shadow: 0 0 18px var(--glow);
+  font-variant-numeric: tabular-nums;
+}
+.job-timer.over .job-count { color: var(--danger); text-shadow: none; }
+.job-done {
+  flex: none;
+  min-width: 112px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ok);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.job-done:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.job-bar { height: 8px; border-radius: 999px; background: var(--field); overflow: hidden; }
+.job-bar i { display: block; height: 100%; background: var(--orange); border-radius: 999px; transition: width 1s linear; }
+.job-timer.over .job-bar i { background: var(--danger); }
+.job-then { margin: 0; color: var(--orange-soft); font-size: 0.9rem; font-weight: 700; }
+
+/* The next alarm, under the jobs. */
+.next-alarm {
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: left;
+  min-width: 0;
+}
+.next-alarm .label { margin-bottom: 2px; }
+.next-alarm-row { margin: 0; font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
+.next-alarm-time { color: var(--orange-soft); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Motion: keep the state changes, drop the sliding, pulsing and flashing. */
+@media (prefers-reduced-motion: reduce) {
+  .tile, .drawer, .ring .prog, .job-bar i { transition: none !important; }
+  .timer-digits.flash { animation: none; color: var(--danger); }
+}
+
+/* ---------- Meal screen (js/builder.js). All classes start with b- so they never clash with the rest. ---------- */
+.setup { display: flex; flex-direction: column; gap: 12px; }
+.b-card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.b-cap { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.b-hint { display: block; font-size: 13px; color: var(--muted); margin: 0; line-height: 1.4; font-weight: 400; }
+.setup button { font-family: var(--body); cursor: pointer; }
+.setup button:focus-visible, .setup input:focus-visible, .setup select:focus-visible,
+.b-switch:focus-within { outline: 3px solid var(--orange); outline-offset: 2px; }
+/* a text box and a saved picker side by side: the picker is the right third */
+.b-pickrow { display: grid; grid-template-columns: minmax(0, 1fr) 124px; gap: 6px; }
+.b-pickrow input, .b-pickrow select, .b-group-name {
+  width: 100%; min-width: 0; height: 44px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--field); color: var(--text); padding: 0 10px; font: inherit; font-size: 16px;
+}
+.b-pickrow select { color: var(--orange-soft); font-weight: 700; font-size: 12.5px; padding: 0 0 0 6px; text-overflow: ellipsis; }
+.b-pickrow input.b-meal-input { font-family: var(--display); font-weight: 800; font-size: 1rem; }
+/* "cook some together first" switch (also on the timer sequence) */
+.b-switch { display: flex; gap: 10px; align-items: flex-start; background: var(--panel-2); border: 1px dashed var(--line); border-radius: 12px; padding: 10px; cursor: pointer; }
+.b-switch.on { border-color: var(--orange); background: rgba(255, 122, 47, 0.06); }
+.b-switch input { width: 22px; height: 22px; accent-color: var(--orange); margin: 1px 0 0; flex: none; }
+.b-switch b { display: block; margin-bottom: 2px; }
+/* built dish */
+.b-group { border: 1px dashed var(--orange); background: rgba(255, 122, 47, 0.05); }
+.b-group-head { display: flex; justify-content: space-between; align-items: center; }
+.b-group-head .b-cap { color: var(--orange-soft); }
+.b-group-name { font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
+.b-phase { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.b-phase b { font-family: var(--display); font-weight: 800; }
+.b-phase span { font-size: 12px; color: var(--muted); }
+.b-down { text-align: center; color: var(--orange-soft); font-size: 13px; font-weight: 700; }
+.b-group .b-stages.fin { padding: 0; }
+.b-another { align-self: center; }
+/* items */
+.b-items { display: flex; flex-direction: column; gap: 6px; }
+.b-item { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; }
+.b-item.open { border-color: var(--orange); }
+.b-item-head { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 10px; width: 100%; min-height: 44px; background: none; border: 0; color: var(--text); text-align: left; font-size: 1rem; }
+.b-item-name { font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-item-time { font-variant-numeric: tabular-nums; color: var(--orange-soft); font-weight: 800; font-size: 13px; white-space: nowrap; }
+.b-chev { color: var(--muted); font-size: 12px; }
+/* the coloured bar of an item's steps */
+.b-strip { display: flex; height: 6px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 0 10px 8px; background: var(--field); }
+.b-strip i { display: block; height: 100%; }
+.k-prep { background: var(--blue); } .k-hob { background: #ffb38a; } .k-oven { background: var(--orange); } .k-slow { background: #e8c86f; } .k-rest { background: #c7b8e8; }
+.b-x { background: none; border: 0; color: var(--muted); font-size: 13px; font-weight: 700; padding: 8px; min-width: 36px; min-height: 36px; }
+.b-item-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 10px 4px; }
+.b-saved-note { font-size: 12px; color: var(--ok); font-weight: 700; }
+.b-stages { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px; }
+.b-stage { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.b-st { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+.b-st-name { font: inherit; font-size: 16px; font-weight: 700; min-width: 0; width: 100%; background: transparent; color: var(--text); border: 0; border-bottom: 1px dashed var(--line); border-radius: 0; padding: 6px 2px; }
+.b-st-name::placeholder { color: var(--muted); font-weight: 500; font-size: 14px; }
+.b-st-name:focus { border-bottom-color: var(--orange); outline: none; }
+.b-tag { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.b-tag.prep { color: var(--blue); border-color: #3e5578; } .b-tag.hob { color: #ffb38a; border-color: #7a4a33; }
+.b-tag.slow { color: #e8c86f; border-color: #7a6a2f; } .b-tag.oven { color: var(--orange-soft); border-color: var(--orange); } .b-tag.rest { color: #c7b8e8; border-color: #5a4f72; }
+.b-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.b-seg button { height: 40px; border-radius: 9px; background: var(--field); border: 1px solid var(--line); color: var(--muted); font-weight: 700; }
+.b-seg button.on { background: var(--orange); border-color: var(--orange); color: #1a0f08; }
+.b-steppers { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.b-steppers.two { grid-template-columns: 1.4fr 1fr; }
+.b-stepper { display: grid; grid-template-columns: 40px 1fr 40px; gap: 4px; align-items: center; }
+.b-stepper button { height: 40px; border-radius: 9px; background: var(--field); border: 1px solid var(--line); color: var(--text); font-size: 18px; font-weight: 700; }
+.b-val { font-family: var(--display); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.b-then { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.06em; text-align: center; text-transform: uppercase; }
+/* a step's own reminder alarm */
+.b-check { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; color: var(--warn); }
+.b-check-text { font: inherit; font-size: 16px; font-weight: 700; min-width: 0; width: 100%; background: transparent; color: var(--warn); border: 0; border-bottom: 1px dashed var(--line); padding: 6px 2px; }
+.b-check-text:focus { border-bottom-color: var(--warn); outline: none; }
+.b-check .b-stepper { grid-column: 1 / 2; }
+.b-check .b-x { grid-column: 2; justify-self: end; }
+.b-addrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.b-add { background: none; border: 1px dashed var(--line); color: var(--muted); border-radius: 9px; padding: 8px 10px; min-height: 40px; font-weight: 700; font-size: 13px; }
+.b-add-chk { align-self: flex-start; min-height: 32px; padding: 4px 10px; font-size: 12px; }
+.b-save { margin: 0 auto; background: none; border: 1px solid var(--ok); color: var(--ok); border-radius: 9px; padding: 10px 14px; min-height: 44px; font-weight: 800; font-size: 14px; }
+/* when's it ready */
+.b-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--field); border-radius: 10px; padding: 3px; }
+.b-seg button { background: none; border: 0; color: var(--muted); border-radius: 8px; padding: 12px 9px; font-weight: 700; font-size: 1rem; }
+.b-seg button.on { background: var(--orange); color: var(--ink); }
+.b-when-text { margin: 0; font-size: 14px; color: var(--muted); text-align: center; }
+.b-when-text b { color: var(--ok); }
+.b-preheat { display: grid; grid-template-columns: 1fr minmax(120px, 45%); gap: 8px; align-items: center; color: var(--muted); font-size: 14px; }
+.b-go { background: var(--orange); color: var(--ink); border: 0; border-radius: 12px; padding: 14px; min-height: 56px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 8px 28px var(--glow); }
+.b-toast { color: var(--ok); font-size: 13px; text-align: center; min-height: 1.2em; margin: 0; }
+
+/* timer sequence: prep block headings, reminders and the prep-first switch */
+.steps li.block { display: block; background: none; border: 0; box-shadow: none; padding: 6px 2px 0; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.step-prep1 { border-left-color: var(--blue) !important; }
+.step-remind { border-left-color: var(--warn) !important; color: var(--warn); font-weight: 700; }
+#prep-first { margin: 4px 0 12px; }
