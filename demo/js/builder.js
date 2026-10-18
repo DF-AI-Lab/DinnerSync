@@ -33,7 +33,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
   let uid = 1;
   const emptyMeal = () => ({ name: '', together: false, groups: [], items: [] });
   const S = {
-    meal: emptyMeal(), mode: 'now', laterAt: 0, prepFirst: true, preheat: DEFAULT_PREHEAT, toast: '', focusNew: '', renaming: 0, renameMsg: '',
+    meal: emptyMeal(), mode: 'now', laterAt: 0, prepFirst: true, preheat: DEFAULT_PREHEAT, toast: '', renaming: 0, renameMsg: '',
   };
 
   // ---------- state ----------
@@ -225,17 +225,6 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       </div>`;
 
     root.innerHTML = h;
-    if (S.focusRename) {
-      const box = root.querySelector('.b-rename-input');
-      box?.focus();
-      box?.select();
-      S.focusRename = false;
-    }
-    if (S.focusNew) {
-      const [o, i] = S.focusNew.split(':');
-      root.querySelector(`.b-st-name[data-o="${o}"][data-i="${i}"]`)?.focus();
-      S.focusNew = '';
-    }
   }
 
   const refresh = () => { save(); draw(); };
@@ -273,7 +262,6 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     } else if (act === 'rename') {
       S.renaming = +o;
       S.renameMsg = '';
-      S.focusRename = true;
     } else if (act === 'renamecancel') S.renaming = 0;
     else if (act === 'renamesave') {
       if (!renameItem(item, root.querySelector('.b-rename-input')?.value ?? '')) return draw();
@@ -281,7 +269,6 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     } else if (act === 'rmst') stepsOf(o).splice(index, 1);
     else if (act === 'addst') {
       stepsOf(o).push(newStep(k));
-      S.focusNew = `${o}:${stepsOf(o).length - 1}`;
     } else if (act === 'addchk') {
       const s = stepsOf(o)[index];
       s.check = { at: Math.max(5, Math.round(s.min / 2 / 5) * 5), text: 'Check' };
@@ -369,8 +356,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       if (!t.value.trim()) return;
       const key = t.dataset.list;
       addItem(listOf(key), t.value);
-      refresh();
-      root.querySelector(`.b-item-add[data-list="${key}"]`).focus();
+      refresh(); // the box is redrawn without focus, so the keyboard closes
     } else if (t.classList.contains('b-rename-input')) {
       e.preventDefault();
       root.querySelector('[data-act="renamesave"]').click();
