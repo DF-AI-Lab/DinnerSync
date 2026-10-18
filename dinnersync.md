@@ -130,6 +130,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: Released v1.3.10 to /live: settings gear, backup file save/load, edit/delete saved meals and items, clean-slate start (no starter items). Next: keep building in /demo and /live, then a bigger update to the Android app.
 - 2026-10-18: Demo has a ⚙️ settings gear with Backup: save/load a JSON file of meals and items (load replaces exactly, with a confirm). Same file will carry data to the Android app. Android job #1 noted: locked-phone alarms.
 - 2026-10-18: v1.3.0 built from the mockup 6 list
 - 2026-10-18: Mockup 6 agreed (meals, items with named steps, built dishes, shared peel, prep first); saved to docs/mock-v6-meals.html; Next build rewritten

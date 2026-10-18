@@ -380,6 +380,44 @@ function resetTonight() {
   builder.reset();
 }
 
+// Settings lists: every saved meal and item, with Edit (meals) and Delete. Delete removes it from storage.
+function renderSaved() {
+  const fill = (id, names, kind) => {
+    const ul = $(id);
+    ul.replaceChildren();
+    if (!names.length) ul.append(el('li', { class: 'muted' }, 'Nothing saved.'));
+    for (const name of names.sort((a, b) => a.localeCompare(b))) {
+      const row = el('li', { class: 'saved-row' }, el('span', { class: 'saved-name' }, name));
+      if (kind === 'meal') row.append(el('button', { class: 'btn ghost saved-btn', type: 'button', 'data-edit': name }, 'Edit'));
+      row.append(el('button', { class: 'btn ghost saved-btn del', type: 'button', 'data-del': name, 'data-kind': kind }, 'Delete'));
+      ul.append(row);
+    }
+  };
+  fill('saved-meals', Object.keys(store.getLibraryMeals()), 'meal');
+  fill('saved-items', Object.keys(store.getLibraryItems()), 'item');
+}
+
+function bindSaved() {
+  $('settings').addEventListener('click', e => {
+    const edit = e.target.closest('[data-edit]');
+    const del = e.target.closest('[data-del]');
+    if (edit) {
+      builder.openMeal(edit.dataset.edit);
+      $('settings').hidden = true;
+      $('settings-btn').setAttribute('aria-expanded', 'false');
+      window.scrollTo(0, 0);
+    } else if (del) {
+      const { del: name, kind } = del.dataset;
+      if (!confirm(`Delete "${name}" from your saved ${kind === 'meal' ? 'meals' : 'items'}? This can't be undone.`)) return;
+      if (kind === 'meal') store.removeLibraryMeal(name);
+      else store.removeLibraryItem(name);
+      builder.redraw();
+      renderSaved();
+      $('settings-msg').textContent = `Deleted "${name}".`;
+    }
+  });
+}
+
 function bindCookScreen() {
   // Phone back button while cooking: show the plan. Cooking, the timer and alarms carry on.
   window.addEventListener('popstate', () => {
@@ -409,6 +447,45 @@ function bindCookScreen() {
     stopAlarm();
     persistCooking();
     renderCook(Date.now());
+  });
+  $('settings-btn').addEventListener('click', () => {
+    const box = $('settings');
+    box.hidden = !box.hidden;
+    $('settings-btn').setAttribute('aria-expanded', String(!box.hidden));
+    $('settings-msg').textContent = '';
+    if (!box.hidden) renderSaved();
+  });
+  bindSaved();
+  $('backup-save').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(store.exportData(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `dinnersync-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    $('settings-msg').textContent = 'Backup saved. Check your Downloads.';
+  });
+  $('backup-load').addEventListener('click', () => $('backup-file').click());
+  $('backup-file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const backup = store.readBackup(data);
+      if (!backup) { $('settings-msg').textContent = "That isn't a DinnerSync backup file."; return; }
+      const meals = Object.keys(backup.meals).length;
+      const items = Object.keys(backup.items).length;
+      if (!confirm(`Replace everything saved on this phone with ${meals} meals and ${items} items from the file?`)) return;
+      store.importData(data);
+      $('settings-msg').textContent = `Restored ${meals} meals and ${items} items.`;
+      builder.redraw();
+      renderSaved();
+    } catch {
+      $('settings-msg').textContent = "Couldn't read that file.";
+    }
   });
   $('cook-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
   $('reset-no').addEventListener('click', () => { $('reset-confirm').hidden = true; });

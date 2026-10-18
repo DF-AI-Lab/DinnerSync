@@ -337,6 +337,8 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     setLater(at) { S.mode = 'later'; S.laterAt = at; save(); draw(); },
     setNow() { S.mode = 'now'; save(); draw(); },
     reset() { S.meal = own(emptyMeal()); S.mode = 'now'; S.prepFirst = true; S.toast = ''; store.clearTonight(); onChange(); draw(); },
+    // Put a saved meal on the home page so it can be changed (Save as a meal with the same name replaces it).
+    openMeal(name) { loadMeal(name); S.mode = 'now'; S.toast = `Editing "${name}". Change it, then Save as a meal.`; save(); draw(); },
     redraw: draw,
   };
 }

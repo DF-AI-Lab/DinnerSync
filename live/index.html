@@ -24,17 +24,36 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.3.4</span>
+              <span id="app-version" class="app-version">v1.3.10</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
         </div>
         <div class="top-side">
+          <div class="top-btns">
+          <button id="settings-btn" class="gear" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">⚙️</button>
           <button id="cook-reset" class="btn ghost reset-top" type="button">Reset</button>
+          </div>
           <span id="now-clock" class="now-clock" aria-label="Time now"></span>
         </div>
       </div>
     </header>
+
+    <div id="settings" class="settings" hidden>
+      <span class="label">Settings</span>
+      <b class="settings-h">Backup</b>
+      <p class="muted">Save your meals and items to a file. Loading a file replaces what's on this phone with the file's meals and items.</p>
+      <div class="settings-row">
+        <button id="backup-save" class="btn" type="button">Save backup file</button>
+        <button id="backup-load" class="btn" type="button">Load backup file</button>
+      </div>
+      <input type="file" id="backup-file" accept=".json,application/json" hidden>
+      <p id="settings-msg" class="settings-msg" role="status"></p>
+      <b class="settings-h">Saved meals</b>
+      <ul id="saved-meals" class="saved-list"></ul>
+      <b class="settings-h">Saved items</b>
+      <ul id="saved-items" class="saved-list"></ul>
+    </div>
 
       <div id="reset-confirm" class="reset-confirm" role="alertdialog" aria-labelledby="reset-question" hidden>
         <p id="reset-question">Reset tonight? This clears tonight's items.</p>
