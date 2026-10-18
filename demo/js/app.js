@@ -346,6 +346,18 @@ function renderNextAlarm(now) {
   box.querySelector('.cs-text').textContent = `${next.text} · ${formatClock(next.at)}`;
 }
 
+// What a cooking step is called, for the ✎. Plans made before v1.3.15 lack the fields, so work them out from the label.
+function editInfo(step) {
+  if (step.type !== 'in') return null;
+  if (step.action != null) return { action: step.action, suffix: step.suffix ?? '', owners: step.owners, raw: step.raw ?? step.action };
+  const label = String(step.label ?? '');
+  const at = label.indexOf(': ');
+  if (at < 1) return null;
+  const owners = label.slice(0, at);
+  const action = label.slice(at + 2);
+  return { action, suffix: step.text.startsWith(action) ? step.text.slice(action.length) : '', owners, raw: action };
+}
+
 // The steps as a plain list. Rebuilt only when a step's status changes.
 function stepItem(s) {
   const attrs = { class: s.status, 'data-index': String(s.index), ...(s.status === 'current' ? { 'aria-current': 'step' } : {}) };
@@ -357,7 +369,7 @@ function stepItem(s) {
   let body;
   if (s.status === 'current') {
     const row = el('div', { class: 'cs-row' }, el('time', {}, formatClock(s.at)), el('span', { class: 'cs-name' }, ...stepNodes(s)));
-    if (s.type === 'in' && s.action != null) row.append(el('button', { class: 'btn step-edit', type: 'button', 'data-edit-step': String(s.index), 'aria-label': 'Edit name' }, '✎'));
+    if (editInfo(s)) row.append(el('button', { class: 'btn step-edit', type: 'button', 'data-edit-step': String(s.index), 'aria-label': 'Edit name' }, '✎'));
     if (s.type !== 'ready') row.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
     body = el('div', { class: 'step-body' }, row,
       el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
@@ -372,7 +384,7 @@ function stepItem(s) {
 function startStepEdit(li) {
   const step = cook.plan.steps[Number(li.dataset.index)];
   const row = li.querySelector('.cs-row');
-  const input = el('input', { class: 'cs-input', type: 'text', value: step.action, 'aria-label': 'Step name', autocomplete: 'off', enterkeyhint: 'done' });
+  const input = el('input', { class: 'cs-input', type: 'text', value: editInfo(step).action, 'aria-label': 'Step name', autocomplete: 'off', enterkeyhint: 'done' });
   row.replaceChildren(el('time', {}, formatClock(step.at)), input);
   li.querySelector('.cs-alarm').replaceWith(el('div', { class: 'cs-editbar' },
     el('button', { class: 'btn step-done', type: 'button', 'data-step-save': '' }, 'Save'),
@@ -386,13 +398,16 @@ function startStepEdit(li) {
 function saveStepEdit(li) {
   const step = cook.plan.steps[Number(li.dataset.index)];
   const to = li.querySelector('.cs-input').value.trim();
-  if (to && to !== step.action) {
-    builder.renameStep({ owners: step.owners, kind: step.method, from: step.raw, to });
+  const info = editInfo(step);
+  if (to && to !== info.action) {
+    builder.renameStep({ owners: info.owners, kind: step.method, from: info.raw, to });
     step.raw = to;
     step.action = to;
-    step.text = to + step.suffix;
+    step.suffix = info.suffix;
+    step.owners = info.owners;
+    step.text = to + info.suffix;
     step.say = `${step.name}: ${to}`;
-    step.label = `${step.owners}: ${to}`;
+    step.label = `${info.owners}: ${to}`;
     persistCooking();
   }
   stepsKey = null;
