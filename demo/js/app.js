@@ -341,7 +341,11 @@ function stepItem(s) {
   const dot = s.status === 'done'
     ? el('button', { class: 'dot', type: 'button', 'aria-label': `Undo: ${s.text}` }, '✓')
     : el('span', { class: 'dot', 'aria-hidden': 'true' }, '');
-  return el('li', attrs, dot, el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s)));
+  const body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+  // Done only says "I did it". The plan's times don't move, and Undo puts the step back.
+  if (s.status === 'current' && s.type !== 'ready') body.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
+  if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
+  return el('li', attrs, dot, body);
 }
 
 function renderCookSteps(now) {
@@ -438,13 +442,20 @@ function bindCookScreen() {
     persistCooking();
     renderCook(Date.now());
   });
-  // Undo: tap the ✓ of a done step in the list and it goes back to being on the go.
+  // Done on the current step ticks it off; Undo (or the ✓) puts it back on the running plan.
   $('cook-steps').addEventListener('click', e => {
+    if (!cook) return;
+    const doneBtn = e.target.closest('[data-done]');
     const li = e.target.closest('li.done');
-    if (!cook || !li || !e.target.closest('.dot')) return;
-    const index = Number(li.dataset.index);
-    cook.done = cook.done.filter(i => i !== index);
-    stopAlarm();
+    if (doneBtn) {
+      const index = Number(doneBtn.dataset.done);
+      cook.done = [...new Set([...cook.done, index])];
+      cook.rang = cook.rang.filter(i => i !== index);
+      if (!cook.rang.length && !cook.rangReady) stopAlarm();
+    } else if (li && e.target.closest('.dot, .step-undo')) {
+      cook.done = cook.done.filter(i => i !== Number(li.dataset.index));
+      stopAlarm();
+    } else return;
     persistCooking();
     renderCook(Date.now());
   });
