@@ -93,10 +93,46 @@ function currentPlan() {
 }
 
 // A small method label followed by the step text, for timeline and cooking screen.
-function stepNodes(step) {
+const SETTING_RANGE = { hobMax: [1, 12, 1], preheatMinutes: [0, 60, 5] }; // [lowest, highest, step]
+
+function renderSettingsControls() {
+  const cfg = store.getSettings();
+  for (const b of document.querySelectorAll('#settings [data-set]')) {
+    const on = cfg[b.dataset.set] === b.dataset.v;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
+  $('set-hobMax').textContent = cfg.hobMax;
+  $('set-preheatMinutes').textContent = `${cfg.preheatMinutes} min`;
+}
+
+const WATER_LABEL = { cold: '💧 Cold', luke: '💧 Luke', hot: '💧 Hot' };
+const OVEN_LABEL = { fan: 'Fan', conventional: 'Conventional', gas: 'Gas' };
+
+// The settings a step runs on, as short labels: water and heat dial for the hob, oven type for the oven.
+// `cls` colours the chip. Minutes are left out for the one-line rows, which already show them.
+function stepInfo(step, { minutes = false } = {}) {
+  if (step.type !== 'in') return [];
+  const cfg = store.getSettings();
+  const out = [];
+  if (step.method === 'hob') {
+    if (WATER_LABEL[step.water]) out.push({ cls: `w-${step.water}`, text: WATER_LABEL[step.water] });
+    if (step.hob) out.push({ cls: 'hobn', text: `${cfg.hobType === 'gas' ? 'Gas' : 'Hob'} ${step.hob}` });
+  } else if (step.method === 'oven') {
+    out.push({ cls: 'ov', text: OVEN_LABEL[cfg.ovenType] });
+  }
+  if (minutes && step.minutes) out.push({ cls: '', text: `${step.minutes} min` });
+  return out;
+}
+
+// withItem: the item name in bold in front ("carrots" boil), so a step only needs its action typed.
+// withInfo: the step's settings added to the text, for one-line rows (the current card shows them as chips).
+function stepNodes(step, withItem = false, withInfo = withItem) {
   const nodes = [];
   if (step.method) nodes.push(el('span', { class: `tag m-${step.method}` }, METHOD_LABEL[step.method]));
-  nodes.push(el('span', { class: 'step-text' }, step.text));
+  const lead = withItem && step.type === 'in' && step.owners ? [el('b', { class: 'step-item' }, step.owners), ' '] : [];
+  const extra = withInfo ? stepInfo(step).map(i => i.text).join(' · ') : '';
+  nodes.push(el('span', { class: 'step-text' }, ...lead, extra ? `${step.text} · ${extra}` : step.text));
   return nodes;
 }
 
@@ -344,7 +380,7 @@ function renderNextAlarm(now) {
   box.hidden = !next;
   if (!next) return;
   box.querySelector('.cs-count').textContent = formatCountdown(next.at - now);
-  box.querySelector('.cs-text').textContent = `${next.text} · ${formatClock(next.at)}`;
+  box.querySelector('.cs-text').textContent = `${next.text.replace(': ', ' · ')} · ${formatClock(next.at)}`;
 }
 
 // What a cooking step is called, for the ✎. Plans made before v1.3.15 lack the fields, so work them out from the label.
@@ -369,13 +405,15 @@ function stepItem(s) {
   // Done only says "I did it". The plan's times don't move, and Undo puts the step back.
   let body;
   if (s.status === 'current') {
-    const row = el('div', { class: 'cs-row' }, el('time', {}, formatClock(s.at)), el('span', { class: 'cs-name' }, ...stepNodes(s)));
+    const row = el('div', { class: 'cs-row' }, el('time', {}, formatClock(s.at)), el('span', { class: 'cs-name' }, ...stepNodes(s, true, false)));
     if (editInfo(s)) row.append(el('button', { class: 'btn step-edit', type: 'button', 'data-edit-step': String(s.index), 'aria-label': 'Edit name' }, '✎'));
     if (s.type !== 'ready') row.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
+    const chips = stepInfo(s, { minutes: true });
     body = el('div', { class: 'step-body' }, row,
+      ...(chips.length ? [el('div', { class: 'cs-info' }, ...chips.map(c => el('span', { class: `chip ${c.cls}` }, c.text)))] : []),
       el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
   } else {
-    body = el('div', { class: 'step-body one-line' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+    body = el('div', { class: 'step-body one-line' }, el('time', {}, formatClock(s.at)), ...stepNodes(s, true));
     if (s.status === 'upcoming' && editInfo(s)) body.append(el('button', { class: 'btn step-edit row-edit', type: 'button', 'data-edit-step': '', 'aria-label': 'Edit name' }, '✎'));
     if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
   }
@@ -548,7 +586,19 @@ function bindCookScreen() {
     box.hidden = !box.hidden;
     $('settings-btn').setAttribute('aria-expanded', String(!box.hidden));
     $('settings-msg').textContent = '';
-    if (!box.hidden) renderSaved();
+    if (!box.hidden) { renderSaved(); renderSettingsControls(); }
+  });
+  $('settings').addEventListener('click', e => {
+    const seg = e.target.closest('[data-set]');
+    const stp = e.target.closest('[data-step]');
+    if (seg) store.saveSettings({ [seg.dataset.set]: seg.dataset.v });
+    else if (stp) {
+      const key = stp.dataset.step;
+      const [lo, hi, by] = SETTING_RANGE[key];
+      store.saveSettings({ [key]: Math.min(hi, Math.max(lo, store.getSettings()[key] + Number(stp.dataset.d) * by)) });
+    } else return;
+    renderSettingsControls();
+    builder.refreshSettings();
   });
   bindSaved();
   $('backup-save').addEventListener('click', () => {

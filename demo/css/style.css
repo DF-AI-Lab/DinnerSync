@@ -896,6 +896,39 @@ h2 {
 .step-remind { border-left-color: var(--warn) !important; color: var(--warn); font-weight: 700; }
 #prep-first { margin: 4px 0 12px; }
 
+/* Hob: heat dial and water temperature */
+.b-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.b-water { flex: none; border-radius: 999px; padding: 7px 14px; min-height: 36px; font-weight: 800; font-size: 13px; background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.b-water.cold { border-color: var(--blue); color: var(--blue); background: rgba(138, 180, 255, 0.1); }
+.b-water.luke { border-color: var(--warn); color: var(--warn); background: rgba(255, 192, 77, 0.1); }
+.b-water.hot { border-color: var(--danger); color: var(--danger); background: rgba(255, 107, 107, 0.1); }
+.cs-info { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cs-info .chip { border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; font-weight: 800; border: 1px solid var(--line); color: var(--muted); }
+.cs-info .chip.w-cold { border-color: var(--blue); color: var(--blue); background: rgba(138, 180, 255, 0.1); }
+.cs-info .chip.w-luke { border-color: var(--warn); color: var(--warn); background: rgba(255, 192, 77, 0.1); }
+.cs-info .chip.w-hot { border-color: var(--danger); color: var(--danger); background: rgba(255, 107, 107, 0.1); }
+.cs-info .chip.hobn, .cs-info .chip.ov { border-color: var(--orange-soft); color: var(--orange-soft); }
+.step-item { color: #fff; font-weight: 900; }
+.cook-steps li.upcoming .step-item, .cook-steps li.done .step-item { color: var(--text); }
+
+/* Item name: ✎ to rename */
+.b-item-top { display: flex; align-items: center; }
+.b-item-top .b-item-head { flex: 1; min-width: 0; }
+.b-item-edit { flex: none; margin-right: 8px; border-radius: 999px; background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 2px 9px; font-size: 0.78rem; font-weight: 800; min-height: 28px; }
+.b-rename { padding: 10px; display: grid; gap: 8px; }
+.b-rename-row { display: flex; align-items: center; gap: 8px; }
+.b-rename-input { flex: 1; min-width: 0; background: var(--field); border: 1px solid var(--orange); border-radius: 10px; padding: 8px 10px; color: var(--text); font: inherit; font-size: 1.05rem; font-weight: 800; }
+.b-rename-bar { display: flex; gap: 8px; }
+.b-rename-save, .b-rename-cancel { border-radius: 999px; padding: 6px 14px; min-height: 36px; font-weight: 800; font-size: 0.85rem; border: 1px solid var(--line); background: transparent; color: var(--muted); }
+.b-rename-save { background: var(--orange); border-color: var(--orange); color: #1a1208; }
+.b-rename .b-hint { margin: 0; }
+
+/* Settings: hob and oven */
+.set-block { display: grid; gap: 6px; margin: 8px 0 12px; }
+.set-lab { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.b-seg.three { grid-template-columns: repeat(3, 1fr); }
+.settings .b-stepper { max-width: 260px; }
+
 /* DEMO copy only: a red bar across the top so it is never mistaken for the live app */
 .demo-banner { position: sticky; top: 0; z-index: 50; background: #d62828; color: #fff; text-align: center; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; line-height: 1.2; padding: 3px 10px; }
 

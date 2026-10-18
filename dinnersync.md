@@ -35,6 +35,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
    - Tests cover timing logic only; the locked-phone ring must be tested on the real phone.
    - Still to decide: alarm sound (phone's alarm tone vs our beep; leaning phone's tone), replace the web app or sit alongside it (leaning alongside while testing).
    - **Release to /live: set `PREFIX` in `store.js` back to `'dinnersync.'`** (demo uses `'dinnersync.demo.'` so demo and live don't share data).
+   - Settings now has hobType, hobMax, ovenType (store.js). Hob/oven type are labels only for now (no gas-mark conversion).
 - Known gap: "X min spare" is lost on reload mid-cook.
 
 ## Principles / constraints
@@ -139,6 +140,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - 2026-10-18: Released v1.3.16 to /live: Done/Undo in line, edit a step's name (saves to the saved item), next alarm inside the current card, only the current card rings.
 - 2026-10-18: Demo v1.3.16: only the CURRENT card rings (first step not ticked Done); other steps stay silent until they become current. Darren chose this over keeping everything ringing. Watch: parallel jobs (e.g. veg starting while potatoes roast) won't ring until the earlier card is Done.
 - 2026-10-18: Released v1.3.11 to /live (gear lined up with Reset).
+- 2026-10-18: Demo v1.3.23: hob steps have water (Cold/Luke/Hot, tap the pill) and a heat dial number; item names can be renamed with ✎ (saved items and meals follow); the cook card shows the item in bold plus chips (water, hob, oven type, minutes); Settings has hob type, dial max, oven type, preheat. Not in live yet.
 - 2026-10-18: Released v1.3.10 to /live: settings gear, backup file save/load, edit/delete saved meals and items, clean-slate start (no starter items). Next: keep building in /demo and /live, then a bigger update to the Android app.
 - 2026-10-18: Demo has a ⚙️ settings gear with Backup: save/load a JSON file of meals and items (load replaces exactly, with a confirm). Same file will carry data to the Android app. Android job #1 noted: locked-phone alarms.
 - 2026-10-18: v1.3.0 built from the mockup 6 list

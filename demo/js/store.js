@@ -13,7 +13,7 @@ const KEYS = {
   libMeals: PREFIX + 'lib.meals', // saved meals: name -> { together, items, groups }
   tonight: PREFIX + 'tonight',   // the meal being set up
 };
-const DEFAULT_SETTINGS = { preheatMinutes: 15 };
+const DEFAULT_SETTINGS = { preheatMinutes: 15, hobType: 'electric', hobMax: 9, ovenType: 'fan' };
 
 const sameName = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 
@@ -102,7 +102,10 @@ export function createStore(storage) {
     const value = read(KEYS.settings, {});
     const stored = value && typeof value === 'object' ? value : {};
     const preheatMinutes = Number.isFinite(stored.preheatMinutes) ? stored.preheatMinutes : DEFAULT_SETTINGS.preheatMinutes;
-    return { ...DEFAULT_SETTINGS, ...stored, preheatMinutes };
+    const hobType = stored.hobType === 'gas' ? 'gas' : 'electric';
+    const ovenType = ['fan', 'conventional', 'gas'].includes(stored.ovenType) ? stored.ovenType : 'fan';
+    const hobMax = Number.isFinite(stored.hobMax) ? Math.min(12, Math.max(1, Math.round(stored.hobMax))) : DEFAULT_SETTINGS.hobMax;
+    return { ...DEFAULT_SETTINGS, ...stored, preheatMinutes, hobType, ovenType, hobMax };
   }
 
   function saveSettings(patch) {

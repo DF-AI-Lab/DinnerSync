@@ -1,6 +1,7 @@
 // Pure meal logic. No DOM access.
 //
-// A step is { kind: 'prep'|'hob'|'oven'|'slow'|'rest', text, min, temp?, setting?: 'low'|'high', check?: { at, text } }.
+// A step is { kind: 'prep'|'hob'|'oven'|'slow'|'rest', text, min, temp?, setting?: 'low'|'high', water?: 'cold'|'luke'|'hot', hob?: number, check?: { at, text } }.
+// water and hob (the heat dial) are for hob steps.
 // check is a reminder: its own alarm `at` minutes into the step.
 // An item is { name, steps }. A meal is { name, together, groups, items }:
 //   items   = "everything else": each item is timed to be ready at dinner.
@@ -93,7 +94,7 @@ export function findShared(meal) {
 // Every row is { at, who, s, text, min, kind, temp?, ... } for a step, { at, who, remind } for a
 // reminder, or { at, preheat } for the oven. Flags: fin (a built dish's finish step), prep1 (in the
 // prep block), shared (one peel for several items).
-const stepRow = (at, who, s, extra = {}) => ({ at, who, s, text: s.text, min: s.min, kind: s.kind, temp: s.temp, setting: s.setting, was: s.was, ...extra });
+const stepRow = (at, who, s, extra = {}) => ({ at, who, s, text: s.text, min: s.min, kind: s.kind, temp: s.temp, setting: s.setting, water: s.water, hob: s.hob, was: s.was, ...extra });
 
 // Work backwards from dinner D (ms). Everything ends at dinner. A built dish's parts end together
 // when its finish steps start. With prepFirst, the prep steps at the START of each item are done
@@ -242,6 +243,8 @@ export function toPlan(meal, readyAt, now, { prepFirst = true, preheat = DEFAULT
           type: 'in', name: r.who, item: indexOf(r.item), label, method: r.kind, at: r.at,
           text, say: `${r.who}: ${action}`, minutes: r.min, group: 0, track: 0,
           action, suffix: text.slice(action.length), owners: r.item, raw: r.text.trim(),
+          ...(r.water ? { water: r.water } : {}),
+          ...(r.hob ? { hob: r.hob } : {}),
           ...(r.prep1 ? { prep1: true } : {}),
         },
       });
