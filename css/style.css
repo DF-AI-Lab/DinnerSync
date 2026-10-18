@@ -814,13 +814,13 @@ h2 {
 .setup button:focus-visible, .setup input:focus-visible, .setup select:focus-visible,
 .b-switch:focus-within { outline: 3px solid var(--orange); outline-offset: 2px; }
 /* a text box and a saved picker side by side: the picker is the right third */
-.b-pickrow { display: grid; grid-template-columns: 1fr minmax(100px, 36%); gap: 6px; }
+.b-pickrow { display: grid; grid-template-columns: minmax(0, 1fr) 124px; gap: 6px; }
 .b-pickrow input, .b-pickrow select, .b-group-name {
   width: 100%; min-width: 0; height: 44px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--field); color: var(--text); padding: 0 10px; font: inherit; font-size: 16px;
 }
-.b-pickrow select { color: var(--orange-soft); font-weight: 700; font-size: 13px; }
-.b-pickrow input.b-meal-input { font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
+.b-pickrow select { color: var(--orange-soft); font-weight: 700; font-size: 12.5px; padding: 0 0 0 6px; text-overflow: ellipsis; }
+.b-pickrow input.b-meal-input { font-family: var(--display); font-weight: 800; font-size: 1rem; }
 /* "cook some together first" switch (also on the timer sequence) */
 .b-switch { display: flex; gap: 10px; align-items: flex-start; background: var(--panel-2); border: 1px dashed var(--line); border-radius: 12px; padding: 10px; cursor: pointer; }
 .b-switch.on { border-color: var(--orange); background: rgba(255, 122, 47, 0.06); }

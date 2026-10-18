@@ -96,7 +96,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
 
   const pickRow = key => `<div class="b-pickrow">
       <input class="b-item-add" data-list="${key}" placeholder="Type an item, press Enter" aria-label="Add an item" enterkeyhint="done" autocomplete="off">
-      <select class="b-item-pick" data-list="${key}" aria-label="Saved items">${options(store.getLibraryItems(), 'Saved items ▾')}</select>
+      <select class="b-item-pick" data-list="${key}" aria-label="Saved items">${options(store.getLibraryItems(), 'Saved items')}</select>
     </div>`;
 
   const stepper = (act, owner, i, d, value, less, more) => `<div class="b-stepper">
@@ -153,7 +153,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
         <span class="b-cap">What are you cooking?</span>
         <div class="b-pickrow">
           <input id="meal-name" class="b-meal-input" placeholder="e.g. Sunday dinner" aria-label="Meal name" value="${esc(meal.name)}" autocomplete="off" enterkeyhint="done">
-          <select id="meal-pick" aria-label="Saved meals">${options(store.getLibraryMeals(), 'Saved meals ▾')}</select>
+          <select id="meal-pick" aria-label="Saved meals">${options(store.getLibraryMeals(), 'Saved meals')}</select>
         </div>
         <label class="b-switch ${meal.together ? 'on' : ''}">
           <input type="checkbox" id="together" ${meal.together ? 'checked' : ''}>
