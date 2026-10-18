@@ -93,12 +93,12 @@ export function findShared(meal) {
 // Every row is { at, who, s, text, min, kind, temp?, ... } for a step, { at, who, remind } for a
 // reminder, or { at, preheat } for the oven. Flags: fin (a built dish's finish step), prep1 (in the
 // prep block), shared (one peel for several items).
-const stepRow = (at, who, s, extra = {}) => ({ at, who, s, text: s.text, min: s.min, kind: s.kind, temp: s.temp, setting: s.setting, ...extra });
+const stepRow = (at, who, s, extra = {}) => ({ at, who, s, text: s.text, min: s.min, kind: s.kind, temp: s.temp, setting: s.setting, was: s.was, ...extra });
 
 // Work backwards from dinner D (ms). Everything ends at dinner. A built dish's parts end together
 // when its finish steps start. With prepFirst, the prep steps at the START of each item are done
 // one after another in a block before any cooking; prep after cooking (mash, build pie) stays put.
-export function schedule(meal, D, { prepFirst = true, preheat = DEFAULT_PREHEAT } = {}) {
+function scheduleRaw(meal, D, { prepFirst = true, preheat = DEFAULT_PREHEAT } = {}) {
   const rows = [];
   const queue = [];
   const shared = new Map();
@@ -182,17 +182,35 @@ export function prepFirstExtra(meal, opts = {}) {
   return totalMinutes(meal, { ...opts, prepFirst: true }) - totalMinutes(meal, { ...opts, prepFirst: false });
 }
 
-// A warning when two oven steps at different temperatures overlap, else ''.
-export function ovenClash(rows) {
-  const ovens = rows.filter(r => r.kind === 'oven' && r.temp);
-  for (const a of ovens) {
-    for (const b of ovens) {
-      if (a !== b && a.temp !== b.temp && a.at < b.at + b.min * MIN && b.at < a.at + a.min * MIN) {
-        return `${a.who} wants ${a.temp}°C and ${b.who} wants ${b.temp}°C at the same time. One oven, so pick a temperature for both.`;
-      }
+const overlap = (a, b) => a.at < b.at + b.min * MIN && b.at < a.at + a.min * MIN;
+
+// One oven: when two oven steps at different temperatures overlap, the longer one is the main one and
+// keeps its temperature. The shorter one moves to that temperature and its time is scaled
+// (time x its temp / oven temp). It keeps `was` so the screen can say what changed.
+// Scaling moves times, so this repeats until no two oven steps clash.
+export function schedule(meal, D, opts = {}) {
+  const m = clone(meal);
+  for (let n = 0; n < 20; n++) {
+    const rows = scheduleRaw(m, D, opts);
+    const ovens = rows.filter(r => r.kind === 'oven' && r.temp);
+    let clash = null;
+    for (const a of ovens) {
+      for (const b of ovens) if (!clash && a !== b && a.temp !== b.temp && overlap(a, b)) clash = a.min >= b.min ? [a, b] : [b, a];
     }
+    if (!clash) return rows;
+    const [main, other] = clash;
+    const step = other.s;
+    step.was ??= { min: step.min, temp: step.temp };
+    step.min = Math.max(1, Math.round(step.min * step.temp / main.temp));
+    step.temp = main.temp;
+    if (step.check) step.check.at = Math.min(step.check.at, step.min);
   }
-  return '';
+  return scheduleRaw(m, D, opts);
+}
+
+// Plain notes about oven steps the app changed so everything fits one oven, else [].
+export function ovenNotes(rows) {
+  return rows.filter(r => r.was).map(r => `${r.who}: oven ${r.temp}°C, not ${r.was.temp}°C. Time ${r.was.min} → ${r.min} min, so it all fits one oven.`);
 }
 
 // ---------- the plan the cook screen runs ----------
@@ -216,7 +234,7 @@ export function toPlan(meal, readyAt, now, { prepFirst = true, preheat = DEFAULT
       ranked.push({ rank: 2, step: { type: 'remind', at: r.at, name: r.who, text: `↻ ${r.remind}`, say: `${r.who}: ${r.remind}` } });
     } else {
       const action = r.text.trim() || KIND_LABEL[r.kind].split(' ').slice(1).join(' ');
-      const text = `${action}${r.shared ? SHARED_NOTE : ''}${r.temp ? ` · ${r.temp}°C` : ''}${r.kind === 'slow' ? ` · ${r.setting === 'high' ? 'High' : 'Low'}` : ''}`;
+      const text = `${action}${r.shared ? SHARED_NOTE : ''}${r.temp ? ` · ${r.temp}°C` : ''}${r.was ? ` (was ${r.was.min} min at ${r.was.temp}°C)` : ''}${r.kind === 'slow' ? ` · ${r.setting === 'high' ? 'High' : 'Low'}` : ''}`;
       const label = `${r.item}: ${action}`;
       ranked.push({
         rank: 1,

@@ -1,12 +1,12 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test. v1.3.2 = mockup 6 built, + Slow cook step type (Low/High) (not yet tried on the phone).
+- Current step: Build & Test. v1.3.3 = mockup 6 built, + Slow cook, + one-oven auto temp (decision 6 applied) (not yet tried on the phone).
 - Last session: 2026-10-18 (Sonnet): built the whole mockup 6 list, tests first. 102 unit tests + browser check pass. Screenshot at 400px matches the mock.
-- Next action: Darren tries v1.3.2 on the phone (build a meal, save it, run the timers). Then fix what feels wrong.
+- Next action: Darren tries v1.3.3 on the phone (build a meal, save it, run the timers). Then fix what feels wrong.
 - Avoid: deleting the Simple timer / When's dinner code. It is hidden by `SHOW_LEGACY_TOOLS = false` in js/app.js.
 - Open questions (defaults used, tell me to change): Prep label stays "Prep" (not "Hands-on"). Prep-first is ON by default. In a built dish the parts all finish exactly when the finish starts (not kept hot).
-- Known gaps: oven clash only warns, no temperature scaling (decision 6 not applied to meals). Old saved items from before v1.3.0 are not shown (new Saved items list). No delete button for saved items/meals yet. Old CSS for the removed add-item form is still in style.css.
+- Known gaps: Old saved items from before v1.3.0 are not shown (new Saved items list). No delete button for saved items/meals yet. Old CSS for the removed add-item form is still in style.css.
 - Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
 ## Next build (mockup 6): DONE in v1.3.0
@@ -137,3 +137,4 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - 2026-10-16: Project file created from brain dump; icon added
 - 2026-10-16: Dark look chosen; V1 built and tests passing
 - 2026-10-16: Destination set to working app; web app chosen over widget
+- 2026-10-18: v1.3.3 — one oven: overlapping oven steps at different temps; the longest keeps its temp, the others move to it with time x their temp / oven temp (decision 6). Slow cook step type back (v1.3.2).
