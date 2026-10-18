@@ -257,11 +257,15 @@ function persistCooking() {
 }
 
 // Once a second: ring for steps starting, and for jobs whose time is up. Then redraw.
+// Only the current card rings: the first step not ticked off.
+const currentIndex = () => cook.plan.steps.findIndex((_, i) => !cook.done.includes(i));
+
 function tick() {
   if (!cook) return;
   const now = Date.now();
-  const starts = alarmSteps(cook.plan, cook.lastChecked, now, cook.done);
-  const ends = endAlarms(cook.plan, cook.lastChecked, now, cook.done);
+  const only = currentIndex();
+  const starts = alarmSteps(cook.plan, cook.lastChecked, now, cook.done, only);
+  const ends = endAlarms(cook.plan, cook.lastChecked, now, cook.done, only);
   cook.lastChecked = now;
   if (starts.length || ends.length) {
     // The jobs that ended stay on the go until their alarm's Done ticks them off.
@@ -329,7 +333,7 @@ function renderJobs(now) {
 // The soonest thing still to come: a step starting, or a job ending.
 // It sits inside the current step's card (see stepItem); the old standalone card stays hidden.
 function renderNextAlarm(now) {
-  const next = nextAlarm(cook.plan, now, cook.done);
+  const next = nextAlarm(cook.plan, now, cook.done, currentIndex());
   $('next-alarm').hidden = true;
   const box = $('cook-steps').querySelector('li.current .cs-alarm');
   if (!box) return;

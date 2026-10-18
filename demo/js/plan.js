@@ -207,9 +207,10 @@ export function cookingState(plan, now) {
 }
 
 // Steps whose time falls in (from, to] that should sound: not already ticked off.
-export function alarmSteps(plan, from, to, doneIndexes = []) {
+// only: a step index. When given, just that step can ring (the demo rings only the current card).
+export function alarmSteps(plan, from, to, doneIndexes = [], only = null) {
   const done = new Set(doneIndexes);
-  return plan.steps.filter((s, i) => s.at > from && s.at <= to && !done.has(i));
+  return plan.steps.filter((s, i) => s.at > from && s.at <= to && !done.has(i) && (only == null || i === only));
 }
 
 // Progress through the steps. doneIndexes are the steps the cook has ticked off.
@@ -345,10 +346,10 @@ export function jobsOnTheGo(plan, now, doneIndexes = []) {
 }
 
 // The 'in' steps whose end falls in (from, to] and that are not ticked done.
-export function endAlarms(plan, from, to, doneIndexes = []) {
+export function endAlarms(plan, from, to, doneIndexes = [], only = null) {
   const done = new Set(doneIndexes);
   return plan.steps.filter((s, i) => {
-    if (s.type !== 'in' || done.has(i)) return false;
+    if (s.type !== 'in' || done.has(i) || (only != null && i !== only)) return false;
     const end = s.at + s.minutes * MIN;
     return end > from && end <= to;
   });
@@ -360,7 +361,7 @@ export function endText(step) {
 
 // The soonest event after now: a step starting (any step not done), or a job ending.
 // A start wins a tie with an end. Returns {at, text} or null.
-export function nextAlarm(plan, now, doneIndexes = []) {
+export function nextAlarm(plan, now, doneIndexes = [], only = null) {
   const done = new Set(doneIndexes);
   let best = null;
   const consider = (at, text, rank) => {
@@ -368,7 +369,7 @@ export function nextAlarm(plan, now, doneIndexes = []) {
     if (!best || at < best.at || (at === best.at && rank < best.rank)) best = { at, text, rank };
   };
   plan.steps.forEach((s, i) => {
-    if (done.has(i)) return;
+    if (done.has(i) || (only != null && i !== only)) return;
     consider(s.at, s.say ?? s.text, 0);
     if (s.type === 'in') consider(s.at + s.minutes * MIN, endText(s), 1);
   });
