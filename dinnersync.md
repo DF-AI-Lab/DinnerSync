@@ -130,6 +130,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: Demo v1.3.16: only the CURRENT card rings (first step not ticked Done); other steps stay silent until they become current. Darren chose this over keeping everything ringing. Watch: parallel jobs (e.g. veg starting while potatoes roast) won't ring until the earlier card is Done.
 - 2026-10-18: Released v1.3.11 to /live (gear lined up with Reset).
 - 2026-10-18: Released v1.3.10 to /live: settings gear, backup file save/load, edit/delete saved meals and items, clean-slate start (no starter items). Next: keep building in /demo and /live, then a bigger update to the Android app.
 - 2026-10-18: Demo has a ⚙️ settings gear with Backup: save/load a JSON file of meals and items (load replaces exactly, with a confirm). Same file will carry data to the Android app. Android job #1 noted: locked-phone alarms.
