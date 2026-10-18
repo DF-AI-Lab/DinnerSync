@@ -30,6 +30,10 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 3. **Use your own sound**: pick a sound file from the phone (MP3 etc.), saved in the app, used for the alarm.
 4. ~~Phone setting tip~~ dropped: v1.1.8 uses no notifications.
 5. **Real Android app (option 3)**, once all the above works well: uses the phone's own alarm system and ringtone list; alarms work even when the app is swiped closed. **Job #1: alarms that ring reliably when the phone is locked** (the installed web app can't; Darren hit this 2026-10-18).
+   - **PARKED 2026-10-18** (Darren: "put the mobile app to one side but keep the plan"). Do not build until he says.
+   - Plan: (1) tests + short spec written in the web chat; (2) a new chat builds the app against them; (3) back here to review; (4) GitHub builds the APK, Darren downloads it on his phone (allow "install unknown apps" once, tap Install). New APK installs over the old one, data kept.
+   - Tests cover timing logic only; the locked-phone ring must be tested on the real phone.
+   - Still to decide: alarm sound (phone's alarm tone vs our beep; leaning phone's tone), replace the web app or sit alongside it (leaning alongside while testing).
 - Known gap: "X min spare" is lost on reload mid-cook.
 
 ## Principles / constraints
