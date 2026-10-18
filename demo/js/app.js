@@ -554,8 +554,6 @@ function startStepEdit(node) {
     body.replaceChildren(el('time', {}, formatClock(step.at)), input, bar);
   }
   input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(node); });
-  input.focus();
-  input.select();
 }
 
 function saveStepEdit(node) {
