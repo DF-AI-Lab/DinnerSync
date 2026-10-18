@@ -900,8 +900,9 @@ h2 {
 .demo-banner { position: sticky; top: 0; z-index: 50; background: #d62828; color: #fff; text-align: center; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px; padding: 6px 10px; }
 
 /* Settings (gear in the header) */
-.gear { background: none; border: 0; font-size: 20px; line-height: 1; padding: 6px; cursor: pointer; }
+.gear { background: none; border: 0; font-size: 20px; line-height: 1; padding: 0 2px; cursor: pointer; }
 .settings { background: var(--card, #1d191d); border-radius: 14px; padding: 14px; margin: 0 0 12px; }
 .settings-h { display: block; margin: 8px 0 4px; }
 .settings-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .settings-msg { margin: 10px 0 0; font-size: 14px; }
+.top-btns { display: flex; align-items: center; gap: 4px; }
