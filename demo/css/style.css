@@ -937,6 +937,12 @@ h2 {
 .cook-steps li.done .btn.step-undo { margin-left: auto; flex: none; }
 .cs-editbar .btn.step-undo { margin-left: 0; }
 
+/* Upcoming and done rows stay on one line: long text ends in ... so ✎ and Undo never drop down */
+.cook-steps .step-body.one-line { flex-wrap: nowrap; }
+.cook-steps .one-line .step-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cook-steps .one-line .tag { flex: none; white-space: nowrap; margin-right: 0; }
+.cook-steps .one-line time { flex: none; }
+
 /* ✎ on running jobs and upcoming rows */
 .job-edit { margin-left: auto; }
 .cook-steps .btn.row-edit { margin-left: auto; }
