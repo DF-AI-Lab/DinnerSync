@@ -1,6 +1,6 @@
 // Network-first service worker: online it always fetches the newest file and saves a copy;
 // offline it falls back to the saved copy. Bump CACHE and the #app-version in index.html together.
-const CACHE = 'dinnersync-live-v1.3.24';
+const CACHE = 'dinnersync-live-v1.3.27';
 const ASSETS = [
   './',
   './index.html',
@@ -30,12 +30,17 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Done on the alarm notification tells every open page to stop the alarm; a plain tap just opens the app.
+// A button on a notification tells every open page what to do (Done, Stop alarm, On it, Ignore).
+// A plain tap on the notification just opens the app.
+const NOTE_ACTIONS = { done: 'alarm-done', stop: 'alarm-stop', onit: 'heads-onit', ignore: 'heads-ignore' };
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      if (event.action === 'done') clients.forEach(c => c.postMessage({ type: 'alarm-done' }));
+      if (NOTE_ACTIONS[event.action]) {
+        clients.forEach(c => c.postMessage({ type: NOTE_ACTIONS[event.action] }));
+        return undefined;
+      }
       if (clients.length) return clients[0].focus();
       return self.clients.openWindow('./');
     })
