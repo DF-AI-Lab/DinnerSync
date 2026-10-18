@@ -2,7 +2,6 @@
 // missing storage never crashes the app.
 
 import { normalizeItem } from './plan.js';
-import { starterItems, starterMeals } from './meal.js';
 
 const PREFIX = 'dinnersync.';
 const KEYS = {
@@ -110,15 +109,15 @@ export function createStore(storage) {
     write(KEYS.settings, { ...getSettings(), ...patch });
   }
 
-  // Saved items and meals. The first run starts from the starter set; after that, what is stored wins.
+  // Saved items and meals. A fresh install starts empty; you build your own.
   const isMap = v => v && typeof v === 'object' && !Array.isArray(v);
-  function readMap(key, starter) {
+  function readMap(key) {
     const value = read(key, null);
-    return isMap(value) ? value : starter();
+    return isMap(value) ? value : {};
   }
 
   function getLibraryItems() {
-    return readMap(KEYS.libItems, starterItems);
+    return readMap(KEYS.libItems);
   }
 
   function saveLibraryItem(name, steps) {
@@ -131,7 +130,7 @@ export function createStore(storage) {
   }
 
   function getLibraryMeals() {
-    return readMap(KEYS.libMeals, starterMeals);
+    return readMap(KEYS.libMeals);
   }
 
   function saveLibraryMeal(name, meal) {
@@ -168,7 +167,42 @@ export function createStore(storage) {
     remove(KEYS.cooking);
   }
 
+  // Backup file: saved items and meals, plus the preheat setting. Loading replaces what is here.
+  function exportData() {
+    return {
+      app: 'DinnerSync',
+      version: 1,
+      savedAt: new Date().toISOString(),
+      items: getLibraryItems(),
+      meals: getLibraryMeals(),
+      settings: getSettings(),
+    };
+  }
+
+  // Reads a backup without saving anything: the clean items and meals, or null if it isn't one.
+  function readBackup(data) {
+    if (!isMap(data) || data.app !== 'DinnerSync') return null;
+    const keep = (m, ok) => Object.fromEntries(Object.entries(isMap(m) ? m : {}).filter(([n, v]) => n.trim() && ok(v)));
+    return {
+      items: keep(data.items, Array.isArray),
+      meals: keep(data.meals, isMap),
+      preheat: isMap(data.settings) && Number.isFinite(data.settings.preheatMinutes) ? data.settings.preheatMinutes : null,
+    };
+  }
+
+  function importData(data) {
+    const backup = readBackup(data);
+    if (!backup) return null;
+    write(KEYS.libItems, backup.items);
+    write(KEYS.libMeals, backup.meals);
+    if (backup.preheat != null) saveSettings({ preheatMinutes: backup.preheat });
+    return { items: Object.keys(backup.items).length, meals: Object.keys(backup.meals).length };
+  }
+
   return {
+    exportData,
+    readBackup,
+    importData,
     getSavedItems,
     saveItem,
     removeItem,
