@@ -33,6 +33,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
    - **PARKED 2026-10-18** (Darren: "put the mobile app to one side but keep the plan"). Do not build until he says.
    - Plan: (1) tests + short spec written in the web chat; (2) a new chat builds the app against them; (3) back here to review; (4) GitHub builds the APK, Darren downloads it on his phone (allow "install unknown apps" once, tap Install). New APK installs over the old one, data kept.
    - Tests cover timing logic only; the locked-phone ring must be tested on the real phone.
+   - **Build brief written 2026-10-18: docs/android-brief.md** (Capacitor + native alarm plugin, tests first, APK from GitHub Actions). Defaults: phone alarm tone, sits alongside web app.
    - Still to decide: alarm sound (phone's alarm tone vs our beep; leaning phone's tone), replace the web app or sit alongside it (leaning alongside while testing).
    - **Release to /live: set `PREFIX` in `store.js` back to `'dinnersync.'`** (demo uses `'dinnersync.demo.'` so demo and live don't share data).
    - Settings now has hobType, hobMax, ovenType (store.js). Hob/oven type are labels only for now (no gas-mark conversion).
@@ -136,6 +137,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: Android build brief saved to docs/android-brief.md, ready for a new Sonnet chat (app still parked until Darren says go).
 - 2026-10-18: Released v1.3.19 to /live: current step shown once, edit pencil on running jobs, upcoming steps and older plans.
 - 2026-10-18: Released v1.3.16 to /live: Done/Undo in line, edit a step's name (saves to the saved item), next alarm inside the current card, only the current card rings.
 - 2026-10-18: Demo v1.3.16: only the CURRENT card rings (first step not ticked Done); other steps stay silent until they become current. Darren chose this over keeping everything ringing. Watch: parallel jobs (e.g. veg starting while potatoes roast) won't ring until the earlier card is Done.
