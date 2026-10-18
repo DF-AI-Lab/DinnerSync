@@ -2,7 +2,6 @@
 // missing storage never crashes the app.
 
 import { normalizeItem } from './plan.js';
-import { starterItems, starterMeals } from './meal.js';
 
 const PREFIX = 'dinnersync.';
 const KEYS = {
@@ -110,15 +109,15 @@ export function createStore(storage) {
     write(KEYS.settings, { ...getSettings(), ...patch });
   }
 
-  // Saved items and meals. The first run starts from the starter set; after that, what is stored wins.
+  // Saved items and meals. A fresh install starts empty; you build your own.
   const isMap = v => v && typeof v === 'object' && !Array.isArray(v);
-  function readMap(key, starter) {
+  function readMap(key) {
     const value = read(key, null);
-    return isMap(value) ? value : starter();
+    return isMap(value) ? value : {};
   }
 
   function getLibraryItems() {
-    return readMap(KEYS.libItems, starterItems);
+    return readMap(KEYS.libItems);
   }
 
   function saveLibraryItem(name, steps) {
@@ -131,7 +130,7 @@ export function createStore(storage) {
   }
 
   function getLibraryMeals() {
-    return readMap(KEYS.libMeals, starterMeals);
+    return readMap(KEYS.libMeals);
   }
 
   function saveLibraryMeal(name, meal) {
