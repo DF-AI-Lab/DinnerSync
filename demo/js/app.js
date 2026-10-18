@@ -327,12 +327,16 @@ function renderJobs(now) {
 }
 
 // The soonest thing still to come: a step starting, or a job ending.
+// It sits inside the current step's card (see stepItem); the old standalone card stays hidden.
 function renderNextAlarm(now) {
   const next = nextAlarm(cook.plan, now, cook.done);
-  $('next-alarm').hidden = !next;
+  $('next-alarm').hidden = true;
+  const box = $('cook-steps').querySelector('li.current .cs-alarm');
+  if (!box) return;
+  box.hidden = !next;
   if (!next) return;
-  $('next-alarm-text').textContent = next.text;
-  $('next-alarm-time').textContent = `${formatClock(next.at)} · ${formatCountdown(next.at - now)}`;
+  box.querySelector('.cs-count').textContent = formatCountdown(next.at - now);
+  box.querySelector('.cs-text').textContent = `${next.text} · ${formatClock(next.at)}`;
 }
 
 // The steps as a plain list. Rebuilt only when a step's status changes.
@@ -344,6 +348,12 @@ function stepItem(s) {
   const body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
   // Done only says "I did it". The plan's times don't move, and Undo puts the step back.
   if (s.status === 'current' && s.type !== 'ready') body.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
+  if (s.status === 'current') {
+    body.append(el('div', { class: 'cs-alarm' },
+      el('span', { class: 'cs-label' }, 'Next alarm'),
+      el('b', { class: 'cs-count' }, ''),
+      el('span', { class: 'cs-text' }, '')));
+  }
   if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
   return el('li', attrs, dot, body);
 }
@@ -362,8 +372,8 @@ function renderCook(now) {
   $('oven-temp').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
   renderBackToCook(now);
   renderJobs(now);
-  renderNextAlarm(now);
   renderCookSteps(now);
+  renderNextAlarm(now);
 }
 
 function stopCooking() {
