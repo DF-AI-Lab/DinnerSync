@@ -33,7 +33,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
   let uid = 1;
   const emptyMeal = () => ({ name: '', together: false, groups: [], items: [] });
   const S = {
-    meal: emptyMeal(), mode: 'now', laterAt: 0, prepFirst: true, preheat: DEFAULT_PREHEAT, toast: '', renaming: 0, renameMsg: '',
+    meal: emptyMeal(), mode: 'now', laterAt: 0, prepFirst: true, preheat: DEFAULT_PREHEAT, toast: '', renaming: 0, renameMsg: '', renameText: null,
   };
 
   // ---------- state ----------
@@ -146,7 +146,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
   function itemsHtml(list) {
     return `<div class="b-items">${list.map(it => `<div class="b-item ${it.open ? 'open' : ''}" data-id="${it.id}">
         ${S.renaming === it.id ? `<div class="b-rename">
-            <div class="b-rename-row"><input class="b-rename-input" data-o="${it.id}" value="${esc(it.name)}" aria-label="Item name" autocomplete="off" enterkeyhint="done"><span class="b-item-time">${it.steps.length ? fmtT(sumMinutes(it.steps)) : ''}</span></div>
+            <div class="b-rename-row"><input class="b-rename-input" data-o="${it.id}" value="${esc(S.renameText ?? it.name)}" aria-label="Item name" autocomplete="off" enterkeyhint="done"><span class="b-item-time">${it.steps.length ? fmtT(sumMinutes(it.steps)) : ''}</span></div>
             <div class="b-rename-bar"><button type="button" class="b-rename-save" data-act="renamesave" data-o="${it.id}">Save</button><button type="button" class="b-rename-cancel" data-act="renamecancel" data-o="${it.id}">Cancel</button></div>
             <p class="b-hint">${esc(S.renameMsg) || 'Renames the item and its steps everywhere you\'ve saved it.'}</p>
           </div>` : `<div class="b-item-top">
@@ -262,10 +262,13 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     } else if (act === 'rename') {
       S.renaming = +o;
       S.renameMsg = '';
-    } else if (act === 'renamecancel') S.renaming = 0;
+      S.renameText = null;
+    } else if (act === 'renamecancel') { S.renaming = 0; S.renameText = null; }
     else if (act === 'renamesave') {
-      if (!renameItem(item, root.querySelector('.b-rename-input')?.value ?? '')) return draw();
+      S.renameText = root.querySelector('.b-rename-input')?.value ?? '';
+      if (!renameItem(item, S.renameText)) return draw(); // keep what was typed and say why
       S.renaming = 0;
+      S.renameText = null;
     } else if (act === 'rmst') stepsOf(o).splice(index, 1);
     else if (act === 'addst') {
       stepsOf(o).push(newStep(k));
@@ -301,7 +304,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     if (!to) { S.renameMsg = 'Give it a name.'; return false; }
     if (to === from) return true;
     const lib = store.getLibraryItems();
-    if (Object.keys(lib).some(k => sameName(k, to) && !sameName(k, from))) { S.renameMsg = `You already have an item called "${to}".`; return false; }
+    if (Object.keys(lib).some(k => sameName(k, to) && !sameName(k, from))) { S.renameMsg = `You already have an item called "${to}". Pick another name.`; return false; }
     for (const k of Object.keys(lib)) if (sameName(k, from)) store.removeLibraryItem(k);
     item.name = to;
     if (item.steps.length) store.saveLibraryItem(to, clone(item.steps));
@@ -339,6 +342,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
   // Names and reminder text update as you type and nothing redraws, so the box keeps focus.
   root.addEventListener('input', e => {
     const t = e.target;
+    if (t.classList.contains('b-rename-input')) { S.renameText = t.value; return; }
     if (t.classList.contains('b-st-name')) stepsOf(t.dataset.o)[t.dataset.i].text = t.value;
     else if (t.classList.contains('b-check-text')) stepsOf(t.dataset.o)[t.dataset.i].check.text = t.value;
     else if (t.classList.contains('b-group-name')) S.meal.groups.find(g => g.id === +t.dataset.g).name = t.value;
