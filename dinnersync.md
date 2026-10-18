@@ -130,6 +130,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: Released v1.3.19 to /live: current step shown once, edit pencil on running jobs, upcoming steps and older plans.
 - 2026-10-18: Released v1.3.16 to /live: Done/Undo in line, edit a step's name (saves to the saved item), next alarm inside the current card, only the current card rings.
 - 2026-10-18: Demo v1.3.16: only the CURRENT card rings (first step not ticked Done); other steps stay silent until they become current. Darren chose this over keeping everything ringing. Watch: parallel jobs (e.g. veg starting while potatoes roast) won't ring until the earlier card is Done.
 - 2026-10-18: Released v1.3.11 to /live (gear lined up with Reset).

@@ -934,3 +934,10 @@ h2 {
 .cook-steps li.done .step-body { flex-wrap: nowrap; }
 .cook-steps li.done .btn.step-undo { margin-left: auto; flex: none; }
 .cs-editbar .btn.step-undo { margin-left: 0; }
+
+/* ✎ on running jobs and upcoming rows */
+.job-edit { margin-left: auto; }
+.cook-steps .btn.row-edit { margin-left: auto; }
+.job-timer .cs-input { width: 100%; flex: none; margin: 6px 0 2px; }
+.job-timer .cs-editbar { margin: 2px 0 8px; }
+.btn.job-edit { margin-left: auto; flex: none; width: auto; min-height: 0; padding: 2px 8px; font-size: 0.78rem; border-radius: 999px; background: transparent; color: var(--muted); border: 1px solid var(--line); }
