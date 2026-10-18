@@ -11,7 +11,7 @@
 const MIN = 60_000;
 export const DEFAULT_PREHEAT = 15;
 export const KINDS = ['prep', 'hob', 'oven', 'slow', 'rest'];
-export const KIND_LABEL = { prep: '🥄 Prep', hob: '🔥 Hob', oven: '♨️ Oven', slow: '🍲 Slow cook', rest: '⏸ Rest' };
+export const KIND_LABEL = { prep: '🥄 Prep', hob: '🔥 Hob', oven: '♨️ Oven', slow: '🍲 Slow', rest: '⏸ Rest' };
 
 export const step = (kind, text, min, temp, check) => ({
   kind, text, min, ...(temp ? { temp } : {}), ...(check ? { check } : {}),

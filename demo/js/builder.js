@@ -20,7 +20,7 @@ const clock = t => {
   return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`;
 };
 
-// What a "+ Prep / + Hob / + Oven / + Slow cook / + Rest" button adds. A slow cook is hours, so it taps in 30s.
+// What a "+ Prep / + Hob / + Oven / + Slow / + Rest" button adds. A slow cook is hours, so it taps in 30s.
 const newStep = kind => {
   const s = step(kind, '', kind === 'prep' ? 10 : kind === 'slow' ? 240 : 15, kind === 'oven' ? 200 : 0);
   if (kind === 'slow') s.setting = 'low';

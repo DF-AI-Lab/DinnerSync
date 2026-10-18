@@ -7,7 +7,7 @@ import { keepAliveWav, alarmWav, ALARM } from './ring.js';
 
 const MIN = 60_000;
 const QUARTER = 15 * MIN; // "Ready later" moves in 15-minute steps
-const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow cook', rest: '⏸ Rest', prep: '🥄 Prep' };
+const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow', rest: '⏸ Rest', prep: '🥄 Prep' };
 // The Simple timer and the When's dinner panel are hidden for now. Their code is kept; turn this on to bring them back.
 const SHOW_LEGACY_TOOLS = false;
 const RESUME_GRACE_MS = 2 * 60 * MIN;
@@ -96,7 +96,7 @@ function currentPlan() {
 function stepNodes(step) {
   const nodes = [];
   if (step.method) nodes.push(el('span', { class: `tag m-${step.method}` }, METHOD_LABEL[step.method]));
-  nodes.push(document.createTextNode(step.text));
+  nodes.push(el('span', { class: 'step-text' }, step.text));
   return nodes;
 }
 
@@ -375,7 +375,7 @@ function stepItem(s) {
     body = el('div', { class: 'step-body' }, row,
       el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
   } else {
-    body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+    body = el('div', { class: 'step-body one-line' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
     if (s.status === 'upcoming' && editInfo(s)) body.append(el('button', { class: 'btn step-edit row-edit', type: 'button', 'data-edit-step': '', 'aria-label': 'Edit name' }, '✎'));
     if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
   }
@@ -396,7 +396,9 @@ function startStepEdit(node) {
     node.querySelector('.cs-row').replaceChildren(el('time', {}, formatClock(step.at)), input);
     node.querySelector('.cs-alarm').replaceWith(bar);
   } else {
-    node.querySelector('.step-body').replaceChildren(el('time', {}, formatClock(step.at)), input, bar);
+    const body = node.querySelector('.step-body');
+    body.classList.remove('one-line');
+    body.replaceChildren(el('time', {}, formatClock(step.at)), input, bar);
   }
   input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(node); });
   input.focus();
