@@ -257,11 +257,15 @@ function persistCooking() {
 }
 
 // Once a second: ring for steps starting, and for jobs whose time is up. Then redraw.
+// Only the current card rings: the first step not ticked off.
+const currentIndex = () => cook.plan.steps.findIndex((_, i) => !cook.done.includes(i));
+
 function tick() {
   if (!cook) return;
   const now = Date.now();
-  const starts = alarmSteps(cook.plan, cook.lastChecked, now, cook.done);
-  const ends = endAlarms(cook.plan, cook.lastChecked, now, cook.done);
+  const only = currentIndex();
+  const starts = alarmSteps(cook.plan, cook.lastChecked, now, cook.done, only);
+  const ends = endAlarms(cook.plan, cook.lastChecked, now, cook.done, only);
   cook.lastChecked = now;
   if (starts.length || ends.length) {
     // The jobs that ended stay on the go until their alarm's Done ticks them off.
@@ -327,12 +331,16 @@ function renderJobs(now) {
 }
 
 // The soonest thing still to come: a step starting, or a job ending.
+// It sits inside the current step's card (see stepItem); the old standalone card stays hidden.
 function renderNextAlarm(now) {
-  const next = nextAlarm(cook.plan, now, cook.done);
-  $('next-alarm').hidden = !next;
+  const next = nextAlarm(cook.plan, now, cook.done, currentIndex());
+  $('next-alarm').hidden = true;
+  const box = $('cook-steps').querySelector('li.current .cs-alarm');
+  if (!box) return;
+  box.hidden = !next;
   if (!next) return;
-  $('next-alarm-text').textContent = next.text;
-  $('next-alarm-time').textContent = `${formatClock(next.at)} · ${formatCountdown(next.at - now)}`;
+  box.querySelector('.cs-count').textContent = formatCountdown(next.at - now);
+  box.querySelector('.cs-text').textContent = `${next.text} · ${formatClock(next.at)}`;
 }
 
 // The steps as a plain list. Rebuilt only when a step's status changes.
@@ -341,7 +349,52 @@ function stepItem(s) {
   const dot = s.status === 'done'
     ? el('button', { class: 'dot', type: 'button', 'aria-label': `Undo: ${s.text}` }, '✓')
     : el('span', { class: 'dot', 'aria-hidden': 'true' }, '');
-  return el('li', attrs, dot, el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s)));
+  // The current step is a card: time, name, ✎ and Done on one line, the next alarm underneath.
+  // Done only says "I did it". The plan's times don't move, and Undo puts the step back.
+  let body;
+  if (s.status === 'current') {
+    const row = el('div', { class: 'cs-row' }, el('time', {}, formatClock(s.at)), el('span', { class: 'cs-name' }, ...stepNodes(s)));
+    if (s.type === 'in' && s.action != null) row.append(el('button', { class: 'btn step-edit', type: 'button', 'data-edit-step': String(s.index), 'aria-label': 'Edit name' }, '✎'));
+    if (s.type !== 'ready') row.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
+    body = el('div', { class: 'step-body' }, row,
+      el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
+  } else {
+    body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+    if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
+  }
+  return el('li', attrs, dot, body);
+}
+
+// ✎ on the current step: the name becomes a box. Saving renames it here and in the saved item.
+function startStepEdit(li) {
+  const step = cook.plan.steps[Number(li.dataset.index)];
+  const row = li.querySelector('.cs-row');
+  const input = el('input', { class: 'cs-input', type: 'text', value: step.action, 'aria-label': 'Step name', autocomplete: 'off', enterkeyhint: 'done' });
+  row.replaceChildren(el('time', {}, formatClock(step.at)), input);
+  li.querySelector('.cs-alarm').replaceWith(el('div', { class: 'cs-editbar' },
+    el('button', { class: 'btn step-done', type: 'button', 'data-step-save': '' }, 'Save'),
+    el('button', { class: 'btn ghost step-undo', type: 'button', 'data-step-cancel': '' }, 'Cancel'),
+    el('p', { class: 'cs-hint' }, 'Also updates your saved item, so it reads right next time.')));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(li); });
+  input.focus();
+  input.select();
+}
+
+function saveStepEdit(li) {
+  const step = cook.plan.steps[Number(li.dataset.index)];
+  const to = li.querySelector('.cs-input').value.trim();
+  if (to && to !== step.action) {
+    builder.renameStep({ owners: step.owners, kind: step.method, from: step.raw, to });
+    step.raw = to;
+    step.action = to;
+    step.text = to + step.suffix;
+    step.say = `${step.name}: ${to}`;
+    step.label = `${step.owners}: ${to}`;
+    persistCooking();
+  }
+  stepsKey = null;
+  jobsKey = null;
+  renderCook(Date.now());
 }
 
 function renderCookSteps(now) {
@@ -358,8 +411,8 @@ function renderCook(now) {
   $('oven-temp').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
   renderBackToCook(now);
   renderJobs(now);
-  renderNextAlarm(now);
   renderCookSteps(now);
+  renderNextAlarm(now);
 }
 
 function stopCooking() {
@@ -438,13 +491,23 @@ function bindCookScreen() {
     persistCooking();
     renderCook(Date.now());
   });
-  // Undo: tap the ✓ of a done step in the list and it goes back to being on the go.
+  // Done on the current step ticks it off; Undo (or the ✓) puts it back on the running plan.
   $('cook-steps').addEventListener('click', e => {
+    if (!cook) return;
+    const doneBtn = e.target.closest('[data-done]');
     const li = e.target.closest('li.done');
-    if (!cook || !li || !e.target.closest('.dot')) return;
-    const index = Number(li.dataset.index);
-    cook.done = cook.done.filter(i => i !== index);
-    stopAlarm();
+    if (e.target.closest('[data-edit-step]')) { startStepEdit(e.target.closest('li')); return; }
+    if (e.target.closest('[data-step-cancel]')) { stepsKey = null; renderCook(Date.now()); return; }
+    if (e.target.closest('[data-step-save]')) { saveStepEdit(e.target.closest('li')); return; }
+    if (doneBtn) {
+      const index = Number(doneBtn.dataset.done);
+      cook.done = [...new Set([...cook.done, index])];
+      cook.rang = cook.rang.filter(i => i !== index);
+      if (!cook.rang.length && !cook.rangReady) stopAlarm();
+    } else if (li && e.target.closest('.dot, .step-undo')) {
+      cook.done = cook.done.filter(i => i !== Number(li.dataset.index));
+      stopAlarm();
+    } else return;
     persistCooking();
     renderCook(Date.now());
   });
