@@ -804,3 +804,91 @@ h2 {
   .tile, .drawer, .ring .prog, .job-bar i { transition: none !important; }
   .timer-digits.flash { animation: none; color: var(--danger); }
 }
+
+/* ---------- Meal screen (js/builder.js). All classes start with b- so they never clash with the rest. ---------- */
+.setup { display: flex; flex-direction: column; gap: 12px; }
+.b-card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.b-cap { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.b-hint { display: block; font-size: 13px; color: var(--muted); margin: 0; line-height: 1.4; font-weight: 400; }
+.setup button { font-family: var(--body); cursor: pointer; }
+.setup button:focus-visible, .setup input:focus-visible, .setup select:focus-visible,
+.b-switch:focus-within { outline: 3px solid var(--orange); outline-offset: 2px; }
+/* a text box and a saved picker side by side: the picker is the right third */
+.b-pickrow { display: grid; grid-template-columns: 1fr minmax(100px, 36%); gap: 6px; }
+.b-pickrow input, .b-pickrow select, .b-group-name {
+  width: 100%; min-width: 0; height: 44px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--field); color: var(--text); padding: 0 10px; font: inherit; font-size: 16px;
+}
+.b-pickrow select { color: var(--orange-soft); font-weight: 700; font-size: 13px; }
+.b-pickrow input.b-meal-input { font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
+/* "cook some together first" switch (also on the timer sequence) */
+.b-switch { display: flex; gap: 10px; align-items: flex-start; background: var(--panel-2); border: 1px dashed var(--line); border-radius: 12px; padding: 10px; cursor: pointer; }
+.b-switch.on { border-color: var(--orange); background: rgba(255, 122, 47, 0.06); }
+.b-switch input { width: 22px; height: 22px; accent-color: var(--orange); margin: 1px 0 0; flex: none; }
+.b-switch b { display: block; margin-bottom: 2px; }
+/* built dish */
+.b-group { border: 1px dashed var(--orange); background: rgba(255, 122, 47, 0.05); }
+.b-group-head { display: flex; justify-content: space-between; align-items: center; }
+.b-group-head .b-cap { color: var(--orange-soft); }
+.b-group-name { font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
+.b-phase { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.b-phase b { font-family: var(--display); font-weight: 800; }
+.b-phase span { font-size: 12px; color: var(--muted); }
+.b-down { text-align: center; color: var(--orange-soft); font-size: 13px; font-weight: 700; }
+.b-group .b-stages.fin { padding: 0; }
+.b-another { align-self: center; }
+/* items */
+.b-items { display: flex; flex-direction: column; gap: 6px; }
+.b-item { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; }
+.b-item.open { border-color: var(--orange); }
+.b-item-head { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 10px; width: 100%; min-height: 44px; background: none; border: 0; color: var(--text); text-align: left; font-size: 1rem; }
+.b-item-name { font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-item-time { font-variant-numeric: tabular-nums; color: var(--orange-soft); font-weight: 800; font-size: 13px; white-space: nowrap; }
+.b-chev { color: var(--muted); font-size: 12px; }
+/* the coloured bar of an item's steps */
+.b-strip { display: flex; height: 6px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 0 10px 8px; background: var(--field); }
+.b-strip i { display: block; height: 100%; }
+.k-prep { background: var(--blue); } .k-hob { background: #ffb38a; } .k-oven { background: var(--orange); } .k-rest { background: #c7b8e8; }
+.b-x { background: none; border: 0; color: var(--muted); font-size: 13px; font-weight: 700; padding: 8px; min-width: 36px; min-height: 36px; }
+.b-item-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 10px 4px; }
+.b-saved-note { font-size: 12px; color: var(--ok); font-weight: 700; }
+.b-stages { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px; }
+.b-stage { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.b-st { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+.b-st-name { font: inherit; font-size: 16px; font-weight: 700; min-width: 0; width: 100%; background: transparent; color: var(--text); border: 0; border-bottom: 1px dashed var(--line); border-radius: 0; padding: 6px 2px; }
+.b-st-name::placeholder { color: var(--muted); font-weight: 500; font-size: 14px; }
+.b-st-name:focus { border-bottom-color: var(--orange); outline: none; }
+.b-tag { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.b-tag.prep { color: var(--blue); border-color: #3e5578; } .b-tag.hob { color: #ffb38a; border-color: #7a4a33; }
+.b-tag.oven { color: var(--orange-soft); border-color: var(--orange); } .b-tag.rest { color: #c7b8e8; border-color: #5a4f72; }
+.b-steppers { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.b-steppers.two { grid-template-columns: 1.4fr 1fr; }
+.b-stepper { display: grid; grid-template-columns: 40px 1fr 40px; gap: 4px; align-items: center; }
+.b-stepper button { height: 40px; border-radius: 9px; background: var(--field); border: 1px solid var(--line); color: var(--text); font-size: 18px; font-weight: 700; }
+.b-val { font-family: var(--display); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.b-then { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.06em; text-align: center; text-transform: uppercase; }
+/* a step's own reminder alarm */
+.b-check { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; color: var(--warn); }
+.b-check-text { font: inherit; font-size: 16px; font-weight: 700; min-width: 0; width: 100%; background: transparent; color: var(--warn); border: 0; border-bottom: 1px dashed var(--line); padding: 6px 2px; }
+.b-check-text:focus { border-bottom-color: var(--warn); outline: none; }
+.b-check .b-stepper { grid-column: 1 / 2; }
+.b-check .b-x { grid-column: 2; justify-self: end; }
+.b-addrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.b-add { background: none; border: 1px dashed var(--line); color: var(--muted); border-radius: 9px; padding: 8px 10px; min-height: 40px; font-weight: 700; font-size: 13px; }
+.b-add-chk { align-self: flex-start; min-height: 32px; padding: 4px 10px; font-size: 12px; }
+.b-save { margin: 0 auto; background: none; border: 1px solid var(--ok); color: var(--ok); border-radius: 9px; padding: 10px 14px; min-height: 44px; font-weight: 800; font-size: 14px; }
+/* when's it ready */
+.b-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--field); border-radius: 10px; padding: 3px; }
+.b-seg button { background: none; border: 0; color: var(--muted); border-radius: 8px; padding: 12px 9px; font-weight: 700; font-size: 1rem; }
+.b-seg button.on { background: var(--orange); color: var(--ink); }
+.b-when-text { margin: 0; font-size: 14px; color: var(--muted); text-align: center; }
+.b-when-text b { color: var(--ok); }
+.b-preheat { display: grid; grid-template-columns: 1fr minmax(120px, 45%); gap: 8px; align-items: center; color: var(--muted); font-size: 14px; }
+.b-go { background: var(--orange); color: var(--ink); border: 0; border-radius: 12px; padding: 14px; min-height: 56px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 8px 28px var(--glow); }
+.b-toast { color: var(--ok); font-size: 13px; text-align: center; min-height: 1.2em; margin: 0; }
+
+/* timer sequence: prep block headings, reminders and the prep-first switch */
+.steps li.block { display: block; background: none; border: 0; box-shadow: none; padding: 6px 2px 0; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.step-prep1 { border-left-color: var(--blue) !important; }
+.step-remind { border-left-color: var(--warn) !important; color: var(--warn); font-weight: 700; }
+#prep-first { margin: 4px 0 12px; }
