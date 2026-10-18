@@ -1,4 +1,6 @@
-import { buildPlan, stepStatuses, alarmSteps, normalizeItem, toMinutes, splitMinutes, formatDuration, stageGroups, fromSections, toSections, leadMinutes, jobsOnTheGo, endAlarms, endText, nextAlarm } from './plan.js';
+import { buildPlan, stepStatuses, alarmSteps, toMinutes, splitMinutes, formatDuration, jobsOnTheGo, endAlarms, endText, nextAlarm } from './plan.js';
+import { toPlan, schedule, ovenClash, prepFirstExtra } from './meal.js';
+import { createBuilder } from './builder.js';
 import { createStore } from './store.js';
 import { createCountdown } from './timer.js';
 import { keepAliveWav, alarmWav, ALARM } from './ring.js';
@@ -6,12 +8,12 @@ import { keepAliveWav, alarmWav, ALARM } from './ring.js';
 const MIN = 60_000;
 const QUARTER = 15 * MIN; // "Ready later" moves in 15-minute steps
 const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow cook', rest: '⏸ Rest', prep: '🥄 Prep' };
-const STAGE_DEFAULTS = { minutes: 30, temp: 200, setting: 'low' };
+// The Simple timer and the When's dinner panel are hidden for now. Their code is kept; turn this on to bring them back.
+const SHOW_LEGACY_TOOLS = false;
 const RESUME_GRACE_MS = 2 * 60 * MIN;
 const RING_LEN = 2 * Math.PI * 52; // circumference of the timer ring (r=52)
 const DRAWERS = ['dinner', 'timer'];
 const $ = id => document.getElementById(id);
-const GROUP = { ready: 0, cook: 1, finish: 2 }; // the layout group of each box
 
 function safeLocalStorage() {
   try { return window.localStorage; } catch { return null; }
@@ -19,12 +21,9 @@ function safeLocalStorage() {
 const store = createStore(safeLocalStorage());
 
 const state = {
-  items: [],          // tonight's items: {name, stages: [{method, minutes, temp?, section?, group?, track?}]}
-  readyAt: 0,         // absolute ms
-  readyMode: 'now',   // 'now': ready at the soonest; 'later': ready at a time the cook picked
-  preheatMinutes: 15,
-  plan: null,         // plan built when "Show plan" was tapped
+  plan: null,         // plan built when "Start timers" was tapped
 };
+let builder = null;   // the meal screen (js/builder.js): the meal, the dinner time and the saved meals
 
 let cook = null;      // {plan, done, lastChecked, timer, rang, rangReady} while cooking. done = ticked-off step indexes; rang = job steps whose end is ringing
 let jobsKey = null;   // what the jobs list was last built from (see renderJobs)
@@ -47,8 +46,6 @@ function el(tag, attrs = {}, ...children) {
   node.append(...children);
   return node;
 }
-
-const sameName = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 
 function formatClock(ms) {
   const d = new Date(ms);
@@ -89,68 +86,10 @@ function renderBackToCook(now = Date.now()) {
   if (!bar.hidden) bar.textContent = `🔥 Cooking — dinner in ${formatCountdown(cook.plan.readyAt - now)} · tap to return`;
 }
 
+// The plan the cook screen runs, from the meal being set up.
 function currentPlan() {
-  return buildPlan({
-    items: state.items,
-    readyAt: state.readyAt,
-    now: Date.now(),
-    preheatMinutes: state.preheatMinutes,
-  });
-}
-
-// Keep one valid stage: {method, minutes} and {method, minutes, temp} for oven,
-// plus an optional label, section, group and track. Returns null when a stage is missing a minute count or an oven temp.
-function cleanStage(st) {
-  if (!METHOD_LABEL[st?.method]) return null;
-  const minutes = Math.round(Number(st.minutes));
-  if (!(minutes > 0)) return null;
-  const label = typeof st.label === 'string' ? st.label.trim() : '';
-  const out = { method: st.method, minutes };
-  if (st.method === 'oven') {
-    const temp = Math.round(Number(st.temp));
-    if (!(temp > 0)) return null;
-    out.temp = temp;
-  }
-  if (st.method === 'slow') out.setting = st.setting === 'high' ? 'high' : 'low';
-  if (['ready', 'cook', 'finish'].includes(st.section)) out.section = st.section;
-  if (Number.isInteger(st.group) && st.group >= 0) out.group = st.group;
-  if (Number.isInteger(st.track) && st.track >= 0) out.track = st.track;
-  if (label) out.label = label;
-  return out;
-}
-
-// Returns a clean item, or null if the name or any stage is not usable.
-function cleanItem(x) {
-  if (!x || typeof x.name !== 'string' || !x.name.trim()) return null;
-  const raw = normalizeItem(x).stages;
-  if (!Array.isArray(raw) || !raw.length) return null;
-  const stages = raw.map(cleanStage);
-  if (stages.some(st => !st)) return null;
-  return { name: x.name.trim(), stages };
-}
-
-// One stage as text: "Boil potatoes: Hob 10 min", "Roast: Oven 45 min 220°C (55 min at 180°C)".
-function stageText(st, ovenTemp) {
-  const prefix = st.label ? `${st.label}: ` : '';
-  if (st.method === 'oven') {
-    const scaled = st.cookMinutes !== undefined && st.cookMinutes !== st.minutes;
-    const scaledText = scaled ? ` (${formatDuration(st.cookMinutes)} at ${ovenTemp}°C)` : '';
-    return `${prefix}Oven ${formatDuration(st.minutes)} ${st.temp}°C${scaledText}`;
-  }
-  if (st.method === 'hob') return `${prefix}Hob ${formatDuration(st.minutes)}`;
-  if (st.method === 'slow') return `${prefix}Slow cook ${formatDuration(st.minutes)} (${st.setting === 'high' ? 'High' : 'Low'})`;
-  if (st.method === 'prep') return `${prefix}Prep ${formatDuration(st.minutes)}`;
-  return `${prefix}Rest ${formatDuration(st.minutes)}`;
-}
-
-// "Boil potatoes: Hob 10 min → Roast potatoes: Oven 45 min 220°C → Rest 15 min".
-// Tracks that run side by side go in brackets, joined by ‖, one group after another:
-// "[Fry mince: Hob 25 min ‖ Boil potatoes: Hob 15 min → Mash: Prep 5 min] → Build pie: Prep 5 min".
-function describeStages(stages, ovenTemp) {
-  return stageGroups(stages).map(tracks => {
-    const texts = tracks.map(list => list.map(st => stageText(st, ovenTemp)).join(' → '));
-    return texts.length > 1 ? `[${texts.join(' ‖ ')}]` : texts[0];
-  }).join(' → ');
+  const s = builder.state();
+  return toPlan(s.meal, s.readyAt, Date.now(), { prepFirst: s.prepFirst, preheat: s.preheat });
 }
 
 // A small method label followed by the step text, for timeline and cooking screen.
@@ -161,45 +100,23 @@ function stepNodes(step) {
   return nodes;
 }
 
-function persistTonight() {
-  store.saveLastDinner({ items: state.items, preheatMinutes: state.preheatMinutes });
+
+// ---------- plan screen: the meal builder (js/builder.js) ----------
+
+function showNow() {
+  $('now-clock').textContent = formatClock(Date.now());
 }
 
-// ---------- plan screen ----------
-
-function setReadyDuration(mins) {
-  const { h, m } = splitMinutes(mins);
-  $('ready-hours').value = String(h);
-  $('ready-minutes').value = String(m);
+// The Start timers button: show the timer sequence for the meal as it stands.
+function openTimeline() {
+  const err = $('plan-error');
+  err.hidden = true;
+  state.plan = currentPlan();
+  renderTimeline();
+  showScreen('timeline');
 }
 
-// The dinner time, shown in the tile and under the inputs.
-function showDinnerTime() {
-  const text = formatClock(state.readyAt);
-  $('ready-clock').textContent = `Dinner at ${text}`;
-  $('tile-dinner-time').textContent = text;
-}
-
-function syncReadyInputs() {
-  setReadyDuration(Math.max(0, Math.round((state.readyAt - Date.now()) / MIN)));
-  $('ready-at').value = toTimeValue(state.readyAt);
-  showDinnerTime();
-}
-
-function onReadyChanged() {
-  showDinnerTime();
-  renderStatus();
-}
-
-// A dinner time typed in the drawer: it is kept as it is (not clamped), so the mode is "Ready later".
-function setLater(at) {
-  state.readyMode = 'later';
-  state.readyAt = at;
-  paintWhen();
-  onReadyChanged();
-}
-
-// ---------- tiles: "When's dinner" and "Timer" drawers ----------
+// ---------- hidden for now (SHOW_LEGACY_TOOLS): the Simple timer and the When's dinner panel ----------
 
 // Tap a tile to open its drawer; tap it again to close. Only one is open at a time.
 function toggleDrawer(name) {
@@ -214,134 +131,43 @@ function toggleDrawer(name) {
   $('plan-rest').hidden = openDrawer === 'timer';
 }
 
-function bindTiles() {
+// The When's dinner panel shows and sets the builder's dinner time.
+function syncLegacyDinner() {
+  if (!SHOW_LEGACY_TOOLS || !builder) return;
+  const { readyAt, mode } = builder.state();
+  const text = formatClock(readyAt);
+  $('ready-clock').textContent = `Dinner at ${text}`;
+  $('tile-dinner-time').textContent = text;
+  const later = mode === 'later';
+  for (const [id, on] of [['when-now', !later], ['when-later', later]]) {
+    $(id).setAttribute('aria-pressed', String(on));
+    $(id).classList.toggle('on', on);
+  }
+  $('when-later-box').hidden = !later;
+  $('later-val').textContent = `Ready at ${text}`;
+  $('when-text').textContent = later ? '' : `Start now (${formatClock(Date.now())}) → ready at ${text}`;
+  const { h, m } = splitMinutes(Math.max(0, Math.round((readyAt - Date.now()) / MIN)));
+  $('ready-hours').value = String(h);
+  $('ready-minutes').value = String(m);
+  $('ready-at').value = toTimeValue(readyAt);
+  $('cook-now').disabled = false;
+}
+
+function bindLegacyTools() {
+  $('legacy-tools').hidden = !SHOW_LEGACY_TOOLS;
   $('tile-dinner').addEventListener('click', () => toggleDrawer('dinner'));
   $('tile-timer').addEventListener('click', () => toggleDrawer('timer'));
-}
-
-// Cook now: dinner at the earliest it can be ready if starting right now. Switches to "Start now".
-function bindCookNow() {
-  $('cook-now').addEventListener('click', () => {
-    state.readyMode = 'now';
-    syncWhen();
-  });
-}
-
-function showNow() {
-  $('now-clock').textContent = formatClock(Date.now());
-}
-
-function renderStatus() {
-  $('cook-now').disabled = !state.items.length;
-  const box = $('status');
-  box.className = 'status';
-  box.replaceChildren();
-  if (!state.items.length) {
-    box.hidden = true;
-    return;
-  }
-  box.hidden = false;
-  const plan = currentPlan();
-  const first = plan.steps[0];
-  if (plan.enoughTime) {
-    box.classList.add('ok');
-    const what = first.type === 'preheat' ? 'preheating' : 'cooking';
-    box.append(el('p', {}, `Enough time — start ${what} at ${formatClock(first.at)}`));
-  } else {
-    box.classList.add('warn');
-    const useBtn = el('button', { class: 'btn', id: 'use-earliest', type: 'button' }, `Use ${formatClock(plan.earliestReady)}`);
-    useBtn.addEventListener('click', () => {
-      setLater(plan.earliestReady);
-      syncReadyInputs();
-    });
-    box.append(el('p', {}, `Not enough time — earliest ready ${formatClock(plan.earliestReady)}`), useBtn);
-  }
-}
-
-function renderItems() {
-  const ul = $('items');
-  ul.replaceChildren();
-  $('items-empty').hidden = state.items.length > 0;
-  if (!state.items.length) return;
-
-  const plan = currentPlan();
-  plan.items.forEach((item, i) => {
-    const info = el('div', { class: 'item-info' },
-      el('span', { class: 'item-name' }, item.name),
-      ...(item.main ? [el('span', { class: 'badge' }, 'Main')] : []),
-      el('div', { class: 'item-detail' }, describeStages(item.stages, plan.ovenTemp)),
-    );
-    const remove = el('button', { class: 'icon-btn', type: 'button', 'aria-label': `Remove ${item.name}` }, '✕');
-    remove.addEventListener('click', () => {
-      state.items.splice(i, 1);
-      persistTonight();
-      renderAll();
-    });
-    ul.append(el('li', {}, info, remove));
-  });
-}
-
-// The saved-items menu in the add-item card: a panel of picks, each with a × to delete.
-function setSavedOpen(open) {
-  $('saved-panel').hidden = !open;
-  $('saved-toggle').setAttribute('aria-expanded', String(open));
-  if (open) renderSavedItems();
-}
-
-function renderSavedItems() {
-  const saved = store.getSavedItems();
-  $('saved-list').replaceChildren(...saved.map(item => {
-    const pick = el('button', { class: 'saved-pick', type: 'button' }, item.name);
-    pick.addEventListener('click', () => {
-      fillDraft(item);
-      setSavedOpen(false);
-      document.activeElement?.blur();
-    });
-    const del = el('button', { class: 'saved-del', type: 'button', 'aria-label': `Delete ${item.name}` }, '×');
-    del.addEventListener('click', () => {
-      store.removeItem(item.name);
-      renderSavedItems();
-    });
-    return el('li', {}, pick, del);
-  }));
-  $('saved-empty').hidden = saved.length > 0;
-}
-
-function bindSavedMenu() {
-  $('saved-toggle').addEventListener('click', () => setSavedOpen($('saved-panel').hidden));
-  document.addEventListener('pointerdown', e => {
-    if (!$('saved-panel').hidden && !$('saved-menu').contains(e.target)) setSavedOpen(false);
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !$('saved-panel').hidden) setSavedOpen(false);
-  });
-}
-
-function addToTonight(item) {
-  const clean = cleanItem(item);
-  if (!clean) return;
-  const idx = state.items.findIndex(x => sameName(x.name, clean.name));
-  if (idx >= 0) state.items[idx] = clean;
-  else state.items.push(clean);
-  persistTonight();
-  renderAll();
-}
-
-function renderAll() {
-  renderItems();
-  syncWhen();
-}
-
-function bindPlanScreen() {
+  $('cook-now').addEventListener('click', () => builder.setNow());
+  $('when-now').addEventListener('click', () => builder.setNow());
+  $('when-later').addEventListener('click', () => builder.setLater(up15(builder.state().readyAt)));
+  $('later-down').addEventListener('click', () => builder.setLater(builder.state().readyAt - QUARTER));
+  $('later-up').addEventListener('click', () => builder.setLater(builder.state().readyAt + QUARTER));
   const onReadyDuration = () => {
     const mins = toMinutes($('ready-hours').value, $('ready-minutes').value);
-    if (mins <= 0) return;
-    setLater(Date.now() + mins * MIN);
-    $('ready-at').value = toTimeValue(state.readyAt);
+    if (mins > 0) builder.setLater(Date.now() + mins * MIN);
   };
   $('ready-hours').addEventListener('input', onReadyDuration);
   $('ready-minutes').addEventListener('input', onReadyDuration);
-
   $('ready-at').addEventListener('input', () => {
     const value = $('ready-at').value;
     if (!value) return;
@@ -349,358 +175,43 @@ function bindPlanScreen() {
     const d = new Date();
     d.setHours(h, m, 0, 0);
     if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
-    setLater(d.getTime());
-    setReadyDuration(Math.max(0, Math.round((state.readyAt - Date.now()) / MIN)));
+    builder.setLater(d.getTime());
   });
-
-  $('add-item').addEventListener('click', () => {
-    const err = $('item-error');
-    const item = cleanItem({ name: $('item-name').value, stages: fromSections(readSections()) });
-    if (!item) {
-      err.textContent = 'Give a name, and minutes for each stage (plus a temp for oven).';
-      err.hidden = false;
-      return;
-    }
-    err.hidden = true;
-    store.saveItem(item);
-    addToTonight(item);
-    resetDraft();
-    renderSavedItems();
-    document.activeElement?.blur();
-  });
-
-  $('preheat').addEventListener('input', () => {
-    const v = Number($('preheat').value);
-    if (!Number.isFinite(v) || v < 0) return;
-    state.preheatMinutes = Math.round(v);
-    store.saveSettings({ preheatMinutes: state.preheatMinutes });
-    persistTonight();
-    syncWhen();
-  });
-
-  $('show-plan').addEventListener('click', () => {
-    const err = $('plan-error');
-    if (!state.items.length) {
-      err.textContent = 'Add at least one item first.';
-      err.hidden = false;
-      return;
-    }
-    err.hidden = true;
-    syncWhen(false); // Start now: the dinner time is the soonest for tonight's items
-    state.plan = currentPlan();
-    renderTimeline();
-    showScreen('timeline');
-  });
-}
-
-// ---------- when: start now, or ready later ----------
-
-// Tonight's items plus the draft: the whole lead time, and the earliest dinner time if cooking
-// starts now. The draft counts once it has a name, or when nothing is added yet; Show plan leaves it out.
-function whenInfo(withDraft = true) {
-  const draft = withDraft && ($('item-name').value.trim() || !state.items.length);
-  const items = draft ? [...state.items, draftItem()] : state.items;
-  const lead = leadMinutes({ items, preheatMinutes: state.preheatMinutes });
-  const soon = Math.ceil((Date.now() + lead * MIN) / MIN) * MIN;
-  return { lead, soon };
-}
-
-// Keep the dinner time in step with the form and tonight's items.
-// Start now: ready at the soonest. Ready later: never before the soonest (bumped up if it has to be).
-function syncWhen(withDraft = true) {
-  const { soon } = whenInfo(withDraft);
-  if (state.readyMode === 'now') state.readyAt = soon;
-  else if (state.readyAt < soon) state.readyAt = up15(soon);
-  paintWhen();
-  syncReadyInputs();
-  renderStatus();
-}
-
-// The when box: which mode is on, the stepper (later only), and the start / ready text.
-function paintWhen() {
-  const later = state.readyMode === 'later';
-  for (const [id, on] of [['when-now', !later], ['when-later', later]]) {
-    $(id).setAttribute('aria-pressed', String(on));
-    $(id).classList.toggle('on', on);
-  }
-  $('when-later-box').hidden = !later;
-  $('later-val').textContent = `Ready at ${formatClock(state.readyAt)}`;
-  $('when-text').textContent = later
-    ? `Start at ${formatClock(state.readyAt - whenInfo().lead * MIN)}`
-    : `Start now (${formatClock(Date.now())}) → ready at ${formatClock(state.readyAt)}`;
-}
-
-function bindWhen() {
-  $('when-now').addEventListener('click', () => {
-    state.readyMode = 'now';
-    syncWhen();
-  });
-  $('when-later').addEventListener('click', () => {
-    state.readyMode = 'later';
-    state.readyAt = up15(Math.max(state.readyAt, whenInfo().soon));
-    syncWhen();
-  });
-  // 15 minutes a tap, never earlier than the soonest.
-  $('later-down').addEventListener('click', () => {
-    state.readyAt = Math.max(whenInfo().soon, state.readyAt - QUARTER);
-    syncWhen();
-  });
-  $('later-up').addEventListener('click', () => {
-    state.readyAt += QUARTER;
-    syncWhen();
-  });
-}
-
-// ---------- add-item form: three boxes of stage rows ----------
-
-const sectionEl = name => $('stage-rows').querySelector(`.sec[data-sec="${name}"]`);
-const sectionRows = name => sectionEl(name).querySelector('.sec-rows');
-const cookLines = () => [...sectionRows('cook').children].filter(n => n.classList.contains('line'));
-const stageRows = () => [...$('stage-rows').querySelectorAll('.stage-row')];
-
-function readRow(row) {
-  return {
-    method: row.dataset.method,
-    label: row.querySelector('.stage-label').value,
-    minutes: Number(row.dataset.minutes),
-    temp: Number(row.dataset.temp),
-    setting: row.dataset.setting,
-  };
-}
-
-// The three boxes as the form holds them: { ready: [stage], cook: [[stage]], finish: [stage] }.
-function readSections() {
-  return {
-    ready: [...sectionRows('ready').children].map(readRow),
-    cook: cookLines().map(line => [...line.querySelectorAll('.stage-row')].map(readRow)),
-    finish: [...sectionRows('finish').children].map(readRow),
-  };
-}
-
-// The dish as the form shows it now. 'Draft' stands in for an empty name.
-function draftItem() {
-  return { name: $('item-name').value.trim() || 'Draft', stages: fromSections(readSections()) };
-}
-
-// Each row's box, group and track follow where it sits in the form. Track = the cook line's number.
-function syncRows() {
-  for (const [name, group] of Object.entries(GROUP)) {
-    const rows = name === 'cook'
-      ? cookLines().flatMap((line, track) => [...line.querySelectorAll('.stage-row')].map(row => [row, track]))
-      : [...sectionRows(name).children].map(row => [row, 0]);
-    for (const [row, track] of rows) {
-      row.dataset.sec = name;
-      row.dataset.group = String(group);
-      row.dataset.track = String(track);
-    }
-  }
-  numberRows();
-}
-
-// "Stage N" in form order. The ✕ shows only when there is more than one stage.
-function numberRows() {
-  const rows = stageRows();
-  rows.forEach((row, i) => {
-    row.querySelector('.stage-num').textContent = `Stage ${i + 1}`;
-    row.querySelector('.stage-remove').hidden = rows.length === 1;
-  });
-}
-
-// A new stage row from the template, with the values given.
-function makeRow(st) {
-  const row = $('stage-template').content.firstElementChild.cloneNode(true);
-  bindStageRow(row);
-  row.dataset.method = st.method;
-  row.dataset.minutes = String(st.minutes);
-  row.dataset.temp = String(st.temp ?? STAGE_DEFAULTS.temp);
-  row.dataset.setting = st.setting === 'high' ? 'high' : 'low';
-  row.querySelector('.stage-label').value = st.label || '';
-  paintStage(row);
-  return row;
-}
-
-// What the + buttons add: a get-ready step is prep for 10 min; a cook or finish step is an oven for 30 min at 200°C.
-function newStep(kind) {
-  return kind === 'prep' ? { method: 'prep', minutes: 10 } : { method: 'oven', minutes: STAGE_DEFAULTS.minutes, temp: STAGE_DEFAULTS.temp };
-}
-
-// A cook line: its stages run side by side with the other lines. "+ then" adds a stage to the end of this line.
-function lineEl(stages) {
-  const line = el('div', { class: 'line' });
-  for (const st of stages) line.append(makeRow(st));
-  const then = el('button', { class: 'btn ghost line-then', type: 'button' }, '+ then');
-  then.addEventListener('click', () => {
-    line.insertBefore(makeRow(newStep('oven')), then);
-    draftChanged();
-  });
-  line.append(then);
-  return line;
-}
-
-// Show a stage row from its data attributes: the method, the setting, the time and the temp.
-function paintStage(row) {
-  const method = row.dataset.method;
-  for (const btn of row.querySelectorAll('.seg-btn[data-method]')) {
-    btn.setAttribute('aria-pressed', String(btn.dataset.method === method));
-  }
-  for (const btn of row.querySelectorAll('.slow-btn')) {
-    btn.setAttribute('aria-pressed', String(btn.dataset.setting === row.dataset.setting));
-  }
-  row.querySelector('.temp-field').hidden = method !== 'oven';
-  row.querySelector('.slow-field').hidden = method !== 'slow';
-  row.querySelector('.stage-time').textContent = formatDuration(Number(row.dataset.minutes));
-  row.querySelector('.stage-temp').textContent = `${row.dataset.temp}°C`;
-}
-
-// Switching to slow cook starts at 4 hr; switching away from a long slow cook goes back to 30 min.
-function setMethod(row, method) {
-  const was = row.dataset.method;
-  const minutes = Number(row.dataset.minutes);
-  if (method === 'slow' && was !== 'slow' && minutes < 120) row.dataset.minutes = '240';
-  if (was === 'slow' && method !== 'slow' && minutes > 180) row.dataset.minutes = String(STAGE_DEFAULTS.minutes);
-  row.dataset.method = method;
-  paintStage(row);
-}
-
-// One − / + tap: time moves 5 min (30 min for slow cook), from 5 to 720 min.
-function nudgeTime(row, dir) {
-  const step = row.dataset.method === 'slow' ? 30 : 5;
-  const minutes = Number(row.dataset.minutes) + dir * step;
-  row.dataset.minutes = String(Math.min(720, Math.max(5, minutes)));
-  paintStage(row);
-}
-
-// One − / + tap on the temp: 10° a tap, from 50 to 260°C.
-function nudgeTemp(row, dir) {
-  const temp = Number(row.dataset.temp) + dir * 10;
-  row.dataset.temp = String(Math.min(260, Math.max(50, temp)));
-  paintStage(row);
-}
-
-// A − / + button: one step per tap. Held down, it keeps stepping until released.
-function bindStepper(btn, step) {
-  let delay = null;
-  let repeat = null;
-  const stop = () => {
-    clearTimeout(delay);
-    clearInterval(repeat);
-    delay = null;
-    repeat = null;
-  };
-  btn.addEventListener('pointerdown', () => {
-    stop();
-    step();
-    delay = setTimeout(() => { repeat = setInterval(step, 150); }, 400);
-  });
-  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(type, stop);
-  // A tap is handled on pointerdown. A keyboard press has no pointer, so it steps here.
-  btn.addEventListener('click', e => {
-    if (e.detail === 0) step();
-  });
-}
-
-// The ✓ beside a text box: faded until the box is focused. Tapping it closes the keyboard.
-function bindTick(input, tick) {
-  input.addEventListener('focus', () => tick.classList.remove('off'));
-  input.addEventListener('blur', () => tick.classList.add('off'));
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') input.blur();
-  });
-  // Stop the box losing focus on press, so the click can still reach the tick.
-  tick.addEventListener('pointerdown', e => e.preventDefault());
-  tick.addEventListener('click', () => input.blur());
-}
-
-function bindStageRow(row) {
-  for (const btn of row.querySelectorAll('.seg-btn[data-method]')) {
-    btn.addEventListener('click', () => {
-      setMethod(row, btn.dataset.method);
-      draftChanged();
-    });
-  }
-  for (const btn of row.querySelectorAll('.slow-btn')) {
-    btn.addEventListener('click', () => {
-      row.dataset.setting = btn.dataset.setting;
-      paintStage(row);
-      draftChanged();
-    });
-  }
-  bindStepper(row.querySelector('.time-down'), () => { nudgeTime(row, -1); draftChanged(); });
-  bindStepper(row.querySelector('.time-up'), () => { nudgeTime(row, 1); draftChanged(); });
-  bindStepper(row.querySelector('.temp-down'), () => nudgeTemp(row, -1));
-  bindStepper(row.querySelector('.temp-up'), () => nudgeTemp(row, 1));
-  bindTick(row.querySelector('.stage-label'), row.querySelector('.stage-tick'));
-  row.querySelector('.stage-remove').addEventListener('click', () => {
-    // A cook line with no stages left goes; an empty box stays.
-    const line = row.closest('.line');
-    row.remove();
-    if (line && !line.querySelector('.stage-row')) line.remove();
-    draftChanged();
-  });
-}
-
-// Any change to the form: tidy the boxes, then the total, the dinner time and the when box.
-function draftChanged() {
-  syncRows();
-  const lead = leadMinutes({ items: [draftItem()], preheatMinutes: state.preheatMinutes });
-  $('dish-total').textContent = `⏱ ${formatDuration(lead)}`;
-  syncWhen();
-}
-
-// Fill the whole form from a saved item: its name, then its three boxes.
-function fillDraft(item) {
-  $('item-name').value = item.name;
-  const parts = toSections(item);
-  sectionRows('ready').replaceChildren(...parts.ready.map(st => makeRow(st)));
-  sectionRows('cook').replaceChildren(...parts.cook.map(lineEl));
-  sectionRows('finish').replaceChildren(...parts.finish.map(st => makeRow(st)));
-  $('item-error').hidden = true;
-  draftChanged();
-}
-
-// Back to the empty form after an item is added: Get ready and Finish empty, one cook line with one oven stage.
-function resetDraft() {
-  $('item-name').value = '';
-  sectionRows('ready').replaceChildren();
-  sectionRows('finish').replaceChildren();
-  sectionRows('cook').replaceChildren(lineEl([newStep('oven')]));
-  draftChanged();
-}
-
-function bindStageForm() {
-  bindTick($('item-name'), $('name-done'));
-  $('item-name').addEventListener('input', () => syncWhen()); // a named draft counts towards the soonest
-  // Adding never focuses a box, so the keyboard stays shut.
-  sectionEl('ready').querySelector('.sec-add').addEventListener('click', () => {
-    sectionRows('ready').append(makeRow(newStep('prep')));
-    draftChanged();
-  });
-  sectionEl('cook').querySelector('.sec-add').addEventListener('click', () => {
-    sectionRows('cook').append(lineEl([newStep('oven')]));
-    draftChanged();
-  });
-  sectionEl('finish').querySelector('.sec-add').addEventListener('click', () => {
-    sectionRows('finish').append(makeRow(newStep('oven')));
-    draftChanged();
-  });
-  resetDraft();
 }
 
 // ---------- timeline screen ----------
 
 function renderTimeline() {
   const plan = state.plan;
+  const { meal, prepFirst, preheat } = builder.state();
   const ol = $('plan-steps');
   ol.replaceChildren();
+  let blockShown = false;
+  let cookShown = false;
   for (const s of plan.steps) {
-    // Each oven, hob or prep step says which dish it is for.
-    const dish = s.type === 'in' ? [el('span', { class: 'step-dish' }, s.name)] : [];
-    ol.append(el('li', { class: `step-${s.type}` },
+    // The prep steps at the start of each item sit in one block, then the cooking starts.
+    if (s.prep1 && !blockShown) {
+      blockShown = true;
+      ol.append(el('li', { class: 'block' }, '🥄 Prep block · one thing at a time'));
+    } else if (blockShown && !cookShown && !s.prep1 && s.type !== 'preheat') {
+      cookShown = true;
+      ol.append(el('li', { class: 'block' }, '🔥 Now cook'));
+    }
+    // Each step says which dish it is for.
+    const dish = s.type === 'in' || s.type === 'remind' ? [el('span', { class: 'step-dish' }, s.name)] : [];
+    ol.append(el('li', { class: `step-${s.type}${s.prep1 ? ' step-prep1' : ''}` },
       el('time', {}, formatClock(s.at)),
       el('span', {}, ...dish, ...stepNodes(s))));
   }
   $('timeline-ready').textContent = `Dinner at ${formatClock(plan.readyAt)}`;
   $('timeline-oven').textContent = plan.ovenTemp == null ? 'No oven tonight' : `Oven ${plan.ovenTemp}°C`;
+  $('prep-first-box').checked = prepFirst;
+  $('prep-first').classList.toggle('on', prepFirst);
+  const extra = prepFirstExtra(meal, { preheat });
+  $('prep-first-hint').textContent = `Peel and chop everything in one go, then just cook. ${extra > 0 ? `Adds ${formatDuration(extra)} overall.` : 'Same total time for this meal.'}`;
+  const clash = ovenClash(schedule(meal, plan.readyAt, { prepFirst, preheat }));
+  $('oven-clash').hidden = !clash;
+  $('oven-clash').textContent = clash ? `⚠ ${clash}` : '';
   const note = $('timeline-note');
   note.hidden = plan.enoughTime;
   note.textContent = `Not enough time — earliest ready ${formatClock(plan.earliestReady)} (${plan.shortByMinutes} min short)`;
@@ -708,9 +219,15 @@ function renderTimeline() {
 
 function bindTimelineScreen() {
   $('back-plan').addEventListener('click', () => showScreen('plan'));
+  $('prep-first-box').addEventListener('change', e => {
+    builder.setPrepFirst(e.target.checked);
+    state.plan = currentPlan();
+    renderTimeline();
+  });
   $('start-cooking').addEventListener('click', () => {
-    const plan = state.plan || currentPlan();
-    store.saveCooking({ plan, preheatMinutes: state.preheatMinutes, done: [] });
+    // Start now: plan again from this moment, so nothing has already slipped by.
+    const plan = builder.state().mode === 'now' ? currentPlan() : state.plan || currentPlan();
+    store.saveCooking({ plan, done: [] });
     beginCooking(plan, Date.now(), []);
   });
 }
@@ -736,7 +253,7 @@ function stopTimer() {
 }
 
 function persistCooking() {
-  store.saveCooking({ plan: cook.plan, preheatMinutes: state.preheatMinutes, done: cook.done });
+  store.saveCooking({ plan: cook.plan, done: cook.done });
 }
 
 // Once a second: ring for steps starting, and for jobs whose time is up. Then redraw.
@@ -748,9 +265,11 @@ function tick() {
   cook.lastChecked = now;
   if (starts.length || ends.length) {
     // The jobs that ended stay on the go until their alarm's Done ticks them off.
-    cook.rang = [...new Set([...cook.rang, ...ends.map(s => cook.plan.steps.indexOf(s))])];
+    // Reminders go on the same list: Done on their alarm ticks them off.
+    const reminders = starts.filter(s => s.type === 'remind');
+    cook.rang = [...new Set([...cook.rang, ...[...ends, ...reminders].map(s => cook.plan.steps.indexOf(s))])];
     if (starts.some(s => s.type === 'ready')) cook.rangReady = true;
-    raiseAlarm([...ends.map(endText), ...starts.map(s => s.text)].join(' · '));
+    raiseAlarm([...ends.map(endText), ...starts.map(s => s.say ?? s.text)].join(' · '));
   }
   renderCook(now);
 }
@@ -857,9 +376,8 @@ function stopCooking() {
 // Reset: stop cooking and forget tonight's items and last dinner. Saved items stay.
 function resetTonight() {
   stopCooking();
-  state.items = [];
   store.clearLastDinner();
-  renderAll();
+  builder.reset();
 }
 
 function bindCookScreen() {
@@ -921,9 +439,11 @@ function resumeCooking() {
     store.clearCooking();
     return;
   }
-  // Rebuild from the saved items so older saved plans get the stage format.
-  const preheatMinutes = Number.isFinite(saved.preheatMinutes) ? saved.preheatMinutes : state.preheatMinutes;
-  const plan = buildPlan({ items: savedPlan.items, readyAt: savedPlan.readyAt, now: Date.now(), preheatMinutes });
+  // A meal plan (v6) already holds its steps. An older plan is rebuilt from its items so it gets the stage format.
+  const preheatMinutes = Number.isFinite(saved.preheatMinutes) ? saved.preheatMinutes : 15;
+  const plan = savedPlan.v === 6 && Array.isArray(savedPlan.steps)
+    ? savedPlan
+    : buildPlan({ items: savedPlan.items, readyAt: savedPlan.readyAt, now: Date.now(), preheatMinutes });
   // Steps that passed while the app was closed do not alarm.
   // Ticked-off steps are kept as step indexes; they still line up with the rebuilt plan.
   const done = Array.isArray(saved.done)
@@ -1090,25 +610,12 @@ function stopKeepAlive() {
 // ---------- startup ----------
 
 function init() {
-  state.preheatMinutes = store.getSettings().preheatMinutes;
-  $('preheat').value = String(state.preheatMinutes);
-
-  const last = store.getLastDinner();
-  if (last && Array.isArray(last.items)) {
-    state.items = last.items.map(cleanItem).filter(Boolean);
-  }
-
-  bindStageForm(); // the first empty dish; its when box and total come with it
-  renderSavedItems();
-  bindSavedMenu();
-  bindPlanScreen();
-  bindWhen();
+  builder = createBuilder({ root: $('setup'), store, onStart: openTimeline, onChange: syncLegacyDinner });
   bindTimelineScreen();
   bindCookScreen();
-  bindTiles();
+  bindLegacyTools();
   bindTimer();
-  bindCookNow();
-  renderAll();
+  syncLegacyDinner();
   renderTimer();
   showNow();
   setInterval(showNow, 1000);
@@ -1116,9 +623,11 @@ function init() {
   // The timer is shown live (about 4 times a second); it is cheap to redraw.
   setInterval(renderTimer, 250);
 
-  // Keep the times fresh while the plan screen is open.
+  // Keep the "ready at" times fresh while the meal screen is open, but never redraw under a box being typed in.
   setInterval(() => {
-    if (!$('plan-screen').hidden) syncWhen();
+    if ($('plan-screen').hidden || $('setup').contains(document.activeElement)) return;
+    builder.redraw();
+    syncLegacyDinner();
   }, 30_000);
 
   resumeCooking();

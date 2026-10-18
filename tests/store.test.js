@@ -48,3 +48,44 @@ test('saved slow-cook stages keep High / Low', () => {
   s.saveItem({ name: 'Stew', stages: [{ method: 'slow', minutes: 240, setting: 'high' }] });
   assert.equal(s.getSavedItems()[0].stages[0].setting, 'high');
 });
+
+test('library: first run holds the starter items and meals', () => {
+  const s = createStore(memStorage());
+  assert.ok(s.getLibraryItems()['Roast potatoes']);
+  assert.ok(s.getLibraryMeals()["Shepherd's pie"]);
+});
+
+test('library: saved steps and meals survive a reload; same storage, new store', () => {
+  const st = memStorage();
+  const a = createStore(st);
+  a.saveLibraryItem('Leeks', [{ kind: 'hob', text: 'Boil', min: 10 }]);
+  a.saveLibraryMeal('Sunday', { together: false, items: ['Leeks'], groups: [] });
+  const b = createStore(st);
+  assert.deepEqual(b.getLibraryItems()['Leeks'], [{ kind: 'hob', text: 'Boil', min: 10 }]);
+  assert.deepEqual(b.getLibraryMeals()['Sunday'].items, ['Leeks']);
+  assert.ok(b.getLibraryItems()['Peas'], 'starter items are still there');
+});
+
+test('library: a broken or missing store never crashes', () => {
+  const st = memStorage();
+  st.setItem('dinnersync.lib.items', '{nope');
+  const s = createStore(st);
+  assert.ok(s.getLibraryItems()['Peas']);
+  assert.doesNotThrow(() => createStore(null).saveLibraryItem('x', []));
+});
+
+test('library: removing a saved item or meal', () => {
+  const s = createStore(memStorage());
+  s.removeLibraryItem('Peas');
+  s.removeLibraryMeal('Gammon dinner');
+  assert.equal(s.getLibraryItems()['Peas'], undefined);
+  assert.equal(s.getLibraryMeals()['Gammon dinner'], undefined);
+});
+
+test('tonight: the meal being set up persists and clears', () => {
+  const st = memStorage();
+  createStore(st).saveTonight({ meal: { name: 'x', together: false, groups: [], items: [] }, prepFirst: false });
+  assert.equal(createStore(st).getTonight().prepFirst, false);
+  createStore(st).clearTonight();
+  assert.equal(createStore(st).getTonight(), null);
+});

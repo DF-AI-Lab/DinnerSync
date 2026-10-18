@@ -369,7 +369,7 @@ export function nextAlarm(plan, now, doneIndexes = []) {
   };
   plan.steps.forEach((s, i) => {
     if (done.has(i)) return;
-    consider(s.at, s.text, 0);
+    consider(s.at, s.say ?? s.text, 0);
     if (s.type === 'in') consider(s.at + s.minutes * MIN, endText(s), 1);
   });
   return best ? { at: best.at, text: best.text } : null;

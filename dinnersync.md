@@ -1,14 +1,16 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test. v1.2.1 is live; mockup 6 is agreed and replaces mockup 5 as the target.
-- Last session: 2026-10-18 (Opus): mockup 6 designed with Darren. Meals and items saved on the phone, items made of named steps, "built dish" groups (cook parts, then finish), one shared peel, prep-first switch on the timer sequence. Mock: docs/mock-v6-meals.html (also https://claude.ai/artifact/CJExYZJtXqE59jhPCthJzD).
-- Next action: fresh chat on **Sonnet**, build the "Next build (mockup 6)" list below, tests first. Screenshot the app next to the mock at 400px before merging.
-- Avoid: deleting the Simple timer / When's dinner code. Hide it only; it comes back later.
-- Open questions (ask Darren when the build reaches them): Prep label stays "Prep" or becomes "Hands-on"? Prep-first on by default (Claude's lean: yes)? In a built dish, do the parts all finish exactly when the finish starts (current) or is the mash kept hot?
+- Current step: Build & Test. v1.3.1 = mockup 6 built, cut-off dropdown text fixed (not yet tried on the phone).
+- Last session: 2026-10-18 (Sonnet): built the whole mockup 6 list, tests first. 102 unit tests + browser check pass. Screenshot at 400px matches the mock.
+- Next action: Darren tries v1.3.1 on the phone (build a meal, save it, run the timers). Then fix what feels wrong.
+- Avoid: deleting the Simple timer / When's dinner code. It is hidden by `SHOW_LEGACY_TOOLS = false` in js/app.js.
+- Open questions (defaults used, tell me to change): Prep label stays "Prep" (not "Hands-on"). Prep-first is ON by default. In a built dish the parts all finish exactly when the finish starts (not kept hot).
+- Known gaps: oven clash only warns, no temperature scaling (decision 6 not applied to meals). Old saved items from before v1.3.0 are not shown (new Saved items list). No delete button for saved items/meals yet. Old CSS for the removed add-item form is still in style.css.
 - Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
-## Next build (mockup 6, Darren, 2026-10-18)
+## Next build (mockup 6): DONE in v1.3.0
+(list kept below for reference)
 Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (`schedule()`), reuse the ideas.
 1. **Hide** the Simple timer and the When's dinner toggle (keep the code, behind a flag). App opens straight on "What are you cooking?" under the existing header (logo, DinnerSync v1.x, tagline, Reset, time).
 2. **Meal card:** meal name box + "Saved meals ▾" dropdown (right third). Under it the switch "Cook some together first".
@@ -117,6 +119,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 ## Tickets
 
 ## Build / test progress
+- 2026-10-18: v1.3.0 — mockup 6 built by Sonnet (tests first). New js/meal.js (scheduling, shared peel, prep block, oven clash), js/builder.js (meal screen), saved items/meals in store. Reminders get their own alarm. 102 tests + browser check pass.
 - 2026-10-17: v1.2.0 — mockup 5 built by Haiku (tests first); one test timing fix + draft/soonest fix by me. 78 tests + browser check pass.
 - 2026-10-17: v1.1.5 — notification repeats every 10s, Done ✓ button on it. 55 tests + browser check pass.
 - 2026-10-16: v1.1.1–v1.1.4 — Done at bottom + bar beside it; phone back keeps cooking; silent keep-alive loop; logo/version header (fits Z Fold cover); network-first SW; phone ring alarm through keep-alive; timer rings. All by Haiku first try, tests written first.
@@ -127,6 +130,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: v1.3.0 built from the mockup 6 list
 - 2026-10-18: Mockup 6 agreed (meals, items with named steps, built dishes, shared peel, prep first); saved to docs/mock-v6-meals.html; Next build rewritten
 - 2026-10-17: Ideas for next chat saved (tone picker, own sound, real Android app)
 - 2026-10-16: Mock v2 agreed (tiles, timer, egg-style cooking screen); saved to docs/mock-v2.html

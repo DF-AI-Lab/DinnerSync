@@ -2,6 +2,7 @@
 // missing storage never crashes the app.
 
 import { normalizeItem } from './plan.js';
+import { starterItems, starterMeals } from './meal.js';
 
 const PREFIX = 'dinnersync.';
 const KEYS = {
@@ -9,6 +10,9 @@ const KEYS = {
   lastDinner: PREFIX + 'lastDinner',
   settings: PREFIX + 'settings',
   cooking: PREFIX + 'cooking',
+  libItems: PREFIX + 'lib.items', // saved items: name -> steps
+  libMeals: PREFIX + 'lib.meals', // saved meals: name -> { together, items, groups }
+  tonight: PREFIX + 'tonight',   // the meal being set up
 };
 const DEFAULT_SETTINGS = { preheatMinutes: 15 };
 
@@ -106,6 +110,52 @@ export function createStore(storage) {
     write(KEYS.settings, { ...getSettings(), ...patch });
   }
 
+  // Saved items and meals. The first run starts from the starter set; after that, what is stored wins.
+  const isMap = v => v && typeof v === 'object' && !Array.isArray(v);
+  function readMap(key, starter) {
+    const value = read(key, null);
+    return isMap(value) ? value : starter();
+  }
+
+  function getLibraryItems() {
+    return readMap(KEYS.libItems, starterItems);
+  }
+
+  function saveLibraryItem(name, steps) {
+    write(KEYS.libItems, { ...getLibraryItems(), [name]: steps });
+  }
+
+  function removeLibraryItem(name) {
+    const { [name]: _gone, ...rest } = getLibraryItems();
+    write(KEYS.libItems, rest);
+  }
+
+  function getLibraryMeals() {
+    return readMap(KEYS.libMeals, starterMeals);
+  }
+
+  function saveLibraryMeal(name, meal) {
+    write(KEYS.libMeals, { ...getLibraryMeals(), [name]: meal });
+  }
+
+  function removeLibraryMeal(name) {
+    const { [name]: _gone, ...rest } = getLibraryMeals();
+    write(KEYS.libMeals, rest);
+  }
+
+  function getTonight() {
+    const value = read(KEYS.tonight, null);
+    return isMap(value) && isMap(value.meal) ? value : null;
+  }
+
+  function saveTonight(tonight) {
+    write(KEYS.tonight, tonight);
+  }
+
+  function clearTonight() {
+    remove(KEYS.tonight);
+  }
+
   function getCooking() {
     return read(KEYS.cooking, null);
   }
@@ -127,6 +177,15 @@ export function createStore(storage) {
     clearLastDinner,
     getSettings,
     saveSettings,
+    getLibraryItems,
+    saveLibraryItem,
+    removeLibraryItem,
+    getLibraryMeals,
+    saveLibraryMeal,
+    removeLibraryMeal,
+    getTonight,
+    saveTonight,
+    clearTonight,
     getCooking,
     saveCooking,
     clearCooking,
