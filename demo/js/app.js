@@ -314,7 +314,9 @@ function jobEl(job) {
 // Rebuild the jobs only when the set of jobs changes. Otherwise just the counts and bars move,
 // so a Done tap is never swallowed by a redraw.
 function renderJobs(now) {
-  const jobs = jobsOnTheGo(cook.plan, now, cook.done);
+  // The current step already has its card in the list, so On the go shows only the other running jobs.
+  const current = currentIndex();
+  const jobs = jobsOnTheGo(cook.plan, now, cook.done).filter(j => j.index !== current);
   const key = JSON.stringify(jobs.map(j => [j.index, j.over, j.then]));
   const box = $('jobs');
   if (key !== jobsKey) {
@@ -327,7 +329,8 @@ function renderJobs(now) {
     node.querySelector('.job-count').textContent = formatCountdown(job.leftMs);
     node.querySelector('.job-bar i').style.width = `${job.pct}%`;
   }
-  $('jobs-empty').hidden = jobs.length > 0;
+  $('jobs-empty').hidden = true;
+  document.querySelector('.on-go').hidden = jobs.length === 0;
 }
 
 // The soonest thing still to come: a step starting, or a job ending.
