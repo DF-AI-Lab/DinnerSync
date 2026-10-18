@@ -405,10 +405,20 @@ function stepItem(s) {
   // Done only says "I did it". The plan's times don't move, and Undo puts the step back.
   let body;
   if (s.status === 'current') {
-    const row = el('div', { class: 'cs-row' }, el('time', {}, formatClock(s.at)), el('span', { class: 'cs-name' }, ...stepNodes(s, true, false)));
+    // A cooking step: minutes under the time, the item in bold, and the description under it, not bold.
+    const cooking = s.type === 'in' && s.owners;
+    const when = cooking && s.minutes
+      ? el('span', { class: 'cs-when' }, el('time', {}, formatClock(s.at)), el('small', { class: 'cs-min' }, `${s.minutes} min`))
+      : el('time', {}, formatClock(s.at));
+    const name = cooking
+      ? el('span', { class: 'cs-name' },
+        el('span', { class: 'cs-top' }, ...(s.method ? [el('span', { class: `tag m-${s.method}` }, METHOD_LABEL[s.method])] : []), el('b', { class: 'step-item' }, s.owners)),
+        el('span', { class: 'cs-desc' }, s.text))
+      : el('span', { class: 'cs-name' }, ...stepNodes(s, true, false));
+    const row = el('div', { class: 'cs-row' }, when, name);
     if (editInfo(s)) row.append(el('button', { class: 'btn step-edit', type: 'button', 'data-edit-step': String(s.index), 'aria-label': 'Edit name' }, '✎'));
     if (s.type !== 'ready') row.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
-    const chips = stepInfo(s, { minutes: true });
+    const chips = stepInfo(s);
     body = el('div', { class: 'step-body' }, row,
       ...(chips.length ? [el('div', { class: 'cs-info' }, ...chips.map(c => el('span', { class: `chip ${c.cls}` }, c.text)))] : []),
       el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
