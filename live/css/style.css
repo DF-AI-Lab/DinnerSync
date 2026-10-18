@@ -903,7 +903,8 @@ h2 {
 .settings-h { display: block; margin: 8px 0 4px; }
 .settings-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .settings-msg { margin: 10px 0 0; font-size: 14px; }
-.top-btns { display: flex; align-items: center; gap: 4px; }
+.top-btns { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.top-btns .btn.reset-top { margin-top: 0; }
 .saved-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
 .saved-row { display: flex; align-items: center; gap: 6px; }
 .saved-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
