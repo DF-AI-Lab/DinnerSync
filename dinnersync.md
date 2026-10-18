@@ -1,17 +1,26 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test — v1.2.1 live (mockup 5 built; Start now / Ready later moved into the When's dinner panel).
-- Last session: 2026-10-17 — mockup 5: dish in 3 sections (Get ready → Cook lines at the same time → Finish), ⏱ total time by the name, Start now / Ready later, dish name on each plan step, a timer per job with its own Done ✓ and alarm, then next alarm.
-- Next action: the "Next build" list below (rebuild the form to match mockup 5, ask what fails on the phone). Phone check: close and reopen the app; header must say v1.2.1 (phone once showed the new page with old styles).
+- Current step: Build & Test. v1.2.1 is live; mockup 6 is agreed and replaces mockup 5 as the target.
+- Last session: 2026-10-18 (Opus): mockup 6 designed with Darren. Meals and items saved on the phone, items made of named steps, "built dish" groups (cook parts, then finish), one shared peel, prep-first switch on the timer sequence. Mock: docs/mock-v6-meals.html (also https://claude.ai/artifact/CJExYZJtXqE59jhPCthJzD).
+- Next action: fresh chat on **Sonnet**, build the "Next build (mockup 6)" list below, tests first. Screenshot the app next to the mock at 400px before merging.
+- Avoid: deleting the Simple timer / When's dinner code. Hide it only; it comes back later.
+- Open questions (ask Darren when the build reaches them): Prep label stays "Prep" or becomes "Hands-on"? Prep-first on by default (Claude's lean: yes)? In a built dish, do the parts all finish exactly when the finish starts (current) or is the mash kept hot?
 - Then: locked-phone alarm trick A (pre-schedule beeps in Web Audio), else real Android app.
 
-## Next build (Darren, 2026-10-17)
-- **v1.2.1 doesn't look like mockup 5 (Darren: "looks nothing like the mock").** Rebuild the add-a-dish form to MATCH docs/mock-v5-sections.html: compact step cards (name + type tag on one line, − time + under), the dish name + ⏱ total at the top, Start now / Ready later right under it. Screenshot the app next to the mock at 400px and compare before merging.
-- Darren also said "nothing works" on his phone: tests and a browser run here pass with no errors, so first ask exactly what fails (and check the phone shows v1.2.1 after a close/reopen).
-- Move **Start now / Ready later** out of the When's dinner panel, back next to the dish name (always showing, as in mockup 5: docs/mock-v5-sections.html).
-- Tidy the When's dinner panel: remove the old **Ready in / or at** boxes and **Cook now** (they do the same job as Start now / Ready later). The tile still shows the dinner time.
-- Keep the current time under Reset.
+## Next build (mockup 6, Darren, 2026-10-18)
+Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (`schedule()`), reuse the ideas.
+1. **Hide** the Simple timer and the When's dinner toggle (keep the code, behind a flag). App opens straight on "What are you cooking?" under the existing header (logo, DinnerSync v1.x, tagline, Reset, time).
+2. **Meal card:** meal name box + "Saved meals ▾" dropdown (right third). Under it the switch "Cook some together first".
+3. **Built dish card** (shown when the switch is on): dish name; "1 · Cook these first" = items side by side, all done together; "↓ when they're all done"; "2 · Then finish" = steps one after another. "+ Another built dish" allowed.
+4. **Everything else card** ("Items" when the switch is off): type an item + Enter, or "Saved items ▾". Everything here is timed to be ready at dinner, same time as the built dish.
+5. **Item = named steps.** Each step: type tag (Prep / Hob / Oven / Rest), editable name ("Peel potatoes"), − time + (5 min), oven − temp + (10°), ✕ remove, optional reminder ("↻ Turn potatoes after 30 min" = its own alarm). "+ Prep / + Hob / + Oven / + Rest" add a step and put the cursor in its name. Item row shows total time + a coloured bar of its steps; tap to open.
+6. **Auto-save:** any change to an item's steps saves it to Saved items straight away (no Save button). "Save as a meal" saves the meal, its built dishes and items.
+7. **Shared first step, automatic:** if two items in the meal start with the same prep step name (e.g. "Peel potatoes"), do it once: times add, label "all of it, keep in cold water". No question asked. Later steps (the boils) stay separate, each at its own time.
+8. **Timer sequence:** "Do all the prep first" switch at the top (default on). On = the prep steps at the START of each item go into a "🥄 Prep block" one after another, then "🔥 Now cook"; prep after cooking (mash, build pie) stays put. Show how much time it adds.
+9. **When's it ready** card at the bottom: Start now / Ready later (15 min a tap), total time, "Start timers".
+10. Oven clash: if two oven steps at different temps overlap, show a warning on the timer sequence (decision 6 scaling still to reconcile).
+11. Starter saved data: Roast potatoes (peel 15, boil 25, rest 30, oven 55 @200 with turn at 30), Roast chicken, Gammon joint, Carrots, Peas, Gravy, Yorkshire puddings, Mince, Mash. Meals: Shepherd's pie & roasties, Shepherd's pie, Chicken dinner, Gammon dinner.
 
 ## Ideas for next chat (Darren, 2026-10-17)
 1. ~~Check the phone test~~ done 2026-10-17: v1.1.8 beep is perfect unlocked, silent when locked.
@@ -72,6 +81,12 @@
 | 23 | Slow cook method: Low/High, starts at 4 hr, not part of the oven temp | Darren | 2026-10-17 |
 | 24 | "+ Same time": stages in one group run side by side (tracks), stacked as cards in a dashed box; all tracks finish together, then the next group. New 🥄 Prep type (no heat) | Darren: mince pie (fry mince ‖ boil+mash, then build, then oven) | 2026-10-17 |
 | 25 | Dish form = 3 fixed sections (Get ready, Cook lines side by side, Finish); Start now / Ready later (15 min a tap); cooking screen = one timer per job on the go + next alarm, big current card removed (replaces 24's form) | Darren's mockup 5 | 2026-10-17 |
+| 26 | Simple timer and When's dinner toggle hidden for now (code kept); app starts at "What are you cooking?" | Darren: focus while we build | 2026-10-18 |
+| 27 | Saved meals + saved items on the phone; an item is a list of named steps; edits auto-save | Darren: must be quick, or most won't use it | 2026-10-18 |
+| 28 | "Cook some together first" switch under the meal name; built dish = parts side by side, then finish steps; everything else ready at the same time (replaces 25's 3 sections) | Shepherd's pie with roasties | 2026-10-18 |
+| 29 | Same first prep step in two items = done once, times added, automatic (no question) | One peel for mash + roasties; Darren: the question didn't make sense | 2026-10-18 |
+| 30 | Shared boils stay separate (roasties boil early, mash late) | Different times in the plan and different boil lengths | 2026-10-18 |
+| 31 | "Do all the prep first" lives on the timer sequence only, default on, shows the extra time | Simpler; one pair of hands | 2026-10-18 |
 | 3 | Skip a wayfinder map; small enough for one session | Little fog | 2026-10-16 |
 
 ## Parked (this version, not now)
@@ -112,6 +127,7 @@
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: Mockup 6 agreed (meals, items with named steps, built dishes, shared peel, prep first); saved to docs/mock-v6-meals.html; Next build rewritten
 - 2026-10-17: Ideas for next chat saved (tone picker, own sound, real Android app)
 - 2026-10-16: Mock v2 agreed (tiles, timer, egg-style cooking screen); saved to docs/mock-v2.html
 - 2026-10-16: Project file created from brain dump; icon added
