@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   step, sumMinutes, starterItems, starterMeals, mealFromSaved, savedFromMeal,
-  findShared, schedule, totalMinutes, prepFirstExtra, ovenClash, toPlan,
+  findShared, schedule, totalMinutes, prepFirstExtra, ovenNotes, toPlan,
 } from '../js/meal.js';
 import { alarmSteps, nextAlarm, jobsOnTheGo } from '../js/plan.js';
 
@@ -166,21 +166,33 @@ test('totalMinutes: plain items = longest item (+ preheat if there is an oven)',
   assert.equal(totalMinutes({ name: '', together: false, groups: [], items: [] }), 0);
 });
 
-test('oven clash: two oven steps at different temps that overlap', () => {
+test('one oven: the shorter oven step moves to the longer one\'s temp and its time is scaled', () => {
   const m = mealFromSaved({ items: ['Roast chicken', 'Roast potatoes'] }, lib(), 'x');
   const rows = schedule(m, D, { prepFirst: false });
-  const clash = ovenClash(rows);
-  assert.match(clash, /190°C/);
-  assert.match(clash, /200°C/);
-  assert.match(clash, /Roast chicken/);
-  // same temp: no clash
+  const roast = rows.find(r => r.who === 'Roast potatoes' && r.kind === 'oven');
+  assert.equal(roast.temp, 190); // chicken (80 min) is the main item
+  assert.equal(roast.min, Math.round(55 * 200 / 190));
+  assert.deepEqual(roast.was, { min: 55, temp: 200 });
+  assert.equal(rows.find(r => r.preheat).preheat, 190);
+  assert.match(ovenNotes(rows)[0], /Roast potatoes: oven 190°C, not 200°C/);
+  // the potatoes still end at dinner
+  assert.equal(roast.at + roast.min * 60_000, D);
+  // the saved meal is not changed
+  assert.equal(m.items[1].steps[3].temp, 200);
+  // same temp: nothing changes
   const same = mealFromSaved({ items: ['Roast chicken', 'Roast chicken'] }, lib(), 'x');
-  assert.equal(ovenClash(schedule(same, D, { prepFirst: false })), '');
-  // do not overlap in time: no clash
+  assert.deepEqual(ovenNotes(schedule(same, D, { prepFirst: false })), []);
+  // do not overlap in time: nothing changes
   const seq = { name: 'x', together: false, groups: [], items: [
     { name: 'A', steps: [step('oven', 'Bake', 10, 180)] },
   ], };
-  assert.equal(ovenClash(schedule(seq, D)), '');
+  assert.deepEqual(ovenNotes(schedule(seq, D)), []);
+});
+
+test('one oven: three temps settle on the longest one\'s temp', () => {
+  const m = mealFromSaved({ items: ['Roast chicken', 'Roast potatoes', 'Yorkshire puddings'] }, lib(), 'x');
+  const ovens = schedule(m, D, { prepFirst: false }).filter(r => r.kind === 'oven');
+  assert.deepEqual([...new Set(ovens.map(r => r.temp))], [190]);
 });
 
 test('toPlan: steps the cook screen understands, in time order, dinner last', () => {
@@ -230,4 +242,16 @@ test('alarm text names the item so "Boil" is not ambiguous', () => {
   const boil = plan.steps.find(s => s.type === 'in' && s.text === 'Boil');
   assert.match(boil.say, /Mash/);
   assert.match(boil.say, /Boil/);
+});
+
+test('slow cook step: its own kind, with a Low/High setting shown in the plan', () => {
+  const stew = { name: 'Stew', steps: [{ kind: 'slow', text: 'Slow cook stew', min: 240, setting: 'high' }] };
+  const meal = { name: '', together: false, groups: [], items: [stew] };
+  const D = Date.UTC(2026, 0, 1, 18, 0);
+  const rows = schedule(meal, D);
+  assert.equal(rows.length, 1); // no oven preheat for a slow cooker
+  assert.equal(rows[0].kind, 'slow');
+  assert.equal(new Date(rows[0].at).getUTCHours(), 14);
+  const plan = toPlan(meal, D, D - 5 * 3600_000);
+  assert.match(plan.steps.find(x => x.type === 'in').text, /Slow cook stew · High/);
 });

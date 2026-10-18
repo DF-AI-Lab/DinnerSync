@@ -1,5 +1,5 @@
 import { buildPlan, stepStatuses, alarmSteps, toMinutes, splitMinutes, formatDuration, jobsOnTheGo, endAlarms, endText, nextAlarm } from './plan.js';
-import { toPlan, schedule, ovenClash, prepFirstExtra } from './meal.js';
+import { toPlan, schedule, ovenNotes, prepFirstExtra } from './meal.js';
 import { createBuilder } from './builder.js';
 import { createStore } from './store.js';
 import { createCountdown } from './timer.js';
@@ -209,9 +209,9 @@ function renderTimeline() {
   $('prep-first').classList.toggle('on', prepFirst);
   const extra = prepFirstExtra(meal, { preheat });
   $('prep-first-hint').textContent = `Peel and chop everything in one go, then just cook. ${extra > 0 ? `Adds ${formatDuration(extra)} overall.` : 'Same total time for this meal.'}`;
-  const clash = ovenClash(schedule(meal, plan.readyAt, { prepFirst, preheat }));
-  $('oven-clash').hidden = !clash;
-  $('oven-clash').textContent = clash ? `⚠ ${clash}` : '';
+  const notes = ovenNotes(schedule(meal, plan.readyAt, { prepFirst, preheat }));
+  $('oven-clash').hidden = !notes.length;
+  $('oven-clash').textContent = notes.length ? `♨️ ${notes.join(' ')}` : '';
   const note = $('timeline-note');
   note.hidden = plan.enoughTime;
   note.textContent = `Not enough time — earliest ready ${formatClock(plan.earliestReady)} (${plan.shortByMinutes} min short)`;

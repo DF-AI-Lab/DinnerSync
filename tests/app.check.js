@@ -186,7 +186,7 @@ try {
   await page.locator('#prep-first').click();
   assert.match(await stepsText(), /Prep block/);
 
-  // ---- 10. Oven clash warning ----
+  // ---- 10. One oven: the app picks the temperature and scales the time ----
   await page.click('#back-plan');
   await page.click('#cook-reset');
   await page.click('#reset-yes');
@@ -196,8 +196,7 @@ try {
   await pick(page, '#meal-pick', 'Chicken dinner');
   await page.click('.b-go');
   assert.equal(await page.locator('#oven-clash').isVisible(), true);
-  assert.match(await page.textContent('#oven-clash'), /190°C/);
-  assert.match(await page.textContent('#oven-clash'), /200°C/);
+  assert.match(await page.textContent('#oven-clash'), /Roast potatoes: oven 190°C, not 200°C/);
   await page.click('#back-plan');
   await page.click('#cook-reset');
   await page.click('#reset-yes');

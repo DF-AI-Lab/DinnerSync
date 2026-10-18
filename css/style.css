@@ -848,7 +848,7 @@ h2 {
 /* the coloured bar of an item's steps */
 .b-strip { display: flex; height: 6px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 0 10px 8px; background: var(--field); }
 .b-strip i { display: block; height: 100%; }
-.k-prep { background: var(--blue); } .k-hob { background: #ffb38a; } .k-oven { background: var(--orange); } .k-rest { background: #c7b8e8; }
+.k-prep { background: var(--blue); } .k-hob { background: #ffb38a; } .k-oven { background: var(--orange); } .k-slow { background: #e8c86f; } .k-rest { background: #c7b8e8; }
 .b-x { background: none; border: 0; color: var(--muted); font-size: 13px; font-weight: 700; padding: 8px; min-width: 36px; min-height: 36px; }
 .b-item-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 10px 4px; }
 .b-saved-note { font-size: 12px; color: var(--ok); font-weight: 700; }
@@ -860,7 +860,10 @@ h2 {
 .b-st-name:focus { border-bottom-color: var(--orange); outline: none; }
 .b-tag { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
 .b-tag.prep { color: var(--blue); border-color: #3e5578; } .b-tag.hob { color: #ffb38a; border-color: #7a4a33; }
-.b-tag.oven { color: var(--orange-soft); border-color: var(--orange); } .b-tag.rest { color: #c7b8e8; border-color: #5a4f72; }
+.b-tag.slow { color: #e8c86f; border-color: #7a6a2f; } .b-tag.oven { color: var(--orange-soft); border-color: var(--orange); } .b-tag.rest { color: #c7b8e8; border-color: #5a4f72; }
+.b-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.b-seg button { height: 40px; border-radius: 9px; background: var(--field); border: 1px solid var(--line); color: var(--muted); font-weight: 700; }
+.b-seg button.on { background: var(--orange); border-color: var(--orange); color: #1a0f08; }
 .b-steppers { display: grid; grid-template-columns: 1fr; gap: 6px; }
 .b-steppers.two { grid-template-columns: 1.4fr 1fr; }
 .b-stepper { display: grid; grid-template-columns: 40px 1fr 40px; gap: 4px; align-items: center; }
