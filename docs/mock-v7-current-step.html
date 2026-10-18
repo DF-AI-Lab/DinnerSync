@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock: Next alarm inside the current step</title>
+<style>
+  :root { --bg:#121012; --panel:#1c191c; --panel-2:#26222a; --line:#3a343b; --text:#f3ede6; --muted:#a39a93; --orange:#ff7a2f; --orange-soft:#ffb07a; --ok:#7fd6a0; --danger:#ff6b6b; --blue:#8ab4ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 16px; max-width: 420px; margin-inline: auto; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; color: var(--orange-soft); }
+  p.note { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  .label { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--line); background:var(--panel-2); font-size:.78rem; font-weight:800; margin-right:8px; vertical-align:middle; white-space:nowrap; }
+  .tag.hob { border-color: var(--danger); color: var(--danger); }
+  .tag.prep { border-color: var(--blue); color: var(--blue); }
+  .done-btn { display:inline-block; padding:2px 8px; border-radius:999px; background:var(--orange); border:1px solid var(--orange); color:#1a1208; font-size:.78rem; font-weight:800; margin-left:8px; vertical-align:middle; }
+  .steps { list-style:none; margin:0; padding:0; }
+  .steps li { display:flex; gap:12px; padding:8px 0; align-items:flex-start; color: var(--muted); }
+  .dot { flex:none; width:22px; height:22px; border-radius:50%; border:2px solid var(--line); margin-top:2px; }
+  .dot.cur { background:var(--orange); border-color:var(--orange); box-shadow:0 0 14px rgba(255,122,47,.45); }
+  .dot.ok { background:var(--ok); border-color:var(--ok); }
+  time { font-weight:800; color:var(--orange); margin-right:8px; }
+  .body { flex:1; min-width:0; }
+  .cur-text { color: var(--text); font-weight:700; }
+  /* A: step becomes a card */
+  .card { background:var(--panel); border:1px solid var(--orange); border-radius:14px; padding:12px; margin:2px 0; box-shadow: 0 0 18px rgba(255,122,47,.18); }
+  .card .row { color: var(--text); }
+  .card .alarm { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .card .alarm b { font-size: 26px; color: var(--orange-soft); font-variant-numeric: tabular-nums; }
+  .card .alarm span { font-size:13px; color:var(--muted); }
+  /* B: one slim line under the step */
+  .slim { margin-top:6px; font-size:14px; color:var(--orange-soft); font-weight:700; }
+  .slim em { font-style:normal; color:var(--muted); font-weight:600; }
+  .phone { border:1px solid var(--line); border-radius:18px; padding:12px; background:#0e0c0e; }
+</style>
+</head>
+<body>
+  <h1>Next alarm inside the current step</h1>
+  <p class="note">MOCK ONLY. Nothing is built yet. The separate "Next alarm" card at the top goes away.</p>
+
+  <h2>Now (what you have)</h2>
+  <div class="phone">
+    <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px">
+      <div class="label">Next alarm</div>
+      <div style="font-weight:700;margin-top:4px">Preheat oven to 200°C <span style="color:var(--orange-soft)">2:31pm · 43:25</span></div>
+    </div>
+    <ul class="steps">
+      <li><span class="dot cur"></span><div class="body cur-text"><time>2:31pm</time>Preheat oven to 200°C <span class="done-btn">Done ✓</span></div></li>
+      <li><span class="dot"></span><div class="body"><time>2:41pm</time><span class="tag">Oven</span>Roast · 200°C</div></li>
+    </ul>
+  </div>
+
+  <h2>Option A (my pick): the step is a card</h2>
+  <p class="note">The current step gets its own card. The alarm time and countdown sit inside it.</p>
+  <div class="phone">
+    <ul class="steps">
+      <li><span class="dot ok"></span><div class="body"><time style="opacity:.55">1:46pm</time><span class="tag hob">Hob</span>Boil <span class="tag" style="margin-left:6px">Undo</span></div></li>
+      <li style="display:block;padding:6px 0">
+        <div class="card">
+          <div class="row"><time>2:31pm</time><span class="cur-text">Preheat oven to 200°C</span> <span class="done-btn">Done ✓</span></div>
+          <div class="alarm"><span>Next alarm</span><b>43:25</b></div>
+        </div>
+      </li>
+      <li><span class="dot"></span><div class="body"><time>2:41pm</time><span class="tag">Oven</span>Roast · 200°C</div></li>
+    </ul>
+  </div>
+
+  <h2>Option B: one slim line</h2>
+  <p class="note">No card. A small line under the current step. Takes the least room.</p>
+  <div class="phone">
+    <ul class="steps">
+      <li><span class="dot ok"></span><div class="body"><time style="opacity:.55">1:46pm</time><span class="tag hob">Hob</span>Boil</div></li>
+      <li><span class="dot cur"></span><div class="body cur-text"><time>2:31pm</time>Preheat oven to 200°C <span class="done-btn">Done ✓</span>
+        <div class="slim">⏰ Next alarm <em>2:31pm</em> · 43:25</div></div></li>
+      <li><span class="dot"></span><div class="body"><time>2:41pm</time><span class="tag">Oven</span>Roast · 200°C</div></li>
+    </ul>
+  </div>
+</body>
+</html>
