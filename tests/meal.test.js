@@ -231,3 +231,15 @@ test('alarm text names the item so "Boil" is not ambiguous', () => {
   assert.match(boil.say, /Mash/);
   assert.match(boil.say, /Boil/);
 });
+
+test('slow cook step: its own kind, with a Low/High setting shown in the plan', () => {
+  const stew = { name: 'Stew', steps: [{ kind: 'slow', text: 'Slow cook stew', min: 240, setting: 'high' }] };
+  const meal = { name: '', together: false, groups: [], items: [stew] };
+  const D = Date.UTC(2026, 0, 1, 18, 0);
+  const rows = schedule(meal, D);
+  assert.equal(rows.length, 1); // no oven preheat for a slow cooker
+  assert.equal(rows[0].kind, 'slow');
+  assert.equal(new Date(rows[0].at).getUTCHours(), 14);
+  const plan = toPlan(meal, D, D - 5 * 3600_000);
+  assert.match(plan.steps.find(x => x.type === 'in').text, /Slow cook stew · High/);
+});

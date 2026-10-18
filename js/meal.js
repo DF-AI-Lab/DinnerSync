@@ -1,6 +1,6 @@
 // Pure meal logic. No DOM access.
 //
-// A step is { kind: 'prep'|'hob'|'oven'|'rest', text, min, temp?, check?: { at, text } }.
+// A step is { kind: 'prep'|'hob'|'oven'|'slow'|'rest', text, min, temp?, setting?: 'low'|'high', check?: { at, text } }.
 // check is a reminder: its own alarm `at` minutes into the step.
 // An item is { name, steps }. A meal is { name, together, groups, items }:
 //   items   = "everything else": each item is timed to be ready at dinner.
@@ -10,8 +10,8 @@
 
 const MIN = 60_000;
 export const DEFAULT_PREHEAT = 15;
-export const KINDS = ['prep', 'hob', 'oven', 'rest'];
-export const KIND_LABEL = { prep: '🥄 Prep', hob: '🔥 Hob', oven: '♨️ Oven', rest: '⏸ Rest' };
+export const KINDS = ['prep', 'hob', 'oven', 'slow', 'rest'];
+export const KIND_LABEL = { prep: '🥄 Prep', hob: '🔥 Hob', oven: '♨️ Oven', slow: '🍲 Slow cook', rest: '⏸ Rest' };
 
 export const step = (kind, text, min, temp, check) => ({
   kind, text, min, ...(temp ? { temp } : {}), ...(check ? { check } : {}),
@@ -93,7 +93,7 @@ export function findShared(meal) {
 // Every row is { at, who, s, text, min, kind, temp?, ... } for a step, { at, who, remind } for a
 // reminder, or { at, preheat } for the oven. Flags: fin (a built dish's finish step), prep1 (in the
 // prep block), shared (one peel for several items).
-const stepRow = (at, who, s, extra = {}) => ({ at, who, s, text: s.text, min: s.min, kind: s.kind, temp: s.temp, ...extra });
+const stepRow = (at, who, s, extra = {}) => ({ at, who, s, text: s.text, min: s.min, kind: s.kind, temp: s.temp, setting: s.setting, ...extra });
 
 // Work backwards from dinner D (ms). Everything ends at dinner. A built dish's parts end together
 // when its finish steps start. With prepFirst, the prep steps at the START of each item are done
@@ -215,8 +215,8 @@ export function toPlan(meal, readyAt, now, { prepFirst = true, preheat = DEFAULT
     } else if (r.remind) {
       ranked.push({ rank: 2, step: { type: 'remind', at: r.at, name: r.who, text: `↻ ${r.remind}`, say: `${r.who}: ${r.remind}` } });
     } else {
-      const action = r.text.trim() || KIND_LABEL[r.kind].split(' ')[1];
-      const text = `${action}${r.shared ? SHARED_NOTE : ''}${r.temp ? ` · ${r.temp}°C` : ''}`;
+      const action = r.text.trim() || KIND_LABEL[r.kind].split(' ').slice(1).join(' ');
+      const text = `${action}${r.shared ? SHARED_NOTE : ''}${r.temp ? ` · ${r.temp}°C` : ''}${r.kind === 'slow' ? ` · ${r.setting === 'high' ? 'High' : 'Low'}` : ''}`;
       const label = `${r.item}: ${action}`;
       ranked.push({
         rank: 1,

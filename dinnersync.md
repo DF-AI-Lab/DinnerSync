@@ -1,9 +1,9 @@
 # DinnerSync
 
 ## Where we are
-- Current step: Build & Test. v1.3.1 = mockup 6 built, cut-off dropdown text fixed (not yet tried on the phone).
+- Current step: Build & Test. v1.3.2 = mockup 6 built, + Slow cook step type (Low/High) (not yet tried on the phone).
 - Last session: 2026-10-18 (Sonnet): built the whole mockup 6 list, tests first. 102 unit tests + browser check pass. Screenshot at 400px matches the mock.
-- Next action: Darren tries v1.3.1 on the phone (build a meal, save it, run the timers). Then fix what feels wrong.
+- Next action: Darren tries v1.3.2 on the phone (build a meal, save it, run the timers). Then fix what feels wrong.
 - Avoid: deleting the Simple timer / When's dinner code. It is hidden by `SHOW_LEGACY_TOOLS = false` in js/app.js.
 - Open questions (defaults used, tell me to change): Prep label stays "Prep" (not "Hands-on"). Prep-first is ON by default. In a built dish the parts all finish exactly when the finish starts (not kept hot).
 - Known gaps: oven clash only warns, no temperature scaling (decision 6 not applied to meals). Old saved items from before v1.3.0 are not shown (new Saved items list). No delete button for saved items/meals yet. Old CSS for the removed add-item form is still in style.css.

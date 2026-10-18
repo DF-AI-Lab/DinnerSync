@@ -20,8 +20,12 @@ const clock = t => {
   return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`;
 };
 
-// What a "+ Prep / + Hob / + Oven / + Rest" button adds.
-const newStep = kind => step(kind, '', kind === 'prep' ? 10 : 15, kind === 'oven' ? 200 : 0);
+// What a "+ Prep / + Hob / + Oven / + Slow cook / + Rest" button adds. A slow cook is hours, so it taps in 30s.
+const newStep = kind => {
+  const s = step(kind, '', kind === 'prep' ? 10 : kind === 'slow' ? 240 : 15, kind === 'oven' ? 200 : 0);
+  if (kind === 'slow') s.setting = 'low';
+  return s;
+};
 
 export function createBuilder({ root, store, now = Date.now, onStart = () => {}, onChange = () => {} }) {
   let uid = 1;
@@ -113,8 +117,9 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
           <input class="b-st-name" data-o="${owner}" data-i="${i}" value="${esc(s.text)}" placeholder="What are you doing? e.g. Peel potatoes" aria-label="Step name" enterkeyhint="done" autocomplete="off">
           <button type="button" class="b-x" data-act="rmst" data-o="${owner}" data-i="${i}" aria-label="Remove step">✕</button>
         </div>
-        <div class="b-steppers ${s.kind === 'oven' ? 'two' : ''}">
-          ${stepper('min', owner, i, 5, fmtT(s.min), '5 min less', '5 min more')}
+        <div class="b-steppers ${s.kind === 'oven' || s.kind === 'slow' ? 'two' : ''}">
+          ${stepper('min', owner, i, s.kind === 'slow' ? 30 : 5, fmtT(s.min), s.kind === 'slow' ? '30 min less' : '5 min less', s.kind === 'slow' ? '30 min more' : '5 min more')}
+          ${s.kind === 'slow' ? `<div class="b-seg" role="group" aria-label="Slow cooker setting">${['low', 'high'].map(v => `<button type="button" class="${(s.setting ?? 'low') === v ? 'on' : ''}" data-act="slowset" data-o="${owner}" data-i="${i}" data-v="${v}" aria-pressed="${(s.setting ?? 'low') === v}">${v === 'low' ? 'Low' : 'High'}</button>`).join('')}</div>` : ''}
           ${s.kind === 'oven' ? stepper('temp', owner, i, 10, `${s.temp}°`, '10 degrees cooler', '10 degrees hotter') : ''}
         </div>
         ${s.check ? `<div class="b-check">
@@ -127,7 +132,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       </div>`).join('');
   }
 
-  const addRow = owner => `<div class="b-addrow">${KINDS.map(k => `<button type="button" class="b-add" data-act="addst" data-o="${owner}" data-k="${k}">+ ${KIND_LABEL[k].split(' ')[1]}</button>`).join('')}</div>`;
+  const addRow = owner => `<div class="b-addrow">${KINDS.map(k => `<button type="button" class="b-add" data-act="addst" data-o="${owner}" data-k="${k}">+ ${KIND_LABEL[k].split(' ').slice(1).join(' ')}</button>`).join('')}</div>`;
 
   function itemsHtml(list) {
     return `<div class="b-items">${list.map(it => `<div class="b-item ${it.open ? 'open' : ''}" data-id="${it.id}">
@@ -230,6 +235,8 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       const s = stepsOf(o)[index];
       s.min = Math.min(600, Math.max(5, s.min + Number(d)));
       if (s.check) s.check.at = Math.min(s.check.at, s.min);
+    } else if (act === 'slowset') {
+      stepsOf(o)[index].setting = b.dataset.v === 'high' ? 'high' : 'low';
     } else if (act === 'temp') {
       const s = stepsOf(o)[index];
       s.temp = Math.min(250, Math.max(100, s.temp + Number(d)));
@@ -258,7 +265,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       if (!total()) S.toast = 'Add an item with some steps first.';
       else { save(); draw(); onStart(); return; }
     }
-    if (['min', 'temp', 'rmst', 'addst', 'addchk', 'chk', 'rmchk'].includes(act)) autosave(o);
+    if (['min', 'temp', 'slowset', 'rmst', 'addst', 'addchk', 'chk', 'rmchk'].includes(act)) autosave(o);
     refresh();
   });
 
