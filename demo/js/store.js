@@ -168,7 +168,7 @@ export function createStore(storage) {
     remove(KEYS.cooking);
   }
 
-  // Backup file: saved items and meals, plus the preheat setting. Loading merges by name.
+  // Backup file: saved items and meals, plus the preheat setting. Loading replaces what is here.
   function exportData() {
     return {
       app: 'DinnerSync',
@@ -180,22 +180,29 @@ export function createStore(storage) {
     };
   }
 
-  function importData(data) {
+  // Reads a backup without saving anything: the clean items and meals, or null if it isn't one.
+  function readBackup(data) {
     if (!isMap(data) || data.app !== 'DinnerSync') return null;
-    const items = isMap(data.items) ? data.items : {};
-    const meals = isMap(data.meals) ? data.meals : {};
-    const goodItems = Object.entries(items).filter(([n, v]) => n.trim() && Array.isArray(v));
-    const goodMeals = Object.entries(meals).filter(([n, v]) => n.trim() && isMap(v));
-    write(KEYS.libItems, { ...getLibraryItems(), ...Object.fromEntries(goodItems) });
-    write(KEYS.libMeals, { ...getLibraryMeals(), ...Object.fromEntries(goodMeals) });
-    if (isMap(data.settings) && Number.isFinite(data.settings.preheatMinutes)) {
-      saveSettings({ preheatMinutes: data.settings.preheatMinutes });
-    }
-    return { items: goodItems.length, meals: goodMeals.length };
+    const keep = (m, ok) => Object.fromEntries(Object.entries(isMap(m) ? m : {}).filter(([n, v]) => n.trim() && ok(v)));
+    return {
+      items: keep(data.items, Array.isArray),
+      meals: keep(data.meals, isMap),
+      preheat: isMap(data.settings) && Number.isFinite(data.settings.preheatMinutes) ? data.settings.preheatMinutes : null,
+    };
+  }
+
+  function importData(data) {
+    const backup = readBackup(data);
+    if (!backup) return null;
+    write(KEYS.libItems, backup.items);
+    write(KEYS.libMeals, backup.meals);
+    if (backup.preheat != null) saveSettings({ preheatMinutes: backup.preheat });
+    return { items: Object.keys(backup.items).length, meals: Object.keys(backup.meals).length };
   }
 
   return {
     exportData,
+    readBackup,
     importData,
     getSavedItems,
     saveItem,

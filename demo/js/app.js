@@ -433,9 +433,15 @@ function bindCookScreen() {
     e.target.value = '';
     if (!file) return;
     try {
-      const done = store.importData(JSON.parse(await file.text()));
-      $('settings-msg').textContent = done ? `Loaded ${done.meals} meals and ${done.items} items.` : "That isn't a DinnerSync backup file.";
-      if (done) builder.redraw();
+      const data = JSON.parse(await file.text());
+      const backup = store.readBackup(data);
+      if (!backup) { $('settings-msg').textContent = "That isn't a DinnerSync backup file."; return; }
+      const meals = Object.keys(backup.meals).length;
+      const items = Object.keys(backup.items).length;
+      if (!confirm(`Replace everything saved on this phone with ${meals} meals and ${items} items from the file?`)) return;
+      store.importData(data);
+      $('settings-msg').textContent = `Restored ${meals} meals and ${items} items.`;
+      builder.redraw();
     } catch {
       $('settings-msg').textContent = "Couldn't read that file.";
     }
