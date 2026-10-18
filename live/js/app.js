@@ -7,7 +7,7 @@ import { keepAliveWav, alarmWav, ALARM } from './ring.js';
 
 const MIN = 60_000;
 const QUARTER = 15 * MIN; // "Ready later" moves in 15-minute steps
-const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow cook', rest: '⏸ Rest', prep: '🥄 Prep' };
+const METHOD_LABEL = { oven: '♨️ Oven', hob: '🔥 Hob', slow: '🍲 Slow', rest: '⏸ Rest', prep: '🥄 Prep' };
 // The Simple timer and the When's dinner panel are hidden for now. Their code is kept; turn this on to bring them back.
 const SHOW_LEGACY_TOOLS = false;
 const RESUME_GRACE_MS = 2 * 60 * MIN;
@@ -93,10 +93,46 @@ function currentPlan() {
 }
 
 // A small method label followed by the step text, for timeline and cooking screen.
-function stepNodes(step) {
+const SETTING_RANGE = { hobMax: [1, 12, 1], preheatMinutes: [0, 60, 5] }; // [lowest, highest, step]
+
+function renderSettingsControls() {
+  const cfg = store.getSettings();
+  for (const b of document.querySelectorAll('#settings [data-set]')) {
+    const on = cfg[b.dataset.set] === b.dataset.v;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
+  $('set-hobMax').textContent = cfg.hobMax;
+  $('set-preheatMinutes').textContent = `${cfg.preheatMinutes} min`;
+}
+
+const WATER_LABEL = { cold: '💧 Cold', luke: '💧 Luke', hot: '💧 Hot' };
+const OVEN_LABEL = { fan: 'Fan', conventional: 'Conventional', gas: 'Gas' };
+
+// The settings a step runs on, as short labels: water and heat dial for the hob, oven type for the oven.
+// `cls` colours the chip. Minutes are left out for the one-line rows, which already show them.
+function stepInfo(step, { minutes = false } = {}) {
+  if (step.type !== 'in') return [];
+  const cfg = store.getSettings();
+  const out = [];
+  if (step.method === 'hob') {
+    if (WATER_LABEL[step.water]) out.push({ cls: `w-${step.water}`, text: WATER_LABEL[step.water] });
+    if (step.hob) out.push({ cls: 'hobn', text: `${cfg.hobType === 'gas' ? 'Gas' : 'Hob'} ${step.hob}` });
+  } else if (step.method === 'oven') {
+    out.push({ cls: 'ov', text: OVEN_LABEL[cfg.ovenType] });
+  }
+  if (minutes && step.minutes) out.push({ cls: '', text: `${step.minutes} min` });
+  return out;
+}
+
+// withItem: the item name in bold in front ("carrots" boil), so a step only needs its action typed.
+// withInfo: the step's settings added to the text, for one-line rows (the current card shows them as chips).
+function stepNodes(step, withItem = false, withInfo = withItem) {
   const nodes = [];
   if (step.method) nodes.push(el('span', { class: `tag m-${step.method}` }, METHOD_LABEL[step.method]));
-  nodes.push(document.createTextNode(step.text));
+  const lead = withItem && step.type === 'in' && step.owners ? [el('b', { class: 'step-item' }, step.owners), ' '] : [];
+  const extra = withInfo ? stepInfo(step).map(i => i.text).join(' · ') : '';
+  nodes.push(el('span', { class: 'step-text' }, ...lead, extra ? `${step.text} · ${extra}` : step.text));
   return nodes;
 }
 
@@ -344,7 +380,7 @@ function renderNextAlarm(now) {
   box.hidden = !next;
   if (!next) return;
   box.querySelector('.cs-count').textContent = formatCountdown(next.at - now);
-  box.querySelector('.cs-text').textContent = `${next.text} · ${formatClock(next.at)}`;
+  box.querySelector('.cs-text').textContent = `${next.text.replace(': ', ' · ')} · ${formatClock(next.at)}`;
 }
 
 // What a cooking step is called, for the ✎. Plans made before v1.3.15 lack the fields, so work them out from the label.
@@ -369,13 +405,25 @@ function stepItem(s) {
   // Done only says "I did it". The plan's times don't move, and Undo puts the step back.
   let body;
   if (s.status === 'current') {
-    const row = el('div', { class: 'cs-row' }, el('time', {}, formatClock(s.at)), el('span', { class: 'cs-name' }, ...stepNodes(s)));
+    // A cooking step: minutes under the time, the item in bold, and the description under it, not bold.
+    const cooking = s.type === 'in' && s.owners;
+    const when = cooking && s.minutes
+      ? el('span', { class: 'cs-when' }, el('time', {}, formatClock(s.at)), el('small', { class: 'cs-min' }, `${s.minutes} min`))
+      : el('time', {}, formatClock(s.at));
+    const name = cooking
+      ? el('span', { class: 'cs-name' },
+        el('span', { class: 'cs-top' }, ...(s.method ? [el('span', { class: `tag m-${s.method}` }, METHOD_LABEL[s.method])] : []), el('b', { class: 'step-item' }, s.owners)),
+        el('span', { class: 'cs-desc' }, s.text))
+      : el('span', { class: 'cs-name' }, ...stepNodes(s, true, false));
+    const row = el('div', { class: 'cs-row' }, when, name);
     if (editInfo(s)) row.append(el('button', { class: 'btn step-edit', type: 'button', 'data-edit-step': String(s.index), 'aria-label': 'Edit name' }, '✎'));
     if (s.type !== 'ready') row.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
+    const chips = stepInfo(s);
     body = el('div', { class: 'step-body' }, row,
+      ...(chips.length ? [el('div', { class: 'cs-info' }, ...chips.map(c => el('span', { class: `chip ${c.cls}` }, c.text)))] : []),
       el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
   } else {
-    body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+    body = el('div', { class: 'step-body one-line' }, el('time', {}, formatClock(s.at)), ...stepNodes(s, true));
     if (s.status === 'upcoming' && editInfo(s)) body.append(el('button', { class: 'btn step-edit row-edit', type: 'button', 'data-edit-step': '', 'aria-label': 'Edit name' }, '✎'));
     if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
   }
@@ -396,7 +444,9 @@ function startStepEdit(node) {
     node.querySelector('.cs-row').replaceChildren(el('time', {}, formatClock(step.at)), input);
     node.querySelector('.cs-alarm').replaceWith(bar);
   } else {
-    node.querySelector('.step-body').replaceChildren(el('time', {}, formatClock(step.at)), input, bar);
+    const body = node.querySelector('.step-body');
+    body.classList.remove('one-line');
+    body.replaceChildren(el('time', {}, formatClock(step.at)), input, bar);
   }
   input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(node); });
   input.focus();
@@ -546,7 +596,19 @@ function bindCookScreen() {
     box.hidden = !box.hidden;
     $('settings-btn').setAttribute('aria-expanded', String(!box.hidden));
     $('settings-msg').textContent = '';
-    if (!box.hidden) renderSaved();
+    if (!box.hidden) { renderSaved(); renderSettingsControls(); }
+  });
+  $('settings').addEventListener('click', e => {
+    const seg = e.target.closest('[data-set]');
+    const stp = e.target.closest('[data-step]');
+    if (seg) store.saveSettings({ [seg.dataset.set]: seg.dataset.v });
+    else if (stp) {
+      const key = stp.dataset.step;
+      const [lo, hi, by] = SETTING_RANGE[key];
+      store.saveSettings({ [key]: Math.min(hi, Math.max(lo, store.getSettings()[key] + Number(stp.dataset.d) * by)) });
+    } else return;
+    renderSettingsControls();
+    builder.refreshSettings();
   });
   bindSaved();
   $('backup-save').addEventListener('click', () => {
@@ -571,9 +633,9 @@ function bindCookScreen() {
       if (!backup) { $('settings-msg').textContent = "That isn't a DinnerSync backup file."; return; }
       const meals = Object.keys(backup.meals).length;
       const items = Object.keys(backup.items).length;
-      if (!confirm(`Replace everything saved on this phone with ${meals} meals and ${items} items from the file?`)) return;
+      if (!confirm(`Add ${meals} meals and ${items} items from the file? Anything with the same name gets updated; the rest stays.`)) return;
       store.importData(data);
-      $('settings-msg').textContent = `Restored ${meals} meals and ${items} items.`;
+      $('settings-msg').textContent = `Added ${meals} meals and ${items} items.`;
       builder.redraw();
       renderSaved();
     } catch {
