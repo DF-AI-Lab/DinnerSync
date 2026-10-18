@@ -137,6 +137,7 @@ Target: docs/mock-v6-meals.html. Its script holds the working scheduling logic (
 - Not yet tested on a real phone: sound, vibrate, notifications, screen-on
 
 ## Change log
+- 2026-10-18: Android app built (Sonnet): Capacitor wrapper of /live + Kotlin alarm plugin (AlarmManager.setAlarmClock, alarm tone, full-screen Stop/Done, heads-up On it/Ignore). Tests first: tests/alarmlist.test.js + androidsync.test.js (123 pass). GitHub Action `Android APK` builds it; newest APK on the `android-beta` release. Package com.dfailab.dinnersync.beta (sits alongside the web app). Native Done ticks the step; web app untouched (the app's copy is patched by scripts/sync-web.mjs). Not yet tried on the phone.
 - 2026-10-18: Android build brief saved to docs/android-brief.md, ready for a new Sonnet chat (app still parked until Darren says go).
 - 2026-10-18: Released v1.3.19 to /live: current step shown once, edit pencil on running jobs, upcoming steps and older plans.
 - 2026-10-18: Released v1.3.16 to /live: Done/Undo in line, edit a step's name (saves to the saved item), next alarm inside the current card, only the current card rings.

@@ -1,0 +1,6 @@
+{
+  "appId": "com.dfailab.dinnersync.beta",
+  "appName": "DinnerSync Beta",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}

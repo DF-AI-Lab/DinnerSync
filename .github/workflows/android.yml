@@ -1,0 +1,96 @@
+name: Android APK
+
+on:
+  push:
+    branches: [claude/pensive-mccarthy-mk72o1] # the repo's default (build) branch
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # One fixed signing key, so a newer APK installs over the old one and keeps its data.
+      # Best: add repo secrets DEBUG_KEYSTORE_B64 and DEBUG_KEYSTORE_PASSWORD. Without them the
+      # key is made once and kept in the Actions cache (it can be lost if the repo is idle for a week).
+      - name: Cache signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.dinnersync-key
+          key: dinnersync-debug-key-v1
+
+      - name: Signing key
+        env:
+          KS_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+        run: |
+          mkdir -p ~/.dinnersync-key
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > ~/.dinnersync-key/ds.keystore
+            PASS="$KS_PASS"
+          else
+            PASS=dinnersync-debug
+            if [ ! -f ~/.dinnersync-key/ds.keystore ]; then
+              keytool -genkeypair -keystore ~/.dinnersync-key/ds.keystore -storepass "$PASS" -keypass "$PASS" \
+                -alias dinnersync -keyalg RSA -keysize 2048 -validity 36500 -dname "CN=DinnerSync Beta"
+            fi
+          fi
+          echo "KEYSTORE_PATH=$HOME/.dinnersync-key/ds.keystore" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASSWORD=$PASS" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=dinnersync" >> "$GITHUB_ENV"
+
+      - name: Build the app's web files
+        run: |
+          node scripts/sync-web.mjs
+          npx cap sync android
+
+      - name: Build the APK
+        working-directory: android
+        env:
+          APP_VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Name the APK
+        id: name
+        run: |
+          VERSION=$(sed -n 's/^versionName=//p' android-version.properties)
+          cp android/app/build/outputs/apk/debug/app-debug.apk "DinnerSync-beta-v$VERSION.apk"
+          echo "file=DinnerSync-beta-v$VERSION.apk" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DinnerSync-beta-apk
+          path: ${{ steps.name.outputs.file }}
+
+      # After a merge to the default branch: one fixed download page with the newest APK.
+      - name: Publish the APK
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-beta --cleanup-tag --yes || true
+          gh release create android-beta "${{ steps.name.outputs.file }}" \
+            --title "DinnerSync Android beta v${{ steps.name.outputs.version }}" \
+            --notes "Open this page on your phone, tap the .apk file, then tap Install." \
+            --prerelease --target "$GITHUB_SHA"
