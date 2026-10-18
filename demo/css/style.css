@@ -896,6 +896,20 @@ h2 {
 .step-remind { border-left-color: var(--warn) !important; color: var(--warn); font-weight: 700; }
 #prep-first { margin: 4px 0 12px; }
 
+/* Alarm banner: Stop alarm and Done side by side */
+.alarm-actions { display: flex; gap: 10px; }
+.alarm-actions .btn { flex: 1; margin: 0; }
+.alarm .btn.ghost { background: rgba(0, 0, 0, 0.3); color: #fff; border-color: transparent; }
+
+/* Heads-up strip inside the current card */
+.cs-heads { flex-basis: 100%; margin-top: 10px; padding: 10px; border-radius: 12px; background: rgba(255, 192, 77, 0.1); border: 1px solid var(--warn); font-weight: 400; }
+.cs-heads-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.cs-heads-top span { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800; color: var(--warn); }
+.cs-heads-top b { font-family: var(--display); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.cs-heads p { margin: 4px 0 8px; font-size: 0.9rem; color: var(--text); }
+.cs-heads-btns { display: flex; gap: 8px; }
+.cs-heads-btns .btn { min-height: 0; padding: 6px 14px; font-size: 0.85rem; }
+
 /* Hob: heat dial and water temperature */
 .b-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .b-water { flex: none; border-radius: 999px; padding: 7px 14px; min-height: 36px; font-weight: 800; font-size: 13px; background: transparent; border: 1px solid var(--line); color: var(--muted); }

@@ -25,7 +25,7 @@
           <div class="brand-text">
             <div class="brand-line">
               <h1 class="brand">DinnerSync</h1>
-              <span id="app-version" class="app-version">v1.3.24 demo</span>
+              <span id="app-version" class="app-version">v1.3.25 demo</span>
             </div>
             <p class="tagline">everything finishes together</p>
           </div>
@@ -58,6 +58,19 @@
         </div></div>
       <div class="set-block"><span class="set-lab">Oven preheat</span>
         <div class="b-stepper"><button type="button" data-step="preheatMinutes" data-d="-1" aria-label="5 minutes less preheat">−</button><span class="b-val" id="set-preheatMinutes"></span><button type="button" data-step="preheatMinutes" data-d="1" aria-label="5 minutes more preheat">+</button></div></div>
+      <b class="settings-h">Alerts</b>
+      <div class="set-block"><span class="set-lab">Heads-up before each step</span>
+        <div class="b-seg three" role="group" aria-label="Heads-up before each step">
+          <button type="button" data-set="headsUp" data-v="off">Off</button>
+          <button type="button" data-set="headsUp" data-v="30">30 sec</button>
+          <button type="button" data-set="headsUp" data-v="60">1 min</button>
+        </div></div>
+      <div class="set-block"><span class="set-lab">Phone notifications</span>
+        <div class="b-seg" role="group" aria-label="Phone notifications">
+          <button type="button" data-set="notifications" data-v="on">On</button>
+          <button type="button" data-set="notifications" data-v="off">Off</button>
+        </div>
+        <p id="notify-state" class="muted"></p></div>
       <b class="settings-h">Backup</b>
       <p class="muted">Save your meals and items to a file. Loading a file adds its meals and items to what's on this phone. Same name: the file's version wins.</p>
       <div class="settings-row">
@@ -200,7 +213,10 @@
 
   <div id="alarm-banner" class="alarm" role="alertdialog" aria-live="assertive" hidden>
     <p id="alarm-text"></p>
-    <button id="alarm-done" class="btn big block done" type="button">Done ✓</button>
+    <div class="alarm-actions">
+      <button id="alarm-stop" class="btn big ghost" type="button">Stop alarm</button>
+      <button id="alarm-done" class="btn big done" type="button">Done ✓</button>
+    </div>
   </div>
 
   <audio id="keep-alive" loop preload="auto" hidden></audio>
