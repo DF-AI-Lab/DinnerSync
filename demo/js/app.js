@@ -345,17 +345,52 @@ function stepItem(s) {
   const dot = s.status === 'done'
     ? el('button', { class: 'dot', type: 'button', 'aria-label': `Undo: ${s.text}` }, '✓')
     : el('span', { class: 'dot', 'aria-hidden': 'true' }, '');
-  const body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+  // The current step is a card: time, name, ✎ and Done on one line, the next alarm underneath.
   // Done only says "I did it". The plan's times don't move, and Undo puts the step back.
-  if (s.status === 'current' && s.type !== 'ready') body.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
+  let body;
   if (s.status === 'current') {
-    body.append(el('div', { class: 'cs-alarm' },
-      el('span', { class: 'cs-label' }, 'Next alarm'),
-      el('b', { class: 'cs-count' }, ''),
-      el('span', { class: 'cs-text' }, '')));
+    const row = el('div', { class: 'cs-row' }, el('time', {}, formatClock(s.at)), el('span', { class: 'cs-name' }, ...stepNodes(s)));
+    if (s.type === 'in' && s.action != null) row.append(el('button', { class: 'btn step-edit', type: 'button', 'data-edit-step': String(s.index), 'aria-label': 'Edit name' }, '✎'));
+    if (s.type !== 'ready') row.append(el('button', { class: 'btn step-done', type: 'button', 'data-done': String(s.index) }, 'Done ✓'));
+    body = el('div', { class: 'step-body' }, row,
+      el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
+  } else {
+    body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+    if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
   }
-  if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
   return el('li', attrs, dot, body);
+}
+
+// ✎ on the current step: the name becomes a box. Saving renames it here and in the saved item.
+function startStepEdit(li) {
+  const step = cook.plan.steps[Number(li.dataset.index)];
+  const row = li.querySelector('.cs-row');
+  const input = el('input', { class: 'cs-input', type: 'text', value: step.action, 'aria-label': 'Step name', autocomplete: 'off', enterkeyhint: 'done' });
+  row.replaceChildren(el('time', {}, formatClock(step.at)), input);
+  li.querySelector('.cs-alarm').replaceWith(el('div', { class: 'cs-editbar' },
+    el('button', { class: 'btn step-done', type: 'button', 'data-step-save': '' }, 'Save'),
+    el('button', { class: 'btn ghost step-undo', type: 'button', 'data-step-cancel': '' }, 'Cancel'),
+    el('p', { class: 'cs-hint' }, 'Also updates your saved item, so it reads right next time.')));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(li); });
+  input.focus();
+  input.select();
+}
+
+function saveStepEdit(li) {
+  const step = cook.plan.steps[Number(li.dataset.index)];
+  const to = li.querySelector('.cs-input').value.trim();
+  if (to && to !== step.action) {
+    builder.renameStep({ owners: step.owners, kind: step.method, from: step.raw, to });
+    step.raw = to;
+    step.action = to;
+    step.text = to + step.suffix;
+    step.say = `${step.name}: ${to}`;
+    step.label = `${step.owners}: ${to}`;
+    persistCooking();
+  }
+  stepsKey = null;
+  jobsKey = null;
+  renderCook(Date.now());
 }
 
 function renderCookSteps(now) {
@@ -457,6 +492,9 @@ function bindCookScreen() {
     if (!cook) return;
     const doneBtn = e.target.closest('[data-done]');
     const li = e.target.closest('li.done');
+    if (e.target.closest('[data-edit-step]')) { startStepEdit(e.target.closest('li')); return; }
+    if (e.target.closest('[data-step-cancel]')) { stepsKey = null; renderCook(Date.now()); return; }
+    if (e.target.closest('[data-step-save]')) { saveStepEdit(e.target.closest('li')); return; }
     if (doneBtn) {
       const index = Number(doneBtn.dataset.done);
       cook.done = [...new Set([...cook.done, index])];

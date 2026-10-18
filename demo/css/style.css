@@ -924,3 +924,15 @@ h2 {
 .cs-label { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .cs-count { font-family: var(--display); font-size: 1.7rem; color: var(--orange-soft); font-variant-numeric: tabular-nums; }
 .cs-text { flex-basis: 100%; font-size: 0.85rem; color: var(--muted); }
+
+/* Current card: one straight line. Done rows: Undo flush to the right edge. */
+.cs-row { flex-basis: 100%; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cs-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.cs-row .btn.step-done, .cs-editbar .btn.step-done { margin-left: 0; flex: none; }
+.cook-steps .btn.step-edit { flex: none; min-height: 0; padding: 2px 8px; font-size: 0.78rem; border-radius: 999px; background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.cs-input { flex: 1; min-width: 0; background: var(--field); border: 1px solid var(--orange); border-radius: 10px; padding: 8px 10px; color: var(--text); font: inherit; font-size: 1rem; }
+.cs-editbar { flex-basis: 100%; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-weight: 400; }
+.cs-hint { flex-basis: 100%; margin: 4px 0 0; font-size: 0.8rem; color: var(--muted); }
+.cook-steps li.done .step-body { flex-wrap: nowrap; }
+.cook-steps li.done .btn.step-undo { margin-left: auto; flex: none; }
+.cs-editbar .btn.step-undo { margin-left: 0; }

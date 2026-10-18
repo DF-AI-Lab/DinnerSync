@@ -339,6 +339,25 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     reset() { S.meal = own(emptyMeal()); S.mode = 'now'; S.prepFirst = true; S.toast = ''; store.clearTonight(); onChange(); draw(); },
     // Put a saved meal on the home page so it can be changed (Save as a meal with the same name replaces it).
     openMeal(name) { loadMeal(name); S.mode = 'now'; S.toast = `Editing "${name}". Change it, then Save as a meal.`; save(); draw(); },
+    // A step was renamed while cooking: make the saved items, saved meals and tonight's meal say the same.
+    // owners is the item (or items, joined with " + ") or built dish the step belongs to.
+    renameStep({ owners, kind, from, to }) {
+      const names = String(owners).split(' + ');
+      const hit = st => st.kind === kind && st.text.trim() === from;
+      const rename = steps => { let n = 0; for (const st of steps) if (hit(st)) { st.text = to; n++; } return n; };
+      const lib = store.getLibraryItems();
+      for (const name of names) if (lib[name] && rename(lib[name])) store.saveLibraryItem(name, lib[name]);
+      const meals = store.getLibraryMeals();
+      for (const [mealName, m] of Object.entries(meals)) {
+        let changed = 0;
+        for (const g of m.groups ?? []) if (names.includes(g.name)) changed += rename(g.finish ?? []);
+        if (changed) store.saveLibraryMeal(mealName, m);
+      }
+      for (const i of allItems()) if (names.includes(i.name)) rename(i.steps);
+      for (const g of S.meal.groups) if (names.includes(g.name)) rename(g.finish);
+      save();
+      draw();
+    },
     redraw: draw,
   };
 }

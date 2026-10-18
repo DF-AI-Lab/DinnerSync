@@ -241,6 +241,7 @@ export function toPlan(meal, readyAt, now, { prepFirst = true, preheat = DEFAULT
         step: {
           type: 'in', name: r.who, item: indexOf(r.item), label, method: r.kind, at: r.at,
           text, say: `${r.who}: ${action}`, minutes: r.min, group: 0, track: 0,
+          action, suffix: text.slice(action.length), owners: r.item, raw: r.text.trim(),
           ...(r.prep1 ? { prep1: true } : {}),
         },
       });
