@@ -410,6 +410,36 @@ function bindCookScreen() {
     persistCooking();
     renderCook(Date.now());
   });
+  $('settings-btn').addEventListener('click', () => {
+    const box = $('settings');
+    box.hidden = !box.hidden;
+    $('settings-btn').setAttribute('aria-expanded', String(!box.hidden));
+    $('settings-msg').textContent = '';
+  });
+  $('backup-save').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(store.exportData(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `dinnersync-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    $('settings-msg').textContent = 'Backup saved. Check your Downloads.';
+  });
+  $('backup-load').addEventListener('click', () => $('backup-file').click());
+  $('backup-file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const done = store.importData(JSON.parse(await file.text()));
+      $('settings-msg').textContent = done ? `Loaded ${done.meals} meals and ${done.items} items.` : "That isn't a DinnerSync backup file.";
+      if (done) builder.redraw();
+    } catch {
+      $('settings-msg').textContent = "Couldn't read that file.";
+    }
+  });
   $('cook-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
   $('reset-no').addEventListener('click', () => { $('reset-confirm').hidden = true; });
   $('reset-yes').addEventListener('click', () => {
