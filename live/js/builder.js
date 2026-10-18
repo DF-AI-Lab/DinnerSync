@@ -20,7 +20,9 @@ const clock = t => {
   return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`;
 };
 
-// What a "+ Prep / + Hob / + Oven / + Slow cook / + Rest" button adds. A slow cook is hours, so it taps in 30s.
+// What a "+ Prep / + Hob / + Oven / + Slow / + Rest" button adds. A slow cook is hours, so it taps in 30s.
+const WATER = [undefined, 'cold', 'luke', 'hot'];
+const WATER_LABEL = { cold: '💧 Cold', luke: '💧 Luke', hot: '💧 Hot' };
 const newStep = kind => {
   const s = step(kind, '', kind === 'prep' ? 10 : kind === 'slow' ? 240 : 15, kind === 'oven' ? 200 : 0);
   if (kind === 'slow') s.setting = 'low';
@@ -31,7 +33,7 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
   let uid = 1;
   const emptyMeal = () => ({ name: '', together: false, groups: [], items: [] });
   const S = {
-    meal: emptyMeal(), mode: 'now', laterAt: 0, prepFirst: true, preheat: DEFAULT_PREHEAT, toast: '', focusNew: '',
+    meal: emptyMeal(), mode: 'now', laterAt: 0, prepFirst: true, preheat: DEFAULT_PREHEAT, toast: '', focusNew: '', renaming: 0, renameMsg: '',
   };
 
   // ---------- state ----------
@@ -109,6 +111,8 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       <button type="button" data-act="${act}" data-o="${owner}" data-i="${i}" data-d="${d}" aria-label="${more}">+</button>
     </div>`;
 
+  const hobWord = () => (store.getSettings().hobType === 'gas' ? 'Gas' : 'Hob');
+
   function stepsHtml(owner, steps) {
     return steps.map((s, i) => `${i ? '<div class="b-then">then</div>' : ''}
       <div class="b-stage">
@@ -117,10 +121,11 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
           <input class="b-st-name" data-o="${owner}" data-i="${i}" value="${esc(s.text)}" placeholder="What are you doing? e.g. Peel potatoes" aria-label="Step name" enterkeyhint="done" autocomplete="off">
           <button type="button" class="b-x" data-act="rmst" data-o="${owner}" data-i="${i}" aria-label="Remove step">✕</button>
         </div>
-        <div class="b-steppers ${s.kind === 'oven' || s.kind === 'slow' ? 'two' : ''}">
+        <div class="b-steppers ${s.kind === 'oven' || s.kind === 'slow' || s.kind === 'hob' ? 'two' : ''}">
           ${stepper('min', owner, i, s.kind === 'slow' ? 30 : 5, fmtT(s.min), s.kind === 'slow' ? '30 min less' : '5 min less', s.kind === 'slow' ? '30 min more' : '5 min more')}
           ${s.kind === 'slow' ? `<div class="b-seg" role="group" aria-label="Slow cooker setting">${['low', 'high'].map(v => `<button type="button" class="${(s.setting ?? 'low') === v ? 'on' : ''}" data-act="slowset" data-o="${owner}" data-i="${i}" data-v="${v}" aria-pressed="${(s.setting ?? 'low') === v}">${v === 'low' ? 'Low' : 'High'}</button>`).join('')}</div>` : ''}
           ${s.kind === 'oven' ? stepper('temp', owner, i, 10, `${s.temp}°`, '10 degrees cooler', '10 degrees hotter') : ''}
+          ${s.kind === 'hob' ? stepper('hob', owner, i, 1, `${hobWord()} ${s.hob ?? '–'}`, 'Heat lower', 'Heat higher') : ''}
         </div>
         ${s.check ? `<div class="b-check">
             <span class="b-check-mark" aria-hidden="true">↻</span>
@@ -128,7 +133,11 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
             ${stepper('chk', owner, i, 5, `after ${s.check.at} min`, 'Reminder 5 min earlier', 'Reminder 5 min later')}
             <button type="button" class="b-x" data-act="rmchk" data-o="${owner}" data-i="${i}" aria-label="Remove reminder">✕</button>
           </div>`
-          : `<button type="button" class="b-add b-add-chk" data-act="addchk" data-o="${owner}" data-i="${i}">+ Reminder (its own alarm)</button>`}
+          : (s.kind === 'hob' ? '' : `<button type="button" class="b-add b-add-chk" data-act="addchk" data-o="${owner}" data-i="${i}">+ Reminder (its own alarm)</button>`)}
+        ${s.kind === 'hob' ? `<div class="b-bottom">
+            ${s.check ? '<span></span>' : `<button type="button" class="b-add b-add-chk" data-act="addchk" data-o="${owner}" data-i="${i}">+ Reminder (its own alarm)</button>`}
+            <button type="button" class="b-water ${s.water ?? 'none'}" data-act="water" data-o="${owner}" data-i="${i}" aria-label="Water temperature: ${s.water ?? 'none'}. Tap to change">${WATER_LABEL[s.water] ?? '💧 Water'}</button>
+          </div>` : ''}
       </div>`).join('');
   }
 
@@ -136,11 +145,18 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
 
   function itemsHtml(list) {
     return `<div class="b-items">${list.map(it => `<div class="b-item ${it.open ? 'open' : ''}" data-id="${it.id}">
-        <button type="button" class="b-item-head" data-act="open" data-o="${it.id}" aria-expanded="${it.open}">
-          <span class="b-item-name">${esc(it.name)}</span>
-          <span class="b-item-time">${it.steps.length ? fmtT(sumMinutes(it.steps)) : 'add steps'}</span>
-          <span class="b-chev" aria-hidden="true">${it.open ? '▲' : '▼'}</span>
-        </button>
+        ${S.renaming === it.id ? `<div class="b-rename">
+            <div class="b-rename-row"><input class="b-rename-input" data-o="${it.id}" value="${esc(it.name)}" aria-label="Item name" autocomplete="off" enterkeyhint="done"><span class="b-item-time">${it.steps.length ? fmtT(sumMinutes(it.steps)) : ''}</span></div>
+            <div class="b-rename-bar"><button type="button" class="b-rename-save" data-act="renamesave" data-o="${it.id}">Save</button><button type="button" class="b-rename-cancel" data-act="renamecancel" data-o="${it.id}">Cancel</button></div>
+            <p class="b-hint">${esc(S.renameMsg) || 'Renames the item and its steps everywhere you\'ve saved it.'}</p>
+          </div>` : `<div class="b-item-top">
+          <button type="button" class="b-item-head" data-act="open" data-o="${it.id}" aria-expanded="${it.open}">
+            <span class="b-item-name">${esc(it.name)}</span>
+            <span class="b-item-time">${it.steps.length ? fmtT(sumMinutes(it.steps)) : 'add steps'}</span>
+            <span class="b-chev" aria-hidden="true">${it.open ? '▲' : '▼'}</span>
+          </button>
+          <button type="button" class="b-item-edit" data-act="rename" data-o="${it.id}" aria-label="Rename ${esc(it.name)}">✎</button>
+        </div>`}
         ${it.steps.length ? `<div class="b-strip" aria-hidden="true">${it.steps.map(s => `<i class="k-${s.kind}" style="flex:${s.min}"></i>`).join('')}</div>` : ''}
         ${it.open ? `<div class="b-item-foot"><span class="b-saved-note">✓ Changes save to Saved items</span><button type="button" class="b-x" data-act="rm" data-o="${it.id}">Remove item</button></div>
           <div class="b-stages">${stepsHtml(it.id, it.steps)}${addRow(it.id)}</div>` : ''}
@@ -209,6 +225,12 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       </div>`;
 
     root.innerHTML = h;
+    if (S.focusRename) {
+      const box = root.querySelector('.b-rename-input');
+      box?.focus();
+      box?.select();
+      S.focusRename = false;
+    }
     if (S.focusNew) {
       const [o, i] = S.focusNew.split(':');
       root.querySelector(`.b-st-name[data-o="${o}"][data-i="${i}"]`)?.focus();
@@ -240,6 +262,22 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
     } else if (act === 'temp') {
       const s = stepsOf(o)[index];
       s.temp = Math.min(250, Math.max(100, s.temp + Number(d)));
+    } else if (act === 'hob') {
+      const s = stepsOf(o)[index];
+      const max = store.getSettings().hobMax;
+      s.hob = Math.min(max, Math.max(1, (s.hob ?? Math.ceil(max / 2)) + Number(d)));
+    } else if (act === 'water') {
+      const s = stepsOf(o)[index];
+      const next = WATER[(WATER.indexOf(s.water) + 1) % WATER.length];
+      if (next) s.water = next; else delete s.water;
+    } else if (act === 'rename') {
+      S.renaming = +o;
+      S.renameMsg = '';
+      S.focusRename = true;
+    } else if (act === 'renamecancel') S.renaming = 0;
+    else if (act === 'renamesave') {
+      if (!renameItem(item, root.querySelector('.b-rename-input')?.value ?? '')) return draw();
+      S.renaming = 0;
     } else if (act === 'rmst') stepsOf(o).splice(index, 1);
     else if (act === 'addst') {
       stepsOf(o).push(newStep(k));
@@ -265,9 +303,30 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       if (!total()) S.toast = 'Add an item with some steps first.';
       else { save(); draw(); onStart(); return; }
     }
-    if (['min', 'temp', 'slowset', 'rmst', 'addst', 'addchk', 'chk', 'rmchk'].includes(act)) autosave(o);
+    if (['min', 'temp', 'slowset', 'hob', 'water', 'rmst', 'addst', 'addchk', 'chk', 'rmchk'].includes(act)) autosave(o);
     refresh();
   });
+
+  // Rename an item here and in the saved items and saved meals. False (with a message) if the name is taken.
+  function renameItem(item, to) {
+    const from = item.name;
+    to = to.trim();
+    if (!to) { S.renameMsg = 'Give it a name.'; return false; }
+    if (to === from) return true;
+    const lib = store.getLibraryItems();
+    if (Object.keys(lib).some(k => sameName(k, to) && !sameName(k, from))) { S.renameMsg = `You already have an item called "${to}".`; return false; }
+    for (const k of Object.keys(lib)) if (sameName(k, from)) store.removeLibraryItem(k);
+    item.name = to;
+    if (item.steps.length) store.saveLibraryItem(to, clone(item.steps));
+    for (const [mealName, m] of Object.entries(store.getLibraryMeals())) {
+      let changed = false;
+      const fix = names => (names ?? []).map(n => (sameName(n, from) ? (changed = true, to) : n));
+      m.items = fix(m.items);
+      for (const g of m.groups ?? []) g.items = fix(g.items);
+      if (changed) store.saveLibraryMeal(mealName, m);
+    }
+    return true;
+  }
 
   function saveMeal() {
     const name = S.meal.name.trim();
@@ -312,6 +371,9 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       addItem(listOf(key), t.value);
       refresh();
       root.querySelector(`.b-item-add[data-list="${key}"]`).focus();
+    } else if (t.classList.contains('b-rename-input')) {
+      e.preventDefault();
+      root.querySelector('[data-act="renamesave"]').click();
     } else if (t.matches('.b-st-name, .b-check-text, .b-group-name, #meal-name')) {
       t.blur();
     }
@@ -358,6 +420,8 @@ export function createBuilder({ root, store, now = Date.now, onStart = () => {},
       save();
       draw();
     },
+    // Settings (hob dial, preheat) were changed on the settings panel.
+    refreshSettings() { S.preheat = store.getSettings().preheatMinutes; draw(); },
     redraw: draw,
   };
 }

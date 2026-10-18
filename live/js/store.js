@@ -13,7 +13,7 @@ const KEYS = {
   libMeals: PREFIX + 'lib.meals', // saved meals: name -> { together, items, groups }
   tonight: PREFIX + 'tonight',   // the meal being set up
 };
-const DEFAULT_SETTINGS = { preheatMinutes: 15 };
+const DEFAULT_SETTINGS = { preheatMinutes: 15, hobType: 'electric', hobMax: 9, ovenType: 'fan' };
 
 const sameName = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 
@@ -102,7 +102,10 @@ export function createStore(storage) {
     const value = read(KEYS.settings, {});
     const stored = value && typeof value === 'object' ? value : {};
     const preheatMinutes = Number.isFinite(stored.preheatMinutes) ? stored.preheatMinutes : DEFAULT_SETTINGS.preheatMinutes;
-    return { ...DEFAULT_SETTINGS, ...stored, preheatMinutes };
+    const hobType = stored.hobType === 'gas' ? 'gas' : 'electric';
+    const ovenType = ['fan', 'conventional', 'gas'].includes(stored.ovenType) ? stored.ovenType : 'fan';
+    const hobMax = Number.isFinite(stored.hobMax) ? Math.min(12, Math.max(1, Math.round(stored.hobMax))) : DEFAULT_SETTINGS.hobMax;
+    return { ...DEFAULT_SETTINGS, ...stored, preheatMinutes, hobType, ovenType, hobMax };
   }
 
   function saveSettings(patch) {
@@ -167,7 +170,7 @@ export function createStore(storage) {
     remove(KEYS.cooking);
   }
 
-  // Backup file: saved items and meals, plus the preheat setting. Loading replaces what is here.
+  // Backup file: saved items and meals, plus the preheat setting. Loading adds to what is here (same name: the file wins).
   function exportData() {
     return {
       app: 'DinnerSync',
@@ -193,8 +196,8 @@ export function createStore(storage) {
   function importData(data) {
     const backup = readBackup(data);
     if (!backup) return null;
-    write(KEYS.libItems, backup.items);
-    write(KEYS.libMeals, backup.meals);
+    write(KEYS.libItems, { ...getLibraryItems(), ...backup.items });
+    write(KEYS.libMeals, { ...getLibraryMeals(), ...backup.meals });
     if (backup.preheat != null) saveSettings({ preheatMinutes: backup.preheat });
     return { items: Object.keys(backup.items).length, meals: Object.keys(backup.meals).length };
   }
