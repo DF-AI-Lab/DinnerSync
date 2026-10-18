@@ -302,7 +302,8 @@ function jobEl(job) {
   return el('div', { class: job.over ? 'job-timer over' : 'job-timer', 'data-index': String(job.index) },
     el('div', { class: 'job-head' },
       el('span', { class: 'job-dish' }, preheat ? 'Oven' : step.name),
-      ...(preheat ? [] : [el('span', { class: `tag m-${step.method}` }, METHOD_LABEL[step.method])])),
+      ...(preheat ? [] : [el('span', { class: `tag m-${step.method}` }, METHOD_LABEL[step.method])]),
+      ...(editInfo(step) ? [el('button', { class: 'btn step-edit job-edit', type: 'button', 'data-edit-step': '', 'aria-label': 'Edit name' }, '✎')] : [])),
     el('p', { class: 'job-text' }, step.text),
     el('div', { class: 'job-row' },
       el('span', { class: 'job-count' }, formatCountdown(job.leftMs)),
@@ -375,29 +376,36 @@ function stepItem(s) {
       el('div', { class: 'cs-alarm' }, el('span', { class: 'cs-label' }, 'Next alarm'), el('b', { class: 'cs-count' }, ''), el('span', { class: 'cs-text' }, '')));
   } else {
     body = el('div', { class: 'step-body' }, el('time', {}, formatClock(s.at)), ...stepNodes(s));
+    if (s.status === 'upcoming' && editInfo(s)) body.append(el('button', { class: 'btn step-edit row-edit', type: 'button', 'data-edit-step': '', 'aria-label': 'Edit name' }, '✎'));
     if (s.status === 'done') body.append(el('button', { class: 'btn ghost step-undo', type: 'button', 'data-undo': String(s.index) }, 'Undo'));
   }
   return el('li', attrs, dot, body);
 }
 
 // ✎ on the current step: the name becomes a box. Saving renames it here and in the saved item.
-function startStepEdit(li) {
-  const step = cook.plan.steps[Number(li.dataset.index)];
-  const row = li.querySelector('.cs-row');
+function startStepEdit(node) {
+  const step = cook.plan.steps[Number(node.dataset.index)];
   const input = el('input', { class: 'cs-input', type: 'text', value: editInfo(step).action, 'aria-label': 'Step name', autocomplete: 'off', enterkeyhint: 'done' });
-  row.replaceChildren(el('time', {}, formatClock(step.at)), input);
-  li.querySelector('.cs-alarm').replaceWith(el('div', { class: 'cs-editbar' },
+  const bar = el('div', { class: 'cs-editbar' },
     el('button', { class: 'btn step-done', type: 'button', 'data-step-save': '' }, 'Save'),
     el('button', { class: 'btn ghost step-undo', type: 'button', 'data-step-cancel': '' }, 'Cancel'),
-    el('p', { class: 'cs-hint' }, 'Also updates your saved item, so it reads right next time.')));
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(li); });
+    el('p', { class: 'cs-hint' }, 'Also updates your saved item, so it reads right next time.'));
+  if (node.matches('.job-timer')) {
+    node.querySelector('.job-text').replaceWith(input, bar);
+  } else if (node.querySelector('.cs-row')) {
+    node.querySelector('.cs-row').replaceChildren(el('time', {}, formatClock(step.at)), input);
+    node.querySelector('.cs-alarm').replaceWith(bar);
+  } else {
+    node.querySelector('.step-body').replaceChildren(el('time', {}, formatClock(step.at)), input, bar);
+  }
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveStepEdit(node); });
   input.focus();
   input.select();
 }
 
-function saveStepEdit(li) {
-  const step = cook.plan.steps[Number(li.dataset.index)];
-  const to = li.querySelector('.cs-input').value.trim();
+function saveStepEdit(node) {
+  const step = cook.plan.steps[Number(node.dataset.index)];
+  const to = node.querySelector('.cs-input').value.trim();
   const info = editInfo(step);
   if (to && to !== info.action) {
     builder.renameStep({ owners: info.owners, kind: step.method, from: info.raw, to });
@@ -502,6 +510,10 @@ function bindCookScreen() {
   $('home').addEventListener('click', () => showScreen('plan'));
   // Done on a job: its countdown is ticked off and it leaves the list of jobs.
   $('jobs').addEventListener('click', e => {
+    const node = e.target.closest('.job-timer');
+    if (cook && node && e.target.closest('[data-edit-step]')) { startStepEdit(node); return; }
+    if (cook && node && e.target.closest('[data-step-cancel]')) { jobsKey = null; renderCook(Date.now()); return; }
+    if (cook && node && e.target.closest('[data-step-save]')) { saveStepEdit(node); return; }
     const btn = e.target.closest('.job-done');
     if (!btn || !cook) return;
     const index = Number(btn.closest('.job-timer').dataset.index);
