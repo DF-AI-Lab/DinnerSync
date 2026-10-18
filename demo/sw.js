@@ -1,6 +1,6 @@
 // Network-first service worker: online it always fetches the newest file and saves a copy;
 // offline it falls back to the saved copy. Bump CACHE and the #app-version in index.html together.
-const CACHE = 'dinnersync-demo-v1.3.6';
+const CACHE = 'dinnersync-demo-v1.3.7';
 const ASSETS = [
   './',
   './index.html',
