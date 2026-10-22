@@ -1,6 +1,12 @@
 # DinnerSync
 
 ## Where we are
+- **2026-10-22: back to basics.** The step-by-step builder got too complicated. /demo is now **v2.0.0, the simple timer**: each dish = name + total time + optional "done early" (to rest). Everything works back from dinner: a dish goes on at dinner − (time + early). Same look and name. Mock: https://claude.ai/artifact/Pmt6rPSDo1fhUBo7LZ1sbN
+  - Files: demo/index.html, demo/css/simple.css, demo/js/simple.js (maths, tests/simple.test.js), demo/js/simple-app.js (screens + alarm), demo/js/ring.js (beep, unchanged). Browser check: `npm run check:demo`.
+  - Old v1.3.27 is untouched in /live and git history. Its old files in demo/js and demo/css are no longer used (safe to delete).
+  - Saved data: `dinnersync.simple.*`. "Saved meals (soon)" button is a placeholder: meals come next.
+  - Next action: Darren tries /demo on a real dinner. Then: saved meals; then the Android app for locked-phone alarms.
+- Before 2026-10-22 (kept for reference):
 - Current step: Build & Test. v1.3.4 = mockup 6 built, + Slow cook, + one-oven auto temp (decision 6 applied) (not yet tried on the phone).
 - Last session: 2026-10-18 (Sonnet): built the whole mockup 6 list, tests first. 102 unit tests + browser check pass. Screenshot at 400px matches the mock.
 - Next action: Darren tries v1.3.4 on the phone (build a meal, save it, run the timers). Then fix what feels wrong.

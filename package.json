@@ -5,7 +5,8 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "start": "python3 -m http.server 8080",
-    "check": "node tests/app.check.js"
+    "check": "node tests/app.check.js",
+    "check:demo": "node tests/demo.check.js"
   },
   "devDependencies": {
     "@capacitor/android": "^7.6.9",
